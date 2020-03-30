@@ -2,8 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
-!data/raw data/qualtricsLanguageCodes.xlsx
-Icon
-Icon[
-]
+*.sav
+*.Rdata
+*.csv
+*.zip
+#data/
+Icon[]
