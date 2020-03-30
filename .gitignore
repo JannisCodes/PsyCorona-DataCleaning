@@ -2,5 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-/data
+data/
+!data/raw data/qualtricsLanguageCodes.xlsx
 Icon
+Icon[
+]
