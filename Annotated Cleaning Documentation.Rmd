@@ -296,7 +296,7 @@ dt4newVars <- dt4newVars %>%
                                      grepl('Tezze di Piave', country, ignore.case = T) | grepl('Valmontone', country, ignore.case = T) |
                                      grepl('Vergato', country, ignore.case = T) | grepl('veneto', country, ignore.case = T) |
                                      grepl('Gragnano lucca', country, ignore.case = T) ~ 'Italy',
-                                   grepl('hong kong', country, ignore.case = T) ~ 'Hong Kong',
+                                   grepl('hong kong', country, ignore.case = T) ~ 'Hong Kong S.A.R.',
                                    grepl('phil', country, ignore.case = T) | grepl('Filipinas', country, ignore.case = T) ~ 'Philippines',
                                    grepl('argentina', country, ignore.case = T) | grepl('arge', country, ignore.case = T) ~ 'Argentina',
                                    grepl('pakistan', country, ignore.case = T) | grepl('Abbottabad', country, ignore.case = T) |
@@ -343,7 +343,7 @@ dt4newVars <- dt4newVars %>%
                                    grepl('romania', country, ignore.case = T) ~ 'Romania',
                                    grepl('singapore', country, ignore.case = T) ~ 'Singapore',
                                    grepl('Srbija', country, ignore.case = T) | grepl('serbia', country, ignore.case = T) |
-                                     grepl('Србија', country, ignore.case = T) ~ 'Serbia',
+                                     grepl('Србија', country, ignore.case = T) ~ 'Republic of Serbia',
                                    grepl('czech', country, ignore.case = T) | grepl('checa', country, ignore.case = T) ~ 'Czech Republic',
                                    grepl('lux', country, ignore.case = T) ~ 'Luxembourg',
                                    grepl('slova', country, ignore.case = T) ~ 'Slovakia',
@@ -361,7 +361,7 @@ dt4newVars <- dt4newVars %>%
                                      grepl('السعوديه', country, ignore.case = T) ~ 'Saudi Arabia',
                                    grepl('^thailand$', country, ignore.case = T) ~ 'Thailand',
                                    grepl('urug', country, ignore.case = T) ~ 'Uruguay',
-                                   grepl('costa', country, ignore.case = T) ~ 'costa', 
+                                   grepl('costa', country, ignore.case = T) ~ 'Costa Rica', 
                                    grepl('ecuador', country, ignore.case = T) ~ 'Ecuador',
                                    grepl('finland', country, ignore.case = T) ~ 'Finland', 
                                    grepl('guat', country, ignore.case = T) ~ 'Guatemala',
@@ -400,7 +400,7 @@ dt4newVars <- dt4newVars %>%
                                    grepl('^oman$', country, ignore.case = T) ~ 'Oman',
                                    grepl('qatar', country, ignore.case = T) ~ 'Qatar',
                                    grepl('panam', country, ignore.case = T) ~ 'Panama',
-                                   grepl('tanzania', country, ignore.case = T) ~ 'Tanzania',
+                                   grepl('tanzania', country, ignore.case = T) ~ 'United Republic of Tanzania',
                                    grepl('vietnam', country, ignore.case = T) ~ 'Vietnam'))
 # tallying un-recoded countries to see missing ones
 country_counts <- dt4newVars %>%
