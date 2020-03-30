@@ -1,0 +1,877 @@
+---
+title: "Psycorona - Data Cleaning Documentation"
+subtitle: "Step by step description" 
+author: "PsyCorona Gang"
+date: "3/29/2020"
+output:
+  html_document: 
+    code_folding: hide
+    mathjax: default
+    theme: yeti
+    toc: yes
+    toc_float: yes
+editor_options:
+  chunk_output_type: console
+---
+
+
+<style type="text/css">
+.main-container {
+  max-width: 1300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.table {
+  margin-left:auto; 
+  margin-right:auto;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+# R Studio Clean-Up
+  cat("\014") # clear console
+  rm(list=ls()) # clear workspace
+  gc # garbage collector
+  
+# Install and Load Packages
+  #if(!require(pacman)) install.packages("pacman")
+  require(pacman)
+  pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
+                 knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander)
+  
+# Load Custom Packages  
+  source("./scripts/functions/fun.panel.R")
+  source("./scripts/functions/themes.R")
+  
+# Markdown Options
+  knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set working directory
+  knitr::opts_knit$get("root.dir") # check working directory
+  options(scipen = 999, digits = 4, width = 400) #removes scientific quotation
+  #knitr::opts_chunk$set(echo = TRUE, cache = F, cache.path = rprojroot::find_rstudio_root_file('cache/')) # cache settings
+  knitr::knit_hooks$set(
+   error = function(x, options) {
+     paste('\n\n<div class="alert alert-danger">',
+           gsub('##', '\n', gsub('^##\ Error', '**Error**', x)),
+           '</div>', sep = '\n')
+   },
+   warning = function(x, options) {
+     paste('\n\n<div class="alert alert-warning">',
+           gsub('##', '\n', gsub('^##\ Warning:', '**Warning**', x)),
+           '</div>', sep = '\n')
+   },
+   message = function(x, options) {
+     paste('\n\n<div class="alert alert-info">',
+           gsub('##', '\n', x),
+           '</div>', sep = '\n')
+   }
+  )
+  htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+
+# Global Chunk Options
+  knitr::opts_chunk$set(echo = TRUE)
+```
+
+Note. Boxplots display the interquartile range (IQR, center box), and the whiskers extend 1.5*IQR from the lower and upper hinge. The white point indicates the mean and the white center line indicates the median.   
+
+<br/>
+
+## **Import Data**
+In a first step we import the raw Qualtrics data, which was downloaded as an SPSS file.   
+
+```{r LoadRaw, echo=T, warning=F, message=F}
+# Reset working directory to folder current file is saved in
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+# Import Qualtrics Survey Data
+dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_March+30,+2020_00.32.sav")
+```
+
+The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
+
+
+## **Data Quality**   
+
+### Missing Data  
+<!-- https://cran.r-project.org/web/packages/naniar/vignettes/naniar-visualisation.html -->
+
+Inspecting missing data in the items.
+
+```{r Missing, echo=T, warning=F, message=F}
+# Table: Missing Data per item
+dt0Raw %>%
+  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  naniar::miss_var_summary(.) %>% # by variable summary of missingness proportion
+  DT::datatable(.,
+                colnames = c("Variable", "Number Missing", "Percentage Missing"),
+                filter = 'top',
+                extensions = 'Buttons',
+                options = list(
+                  columnDefs = list(list(className = 'dt-center')),
+                  #autoWidth = TRUE,
+                  dom = 'Bfrtlip',
+                  buttons = c('copy', 'csv', 'excel', 'pdf', 'print'))) %>%
+  DT::formatRound('pct_miss', digits = 2)
+  
+# Plot: Missing Data per item
+dt0Raw %>%
+  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  naniar::gg_miss_var(.) # visualize by variable summary of missingness proportion
+
+# Plot: Missing Data cumulative
+dt0Raw %>%
+  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  naniar::gg_miss_var_cumsum(.) # missingness development over survey
+
+# Co-occurences of missingess - too many variables
+#dt0Raw %>%
+#  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+#  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+#  naniar::gg_miss_upset(., nsets = n_var_miss(.)) # visualize missingess co-occurences
+```
+
+### Filter: Preview Responses
+Filter the Preview responses.
+```{r preview, echo=T, warning=F, message=F}
+# flag Preview Responses
+dt1Preview <- dt0Raw %>%
+  mutate(FilterPreview = labelled(ifelse(Status == 0,0,1),
+                                  labels = c(preview = 1), label="Filter: survey preview response"))
+```
+
+
+### Filter: Short Duration on Survey   
+Filter survey responses that were shorter than 10 minutes.   
+```{r Duration, echo=T, warning=F, message=F}
+# truncate data:
+tOutlierHigh <- dt1Preview %>%
+  select(Duration__in_seconds_) %>%
+  filter(Duration__in_seconds_<=stats::median(Duration__in_seconds_)+stats::mad(Duration__in_seconds_)*3.5) %>%
+  mutate(Minutes = Duration__in_seconds_/60)
+
+# set time cut-off criterion:
+tCutOff <- 10 #cut-off criterion in minutes
+tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt1Preview)*100,2) # percent of missing data with current cut-off criterion
+tOutlierHigh$out <- tOutlierHigh$Minutes < 10
+
+# plot histogram and missing
+ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
+  geom_histogram(bins=round(max(tOutlierHigh$Minutes),0),
+                 alpha=.6) +
+  geom_vline(xintercept = tCutOff, 
+             color = "darkred",
+             linetype = "longdash") +
+  geom_text(aes(x=tCutOff, label=paste0("time cut-off: ",tCutOff," Minutes\n"), y=Inf), 
+            hjust = 1,
+            colour="darkred", 
+            angle=90) +
+  geom_text(aes(x=tCutOff, label=paste0("\ndata loss: ",tCutOffPerc,"%"), y=Inf), 
+            hjust = 1,
+            colour="darkred", 
+            angle=90) +
+  scale_x_continuous(breaks = seq(0, round(max(tOutlierHigh$Minutes),0), 5)) +
+  scale_fill_manual(values=c("darkgrey","darkred")) +
+  labs(title = "Truncated Histogram: Survey Duration", 
+       x = "Duration [Mintues]",
+       y = "Frequency Count",
+       caption = "Notes:
+       (1) Truncated: all participants who took less time than Median+3.5*MAD
+       (2) Each bin represents one Minute") +
+  theme_Publication() +
+  theme(legend.position = "none")
+
+rm(tOutlierHigh, tCutOff, tCutOffPerc)
+
+# flag anyone with less than 10 minutes survey duration
+dt2Time <- dt1Preview %>%
+  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 600,0,1),
+                               labels = c(`extremely quick` = 1), label="Filter: Took less than 10 minutes on survey"))
+```
+
+
+### Filter: Straightliners   
+Filter participants, who have straightlined on the job insecurity scale, which includes a reverse coded item. We only flag people who straightlined outside the median categories because all "neither agree nor disagree" might be meaningful response.   
+```{r Straightliner, echo=T, warning=F, message=F}
+# CheckMissingness pattern
+naniar::gg_miss_upset(dt2Time %>%
+  select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
+  na_if(., -99) # all -99 into <NA>
+)
+
+# isolate respondents who have straightlined outside a the median categories (b/c all "neither agree nor disagree" might be meaningful response) 
+jobinsecRed <- dt2Time %>%
+  select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
+  na_if(., -99) %>% # all -99 into <NA>
+  na.omit() %>% # remove people who have missing data on one of the three items
+  mutate(mean = rowMeans(select(., c("jbInsec01", "jbInsec02", "jbInsec03"))), 
+         sd = matrixStats::rowSds(as.matrix(select(., c("jbInsec01", "jbInsec02", "jbInsec03"))))) %>% # calculate row-means and row-sds 
+  filter(sd == 0, mean != 0)
+
+# flag anyone who straightlined on job insecurity
+dt3Straightliner <- dt2Time %>%
+  mutate(FilterStraightliner = labelled(ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1),
+                                        labels = c(straightliner = 1), label="Filter: straightliner on Job Insecurity"))
+rm(jobinsecRed)
+```
+
+
+## **Data Preparation**   
+Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet.  
+
+### Recoded Items   
+Re-coding reverse coded items and the Qualtrics language codes.
+```{r recode, echo=T, warning=F, message=F}
+# Recoded Items
+dt3Straightliner <- dt3Straightliner %>%
+  mutate(jbInsec02_R = labelled(recode(as.numeric(jbInsec02), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2, `-99` = -99),
+                                labels = NULL, label="Job Insecurity 02 (re-coded)"),
+         bor03_R = labelled(recode(as.numeric(bor03), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2),
+                            labels = NULL, label="Boredom 03 (re-coded)"))
+# Language
+# Import Qualtrics Language Codes
+qualtricsLanguage <- read_excel("data/raw data/qualtricsLanguageCodes.xlsx")
+dt3Straightliner <- merge(x=dt3Straightliner, y=qualtricsLanguage, by="Q_Language", all=TRUE)
+rm(qualtricsLanguage)
+```
+
+### Country
+<br>
+<div class="alert alert-warning">
+<strong><i class="fa fa-exclamation-triangle"></i> Action needed:</strong> <br> 
+We currently have `r length(table(dt3Straightliner$country))` different free text country responses. These need to be coded and consolidated.
+</div>
+```{r Country, echo=T, warning=F, message=F}
+#
+# WORK NEEDED HERE (string finding?) 
+#
+```
+
+
+### Political Orientation   
+Political orientation was measured per language. We merge these variables here.    
+```{r PolOr, echo=T, warning=F, message=F}
+dt4PolOr <- dt3Straightliner %>%
+  mutate(PolOrX = labelled(rowSums(select(., ends_with("_x")), na.rm = T), 
+                           labels = NULL, label="Political Compass X-Coordinate"),
+         PolOrY = labelled(rowSums(select(., ends_with("_y")), na.rm = T), 
+                           labels = NULL, label="Political Compass Y-Coordinate"),
+         PolOrAuthoritarianLeft = rowSums(select(., ends_with("_Authoritarian_Left")), na.rm = T),
+         PolOrAuthoritarianLeftLab = dplyr::recode(PolOrAuthoritarianLeft, `1` =  "Authoritarian Left", `0` = ""),
+         PolOrAuthoritarianRight = rowSums(select(., ends_with("_Authoritarian_right")), na.rm = T),
+         PolOrAuthoritarianRightLab = dplyr::recode(PolOrAuthoritarianRight, `1` =  "Authoritarian Right", `0` = ""),
+         PolOrLibertarianLeft = rowSums(select(., ends_with("_Libertarian_Left")), na.rm = T),
+         PolOrLibertarianLeftLab = dplyr::recode(PolOrLibertarianLeft, `1` =  "Libertarian Left", `0` = ""),
+         PolOrLibertarianRight = rowSums(select(., ends_with("_Libertarian_Right")), na.rm = T),
+         PolOrLibertarianRightLab = dplyr::recode(PolOrLibertarianRight, `1` =  "Libertarian Right", `0` = ""),
+         PolOrOther = rowSums(select(., ends_with("_Other")), na.rm = T),
+         PolOrOtherLab = dplyr::recode(PolOrOther, `1` =  "Other", `0` = ""),
+         PolOrCat = paste0(PolOrAuthoritarianLeftLab, 
+                           PolOrAuthoritarianRightLab,
+                           PolOrLibertarianLeftLab,
+                           PolOrLibertarianRightLab,
+                           PolOrOtherLab), 
+         PolOrCat = as.factor(na_if(PolOrCat, ""))) %>%
+  select(-starts_with("Pol"),
+         PolOrX,
+         PolOrY,
+         PolOrCat)
+attr(dt4PolOr$PolOrCat,'label') <- 'Political Orientation Quadrant'
+```
+
+### Affect    
+
+#### High Arousal Negative   
+```{r affHighNeg, echo=T, results='asis', warning=F, message=F}
+# High Arousal Negative
+## Anger not measured in wave 1
+pairs.panels.new(dt4PolOr %>% select(affAnx, affNerv))
+
+cat("<br>")
+
+dt4PolOr$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt4PolOr %>% select(affAnx, affNerv), min = 1, max = 5)$scores
+
+as.data.frame(psych::describe(dt4PolOr$affHighNeg.m, skew=F)) %>%
+  mutate(vars = "High Arousal Negative Affect") %>%
+  kable(., caption = "High Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$affHighNeg.c <- scale(dt4PolOr$affHighNeg.m, scale = F, center = T)
+dt4PolOr$affHighNeg.z <- scale(dt4PolOr$affHighNeg.m, scale = T)
+dt4PolOr$affHighNeg.fa <- fa(dt4PolOr %>% select(affAnx, affNerv))$scores
+```
+
+#### Low Arousal Negative Affect  
+```{r affLowNeg, echo=T, results='asis', warning=F, message=F}
+# Low Arousal Negative Affect
+ia.affLowNeg <- dt4PolOr %>%
+    dplyr::select(affBor, affExh, affDepr) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.affLowNeg$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.affLowNeg)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(affBor, affExh, affDepr))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Low Arousal Negative Affect: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(affBor, affExh, affDepr))
+
+cat("<br>")
+
+dt4PolOr$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(affBor, affExh, affDepr), min = 1, max = 5)$scores
+
+as.data.frame(psych::describe(dt4PolOr$affLowNeg.m, skew=F)) %>%
+  mutate(vars = "Low Arousal Negative Affect") %>%
+  kable(., caption = "Low Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$affLowNeg.c <- scale(dt4PolOr$affLowNeg.m, scale = F, center = T)
+dt4PolOr$affLowNeg.z <- scale(dt4PolOr$affLowNeg.m, scale = T)
+dt4PolOr$affLowNeg.fa <- fa(dt4PolOr %>% select(affBor, affExh, affDepr))$scores
+```
+
+#### Low Arousal Positive Affect  
+```{r affLowPos, echo=T, results='asis', warning=F, message=F}
+# Low Arousal Positive Affect
+ia.affLowPos <- dt4PolOr %>%
+    dplyr::select(affCalm, affContent, affRel) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.affLowPos$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.affLowPos)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(affCalm, affContent, affRel))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Low Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(affCalm, affContent, affRel))
+
+cat("<br>")
+
+dt4PolOr$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(affCalm, affContent, affRel), min = 1, max = 5)$scores
+
+as.data.frame(psych::describe(dt4PolOr$affLowPos.m, skew=F)) %>%
+  mutate(vars = "Low Arousal Positive Affect") %>%
+  kable(., caption = "Low Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$affLowPos.c <- scale(dt4PolOr$affLowPos.m, scale = F, center = T)
+dt4PolOr$affLowPos.z <- scale(dt4PolOr$affLowPos.m, scale = T)
+dt4PolOr$affLowPos.fa <- fa(dt4PolOr %>% select(affCalm, affContent, affRel))$scores
+```
+
+#### High Arousal Positive Affect  
+```{r affHighPos, echo=T, results='asis', warning=F, message=F}
+# High Arousal Positive Affect
+ia.affHighPos <- dt4PolOr %>%
+    dplyr::select(affEnerg, affExc, affInsp) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.affHighPos$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.affHighPos)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(affEnerg, affExc, affInsp))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "High Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(affEnerg, affExc, affInsp))
+
+cat("<br>")
+
+dt4PolOr$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
+
+as.data.frame(psych::describe(dt4PolOr$affHighPos.m, skew=F)) %>%
+  mutate(vars = "High Arousal Positive Affect") %>%
+  kable(., caption = "High Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$affHighPos.c <- scale(dt4PolOr$affHighPos.m, scale = F, center = T)
+dt4PolOr$affHighPos.z <- scale(dt4PolOr$affHighPos.m, scale = T)
+dt4PolOr$affHighPos.fa <- fa(dt4PolOr %>% select(affEnerg, affExc, affInsp))$scores
+```
+
+### Loneliness
+```{r lone, echo=T, results='asis', warning=F, message=F}
+ia.lone<- dt4PolOr %>%
+    dplyr::select(starts_with("lone")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.lone$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.lone)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("lone")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Loneliness: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("lone")))
+
+cat("<br>")
+
+dt4PolOr$lone.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(starts_with("lone")), min = 1, max = 5)$scores
+
+as.data.frame(psych::describe(dt4PolOr$lone.m, skew=F)) %>%
+  mutate(vars = "Loneliness") %>%
+  kable(., caption = "Loneliness: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$lone.c <- scale(dt4PolOr$lone.m, scale = F, center = T)
+dt4PolOr$lone.z <- scale(dt4PolOr$lone.m, scale = T)
+dt4PolOr$lone.fa <- fa(dt4PolOr %>% select(starts_with("lone")))$scores
+```  
+
+### Boredom
+```{r bore, echo=T, results='asis', warning=F, message=F}
+ia.bor<- dt4PolOr %>%
+    dplyr::select(starts_with("bor0"), -bor03) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.bor$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.bor)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("bor0"), -bor03))
+```
+<div class="alert alert-info">
+<strong><i class="fa fa-exclamation-triangle"></i> Item dropped:</strong> <br> 
+Item three was not well behaved. It seems to measure something else. We dropped it for now.
+</div>
+
+```{r bore.red, echo=T, results='asis', warning=F, message=F}
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("bor0"), -bor03, -bor03_R))
+
+cat("<br>")
+
+dt4PolOr$bor.m <- scoreItems(keys=c(1,1), items = dt4PolOr %>% select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
+
+as.data.frame(psych::describe(dt4PolOr$bor.m, skew=F)) %>%
+  mutate(vars = "Boredom") %>%
+  kable(., caption = "Boredom: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$bor.c <- scale(dt4PolOr$bor.m, scale = F, center = T)
+dt4PolOr$bor.z <- scale(dt4PolOr$bor.m, scale = T)
+dt4PolOr$bor.fa <- fa(dt4PolOr %>% select(starts_with("bor0"), -bor03, -bor03_R))$scores
+```
+  
+### Isolation
+```{r iso, echo=T, results='asis', warning=F, message=F}
+cat(crayon::bold("Offline Isolation"))
+ia.isoPers <- dt4PolOr %>%
+    dplyr::select(ends_with("inPerson")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.isoPers$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(ends_with("inPerson")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(ends_with("inPerson")))
+
+cat("<br>")
+
+dt4PolOr$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(ends_with("inPerson")), min = 0, max = 7)$scores
+
+as.data.frame(psych::describe(dt4PolOr$isoPers.m, skew=F)) %>%
+  mutate(vars = "Isolation offline") %>%
+  kable(., caption = "Isolation offline: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$isoPers.c <- scale(dt4PolOr$isoPers.m, scale = F, center = T)
+dt4PolOr$isoPers.z <- scale(dt4PolOr$isoPers.m, scale = T)
+dt4PolOr$isoPers.fa <- fa(dt4PolOr %>% select(ends_with("inPerson")))$scores
+
+cat(crayon::bold("Online Isolation"))
+ia.isoOnl <- dt4PolOr %>%
+    dplyr::select(ends_with("online")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.isoOnl$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(ends_with("inPerson")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(ends_with("online")))
+
+cat("<br>")
+
+dt4PolOr$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(ends_with("online")), min = 0, max = 7)$scores
+
+as.data.frame(psych::describe(dt4PolOr$isoPers.m, skew=F)) %>%
+  mutate(vars = "Isolation online") %>%
+  kable(., caption = "Isolation online: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$isoOnl.c <- scale(dt4PolOr$isoOnl.m, scale = F, center = T)
+dt4PolOr$isoOnl.z <- scale(dt4PolOr$isoOnl.m, scale = T)
+dt4PolOr$isoOnl.fa <- fa(dt4PolOr %>% select(ends_with("online")))$scores
+
+# Leave House
+as.data.frame(psych::describe(dt4PolOr$houseLeave, skew=F)) %>%
+  mutate(vars = "Leaving House") %>%
+  kable(., caption = "Leaving House: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+```
+
+### Government Response
+No responses yet
+```{r gov, echo=T, results='asis', warning=F, message=F}
+# extC19Msg
+```
+
+### Community Response
+```{r community, echo=T, results='asis', warning=F, message=F}
+ia.ext <- dt4PolOr %>%
+    dplyr::select(starts_with("extC19"), -extC19Msg) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.ext$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.ext)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("extC19"), -extC19Msg))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("extC19"), -extC19Msg))
+
+cat("<br>")
+
+dt4PolOr$ext.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(starts_with("extC19"), -extC19Msg), 
+                             min = 1, max = 6)$scores
+
+as.data.frame(psych::describe(dt4PolOr$ext.m, skew=F)) %>%
+  mutate(vars = "Community response") %>%
+  kable(., caption = "Community response: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$ext.c <- scale(dt4PolOr$ext.m, scale = F, center = T)
+dt4PolOr$ext.z <- scale(dt4PolOr$ext.m, scale = T)
+dt4PolOr$ext.fa <- fa(dt4PolOr %>% select(starts_with("extC19"), -extC19Msg))$scores
+```
+
+### Behavioral Response
+```{r beh, echo=T, results='asis', warning=F, message=F}
+ia.beh <- dt4PolOr %>%
+    dplyr::select(starts_with("c19per")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.beh$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.beh)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("c19per")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Behavioral response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("c19per")))
+
+cat("<br>")
+
+dt4PolOr$beh.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(starts_with("c19per")), 
+                             min = -3, max = 3)$scores
+
+as.data.frame(psych::describe(dt4PolOr$beh.m, skew=F)) %>%
+  mutate(vars = "Behavioral response") %>%
+  kable(., caption = "Behavioral response: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$beh.c <- scale(dt4PolOr$beh.m, scale = F, center = T)
+dt4PolOr$beh.z <- scale(dt4PolOr$beh.m, scale = T)
+dt4PolOr$beh.fa <- fa(dt4PolOr %>% select(starts_with("c19per")))$scores
+```
+
+### Hope and Efficacy
+```{r hopeEff, echo=T, results='asis', warning=F, message=F}
+as.data.frame(psych::describe(dt4PolOr$c19Hope)) %>%
+  mutate(vars = "Hope") %>%
+  kable(., caption = "Hope: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt4PolOr, aes(x = c19Hope)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Hope distribution",x="Corona Virus Hope", y = "Frequency") +
+  theme_Publication()
+  
+as.data.frame(psych::describe(dt4PolOr$c19Eff)) %>%
+  mutate(vars = "Efficacy") %>%
+  kable(., caption = "Efficacy: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt4PolOr, aes(x = c19Eff)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Efficacy distribution",x="Corona Virus Efficacy", y = "Frequency") +
+  theme_Publication()
+```
+
+### State Paranoia
+```{r para, echo=T, results='asis', warning=F, message=F}
+ia.para <- dt4PolOr %>%
+    dplyr::select(starts_with("para")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.para$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.para)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("para")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "State Paranoia: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("para")))
+
+cat("<br>")
+
+dt4PolOr$para.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(starts_with("para")), 
+                             min = 0, max = 10)$scores
+
+as.data.frame(psych::describe(dt4PolOr$para.m, skew=F)) %>%
+  mutate(vars = "State Paranoia") %>%
+  kable(., caption = "State Paranoia: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$para.c <- scale(dt4PolOr$para.m, scale = F, center = T)
+dt4PolOr$para.z <- scale(dt4PolOr$para.m, scale = T)
+dt4PolOr$para.fa <- fa(dt4PolOr %>% select(starts_with("para")))$scores
+```
+
+### Conspiracy Theory
+```{r consp, echo=T, results='asis', warning=F, message=F}
+ia.consp <- dt4PolOr %>%
+    dplyr::select(starts_with("consp")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.consp$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.consp)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("consp")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Conspiracy Theory: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("consp")))
+
+cat("<br>")
+
+dt4PolOr$consp.m <- scoreItems(keys=c(1,1,1), items = dt4PolOr %>% select(starts_with("consp")), 
+                             min = 0, max = 10)$scores
+
+as.data.frame(psych::describe(dt4PolOr$consp.m, skew=F)) %>%
+  mutate(vars = "Conspiracy Theory") %>%
+  kable(., caption = "Conspiracy Theory: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$para.c <- scale(dt4PolOr$consp.m, scale = F, center = T)
+dt4PolOr$para.z <- scale(dt4PolOr$consp.m, scale = T)
+dt4PolOr$para.fa <- fa(dt4PolOr %>% select(starts_with("consp")))$scores
+```
+
+### Job Insecurity
+```{r jbinsc, echo=T, results='asis', warning=F, message=F}
+ia.jobinsec<- dt4PolOr %>%
+    dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>%
+    na_if(., -99) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.jobinsec$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.jobinsec)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Job insecurity: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
+
+cat("<br>")
+
+dt4PolOr$jobinsec.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt4PolOr %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt4PolOr$jobinsec.m, skew=F)) %>%
+  mutate(vars = "Job insecurity") %>%
+  kable(., caption = "Job insecurity: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$jobinsec.c <- scale(dt4PolOr$jobinsec.m, scale = F, center = T)
+dt4PolOr$jobinsec.z <- scale(dt4PolOr$jobinsec.m, scale = T)
+dt4PolOr$jobinsec.fa <- fa(dt4PolOr %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04))$scores
+```
+
+### Financial Strain
+```{r finance, echo=T, results='asis', warning=F, message=F}
+ia.pfs<- dt4PolOr %>%
+    dplyr::select(starts_with("PFS0")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.pfs$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.pfs)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt4PolOr %>% select(starts_with("PFS0")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Financial Strain: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt4PolOr %>% select(starts_with("PFS0")))
+
+cat("<br>")
+
+dt4PolOr$pfs.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt4PolOr %>% select(starts_with("PFS0")),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt4PolOr$pfs.m, skew=F)) %>%
+  mutate(vars = "inancial Strain") %>%
+  kable(., caption = "inancial Strain: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt4PolOr$pfs.c <- scale(dt4PolOr$pfs.m, scale = F, center = T)
+dt4PolOr$pfs.z <- scale(dt4PolOr$pfs.m, scale = T)
+dt4PolOr$pfs.fa <- fa(dt4PolOr %>% select(starts_with("PFS0")))$scores
+```
+
+
+## **Reduce to Relevant Variales**   
+```{r keyVars, echo=T, warning=F, message=F}
+# remove directly identifiable data (with and without page timers)
+dt5ReducedTimer <- dt4PolOr %>%
+  select(-c(IPAddress, 
+            RecipientLastName, 
+            RecipientFirstName, 
+            RecipientEmail, 
+            ExternalReference, 
+            LocationLatitude, 
+            LocationLongitude,
+            DistributionChannel,
+            ICRec_1_TEXT))
+dt5Reduced <- dt5ReducedTimer %>%
+  select(-starts_with("t_"))
+
+# remove filtered cases (with and without page timers)
+dt5ReducedTimerCases <- dt5ReducedTimer %>%
+  filter(FilterPreview == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0) %>%
+  select(-starts_with("Filter"))
+dt5ReducedCases <- dt5Reduced %>%
+  filter(FilterPreview == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0) %>%
+  select(-starts_with("Filter"))
+```
+
+## **Export**   
+Export main dataframe as RData and SPSS sav files. We export versions with and without page timers
+```{r export, echo=T, warning=F, message=F}
+namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+write_sav(dt5Reduced, namSPSS)
+write_sav(dt5ReducedTimer, namTSPSS)
+save(dt5Reduced, file = namR)
+save(dt5ReducedTimer, file = namTR)
+rm(list=ls(pattern="nam"))
+```
