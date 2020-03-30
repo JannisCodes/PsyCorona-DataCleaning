@@ -240,10 +240,12 @@ rm(qualtricsLanguage)
 ### Country
 We currently have `r length(table(dt4newVars$country))` different free text country responses. Here we aim to consolidate them into one variable.
 ```{r Country, echo=T, warning=F, message=F}
+
+#code originally provided by Courtney Soderberg
 dt4newVars <- dt4newVars %>%
   mutate(coded_country = case_when(grepl('^usa$', country, ignore.case = T) | grepl('unites state', country, ignore.case = T) | 
                                      grepl('united state', country, ignore.case = T) | grepl('^america$', country, ignore.case = T) |
-                                     grepl('U.S.', country, ignore.case = T) | grepl('Estados Unidos', country, ignore.case = T) |
+                                     grepl('U\\.S\\.', country, ignore.case = T) | grepl('Estados Unidos', country, ignore.case = T) |
                                      grepl('colorado', country, ignore.case = T) | grepl('^us$', country, ignore.case = T) |
                                      grepl('xas', country, ignore.case = T) | grepl('sates', country, ignore.case = T) |
                                      grepl('Amerika Serikat', country, ignore.case = T) | grepl('california', country, ignore.case = T) |
@@ -303,7 +305,7 @@ dt4newVars <- dt4newVars %>%
                                      grepl('Peshawar', country, ignore.case = T) ~ 'Pakistan',
                                    grepl('united kingdo', country, ignore.case = T) | grepl('^uk$', country, ignore.case = T) |
                                      grepl('Reino Unido', country, ignore.case = T) | grepl('britain', country, ignore.case = T) |
-                                     grepl('Regno Unito', country, ignore.case = T) | grepl('u.k.', country, ignore.case = T) |
+                                     grepl('Regno Unito', country, ignore.case = T) | grepl('u\\.k\\.', country, ignore.case = T) |
                                      grepl('بريطانيا', country, ignore.case = T) | grepl('the uk', country, ignore.case = T) |
                                      grepl('U K', country, ignore.case = T) | grepl('Verenigd Koninkrijk', country, ignore.case = T) |
                                      grepl('Windsor', country, ignore.case = T) | grepl('scotland', country, ignore.case = T) |
@@ -356,7 +358,7 @@ dt4newVars <- dt4newVars %>%
                                    grepl('Riyad', country, ignore.case = T) | grepl('^Saudi arabia$', country, ignore.case = T) |
                                      grepl('Arabia Saudita', country, ignore.case = T) | grepl('^saudi$', country, ignore.case = T) |
                                      grepl('Kingdom of Saudia arabia', country, ignore.case = T) | grepl('KSA', country, ignore.case = T) |
-                                     grepl('k.s.a', country, ignore.case = T) | grepl('Arabie saoudite', country, ignore.case = T) | 
+                                     grepl('k\\.s\\.a', country, ignore.case = T) | grepl('Arabie saoudite', country, ignore.case = T) | 
                                      grepl('الرياض', country, ignore.case = T) | grepl('السعودية', country, ignore.case = T) |
                                      grepl('السعوديه', country, ignore.case = T) ~ 'Saudi Arabia',
                                    grepl('^thailand$', country, ignore.case = T) ~ 'Thailand',
