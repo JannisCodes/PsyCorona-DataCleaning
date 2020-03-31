@@ -43,6 +43,7 @@ editor_options:
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
   source("./scripts/functions/themes.R")
+  source("./scripts/functions/dictionary_functions.R")
   
 # Markdown Options
   knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set working directory
@@ -154,6 +155,7 @@ tOutlierHigh <- dt1Preview %>%
 
 # set time cut-off criterion:
 tCutOff <- 10 #cut-off criterion in minutes
+# CJ: This might be a bit strict, I suspect that I completed it in <10 minutes. 
 tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt1Preview)*100,2) # percent of missing data with current cut-off criterion
 tOutlierHigh$out <- tOutlierHigh$Minutes < 10
 
@@ -240,8 +242,25 @@ rm(qualtricsLanguage)
 ### Country
 We currently have `r length(table(dt4newVars$country))` different free text country responses. Here we aim to consolidate them into one variable.
 ```{r Country, echo=T, warning=F, message=F}
+# CJ: Just as a benchmark, geolocate IP address. Can always use this if a free 
+# CJ: text country response does not resolve.
+library(rgeolocate)
+file <- system.file("extdata","GeoLite2-Country.mmdb", package = "rgeolocate")
+geolocations <- maxmind(dt4newVars$IPAddress, file, c("continent_name", "country_code", "country_name"))
+dt4newVars$coded_country_ip <- geolocations$country_name
+
+# CJ: This is a slightly cleaner, faster, and more informative regex based approach.
+# CJ: The function and dictionary (based on the code below, some errors corrected) 
+# CJ: is in source("./scripts/functions/dictionary_functions.R")
+country_matches <- cat_words(tolower(dt4newVars$country), country_dict)
+# Check duplicates, and which regular expressions triggered them
+country_matches$dup
+# Check unmatched strings, fix common ones
+head(country_matches$unmatched)
+dt4newVars$coded_country_cj <- country_matches$words
 
 #code originally provided by Courtney Soderberg
+
 dt4newVars <- dt4newVars %>%
   mutate(coded_country = case_when(grepl('^usa$', country, ignore.case = T) | grepl('unites state', country, ignore.case = T) | 
                                      grepl('united state', country, ignore.case = T) | grepl('^america$', country, ignore.case = T) |
