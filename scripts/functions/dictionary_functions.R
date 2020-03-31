@@ -89,7 +89,8 @@ country_dict <- list('united, states, of, america' = c('^usa$',  'uni.+stat',  '
                      'qatar' = c('qatar'),
                      'panama' = c('panam'),
                      'united, republic, of, tanzania' = c('tanzania'),
-                     'vietnam' = c('vietnam')
+                     'vietnam' = c('vietnam'),
+                     "Trinidad and Tobago" = c("trinid")
 )
 
 
