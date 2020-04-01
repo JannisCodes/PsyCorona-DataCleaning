@@ -38,7 +38,8 @@ editor_options:
   #if(!require(pacman)) install.packages("pacman")
   require(pacman)
   pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
-                 knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander)
+                 knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
+                 Scale)
   
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
@@ -101,8 +102,8 @@ Inspecting missing data in the items.
 ```{r Missing, echo=T, warning=F, message=F}
 # Table: Missing Data per item
 dt0Raw %>%
-  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
-  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::miss_var_summary(.) %>% # by variable summary of missingness proportion
   DT::datatable(.,
                 colnames = c("Variable", "Number Missing", "Percentage Missing"),
@@ -117,20 +118,20 @@ dt0Raw %>%
   
 # Plot: Missing Data per item
 dt0Raw %>%
-  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
-  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::gg_miss_var(.) # visualize by variable summary of missingness proportion
 
 # Plot: Missing Data cumulative
 dt0Raw %>%
-  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
-  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+  dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+  dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::gg_miss_var_cumsum(.) # missingness development over survey
 
 # Co-occurences of missingess - too many variables
 #dt0Raw %>%
-#  select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
-#  select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
+#  dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
+#  dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
 #  naniar::gg_miss_upset(., nsets = n_var_miss(.)) # visualize missingess co-occurences
 ```
 
@@ -149,7 +150,7 @@ Filter survey responses that were shorter than 10 minutes.
 ```{r Duration, echo=T, warning=F, message=F}
 # truncate data:
 tOutlierHigh <- dt1Preview %>%
-  select(Duration__in_seconds_) %>%
+  dplyr::select(Duration__in_seconds_) %>%
   filter(Duration__in_seconds_<=stats::median(Duration__in_seconds_)+stats::mad(Duration__in_seconds_)*3.5) %>%
   mutate(Minutes = Duration__in_seconds_/60)
 
@@ -199,17 +200,17 @@ Filter participants, who have straightlined on the job insecurity scale, which i
 ```{r Straightliner, echo=T, warning=F, message=F}
 # CheckMissingness pattern
 naniar::gg_miss_upset(dt2Time %>%
-  select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
+  dplyr::select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
   na_if(., -99) # all -99 into <NA>
 )
 
 # isolate respondents who have straightlined outside a the median categories (b/c all "neither agree nor disagree" might be meaningful response) 
 jobinsecRed <- dt2Time %>%
-  select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
+  dplyr::select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
   na_if(., -99) %>% # all -99 into <NA>
   na.omit() %>% # remove people who have missing data on one of the three items
-  mutate(mean = rowMeans(select(., c("jbInsec01", "jbInsec02", "jbInsec03"))), 
-         sd = matrixStats::rowSds(as.matrix(select(., c("jbInsec01", "jbInsec02", "jbInsec03"))))) %>% # calculate row-means and row-sds 
+  mutate(mean = rowMeans(dplyr::select(., c("jbInsec01", "jbInsec02", "jbInsec03"))), 
+         sd = matrixStats::rowSds(as.matrix(dplyr::select(., c("jbInsec01", "jbInsec02", "jbInsec03"))))) %>% # calculate row-means and row-sds 
   filter(sd == 0, mean != 0)
 
 # flag anyone who straightlined on job insecurity
@@ -443,19 +444,19 @@ rm(country_counts)
 
 # political orientation
 dt4newVars <- dt4newVars %>%
-  mutate(PolOrX = labelled(rowSums(select(., ends_with("_x")), na.rm = T), 
+  mutate(PolOrX = labelled(rowSums(dplyr::select(., ends_with("_x")), na.rm = T), 
                            labels = NULL, label="Political Compass X-Coordinate"),
-         PolOrY = labelled(rowSums(select(., ends_with("_y")), na.rm = T), 
+         PolOrY = labelled(rowSums(dplyr::select(., ends_with("_y")), na.rm = T), 
                            labels = NULL, label="Political Compass Y-Coordinate"),
-         PolOrAuthoritarianLeft = rowSums(select(., ends_with("_Authoritarian_Left")), na.rm = T),
+         PolOrAuthoritarianLeft = rowSums(dplyr::select(., ends_with("_Authoritarian_Left")), na.rm = T),
          PolOrAuthoritarianLeftLab = dplyr::recode(PolOrAuthoritarianLeft, `1` =  "Authoritarian Left", `0` = ""),
-         PolOrAuthoritarianRight = rowSums(select(., ends_with("_Authoritarian_right")), na.rm = T),
+         PolOrAuthoritarianRight = rowSums(dplyr::select(., ends_with("_Authoritarian_right")), na.rm = T),
          PolOrAuthoritarianRightLab = dplyr::recode(PolOrAuthoritarianRight, `1` =  "Authoritarian Right", `0` = ""),
-         PolOrLibertarianLeft = rowSums(select(., ends_with("_Libertarian_Left")), na.rm = T),
+         PolOrLibertarianLeft = rowSums(dplyr::select(., ends_with("_Libertarian_Left")), na.rm = T),
          PolOrLibertarianLeftLab = dplyr::recode(PolOrLibertarianLeft, `1` =  "Libertarian Left", `0` = ""),
-         PolOrLibertarianRight = rowSums(select(., ends_with("_Libertarian_Right")), na.rm = T),
+         PolOrLibertarianRight = rowSums(dplyr::select(., ends_with("_Libertarian_Right")), na.rm = T),
          PolOrLibertarianRightLab = dplyr::recode(PolOrLibertarianRight, `1` =  "Libertarian Right", `0` = ""),
-         PolOrOther = rowSums(select(., ends_with("_Other")), na.rm = T),
+         PolOrOther = rowSums(dplyr::select(., ends_with("_Other")), na.rm = T),
          PolOrOtherLab = dplyr::recode(PolOrOther, `1` =  "Other", `0` = ""),
          PolOrCat = paste0(PolOrAuthoritarianLeftLab, 
                            PolOrAuthoritarianRightLab,
@@ -463,7 +464,7 @@ dt4newVars <- dt4newVars %>%
                            PolOrLibertarianRightLab,
                            PolOrOtherLab), 
          PolOrCat = as.factor(na_if(PolOrCat, ""))) %>%
-  select(-starts_with("Pol"),
+  dplyr::select(-starts_with("Pol"),
          PolOrX,
          PolOrY,
          PolOrCat)
@@ -473,15 +474,16 @@ attr(dt4newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
 ### Affect    
 <!-- TO DO: Write function for item analysis and scale construction -->
 
+
 #### High Arousal Negative   
 ```{r affHighNeg, echo=T, results='asis', warning=F, message=F}
 # High Arousal Negative
 ## Anger not measured in wave 1
-pairs.panels.new(dt4newVars %>% select(affAnx, affNerv))
+pairs.panels.new(dt4newVars %>% dplyr::select(affAnx, affNerv))
 
 cat("<br>")
 
-dt4newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% select(affAnx, affNerv), min = 1, max = 5)$scores
+dt4newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
 
 as.data.frame(psych::describe(dt4newVars$affHighNeg.m, skew=F)) %>%
   mutate(vars = "High Arousal Negative Affect") %>%
@@ -490,7 +492,7 @@ as.data.frame(psych::describe(dt4newVars$affHighNeg.m, skew=F)) %>%
 
 dt4newVars$affHighNeg.c <- scale(dt4newVars$affHighNeg.m, scale = F, center = T)
 dt4newVars$affHighNeg.z <- scale(dt4newVars$affHighNeg.m, scale = T)
-dt4newVars$affHighNeg.fa <- fa(dt4newVars %>% select(affAnx, affNerv))$scores
+dt4newVars$affHighNeg.fa <- fa(dt4newVars %>% dplyr::select(affAnx, affNerv))$scores
 ```
 
 #### Low Arousal Negative Affect  
@@ -508,18 +510,18 @@ as.data.frame(Scale::ReportTable(ia.affLowNeg)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(affBor, affExh, affDepr))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Low Arousal Negative Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(affBor, affExh, affDepr))
+pairs.panels.new(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))
 
 cat("<br>")
 
-dt4newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(affBor, affExh, affDepr), min = 1, max = 5)$scores
+dt4newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
 
 as.data.frame(psych::describe(dt4newVars$affLowNeg.m, skew=F)) %>%
   mutate(vars = "Low Arousal Negative Affect") %>%
@@ -528,7 +530,7 @@ as.data.frame(psych::describe(dt4newVars$affLowNeg.m, skew=F)) %>%
 
 dt4newVars$affLowNeg.c <- scale(dt4newVars$affLowNeg.m, scale = F, center = T)
 dt4newVars$affLowNeg.z <- scale(dt4newVars$affLowNeg.m, scale = T)
-dt4newVars$affLowNeg.fa <- fa(dt4newVars %>% select(affBor, affExh, affDepr))$scores
+dt4newVars$affLowNeg.fa <- fa(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))$scores
 ```
 
 #### Low Arousal Positive Affect  
@@ -546,18 +548,18 @@ as.data.frame(Scale::ReportTable(ia.affLowPos)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(affCalm, affContent, affRel))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Low Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(affCalm, affContent, affRel))
+pairs.panels.new(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))
 
 cat("<br>")
 
-dt4newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(affCalm, affContent, affRel), min = 1, max = 5)$scores
+dt4newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
 
 as.data.frame(psych::describe(dt4newVars$affLowPos.m, skew=F)) %>%
   mutate(vars = "Low Arousal Positive Affect") %>%
@@ -566,7 +568,7 @@ as.data.frame(psych::describe(dt4newVars$affLowPos.m, skew=F)) %>%
 
 dt4newVars$affLowPos.c <- scale(dt4newVars$affLowPos.m, scale = F, center = T)
 dt4newVars$affLowPos.z <- scale(dt4newVars$affLowPos.m, scale = T)
-dt4newVars$affLowPos.fa <- fa(dt4newVars %>% select(affCalm, affContent, affRel))$scores
+dt4newVars$affLowPos.fa <- fa(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))$scores
 ```
 
 #### High Arousal Positive Affect  
@@ -584,18 +586,18 @@ as.data.frame(Scale::ReportTable(ia.affHighPos)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(affEnerg, affExc, affInsp))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "High Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(affEnerg, affExc, affInsp))
+pairs.panels.new(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))
 
 cat("<br>")
 
-dt4newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
+dt4newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
 
 as.data.frame(psych::describe(dt4newVars$affHighPos.m, skew=F)) %>%
   mutate(vars = "High Arousal Positive Affect") %>%
@@ -604,7 +606,7 @@ as.data.frame(psych::describe(dt4newVars$affHighPos.m, skew=F)) %>%
 
 dt4newVars$affHighPos.c <- scale(dt4newVars$affHighPos.m, scale = F, center = T)
 dt4newVars$affHighPos.z <- scale(dt4newVars$affHighPos.m, scale = T)
-dt4newVars$affHighPos.fa <- fa(dt4newVars %>% select(affEnerg, affExc, affInsp))$scores
+dt4newVars$affHighPos.fa <- fa(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))$scores
 ```
 
 ### Loneliness
@@ -621,18 +623,18 @@ as.data.frame(Scale::ReportTable(ia.lone)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("lone")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("lone")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Loneliness: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("lone")))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("lone")))
 
 cat("<br>")
 
-dt4newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(starts_with("lone")), min = 1, max = 5)$scores
+dt4newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("lone")), min = 1, max = 5)$scores
 
 as.data.frame(psych::describe(dt4newVars$lone.m, skew=F)) %>%
   mutate(vars = "Loneliness") %>%
@@ -641,7 +643,7 @@ as.data.frame(psych::describe(dt4newVars$lone.m, skew=F)) %>%
 
 dt4newVars$lone.c <- scale(dt4newVars$lone.m, scale = F, center = T)
 dt4newVars$lone.z <- scale(dt4newVars$lone.m, scale = T)
-dt4newVars$lone.fa <- fa(dt4newVars %>% select(starts_with("lone")))$scores
+dt4newVars$lone.fa <- fa(dt4newVars %>% dplyr::select(starts_with("lone")))$scores
 ```  
 
 ### Boredom
@@ -656,7 +658,7 @@ as.data.frame(Scale::ReportTable(ia.bor)) %>%
   kable(., row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("bor0"), -bor03))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03))
 ```
 <div class="alert alert-info">
 <strong><i class="fa fa-exclamation-triangle"></i> Item dropped:</strong> <br> 
@@ -665,11 +667,11 @@ Item three was not well behaved. It seems to measure something else. We dropped 
 
 ```{r bore.red, echo=T, results='asis', warning=F, message=F}
 
-pairs.panels.new(dt4newVars %>% select(starts_with("bor0"), -bor03, -bor03_R))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
 
 cat("<br>")
 
-dt4newVars$bor.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
+dt4newVars$bor.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
 
 as.data.frame(psych::describe(dt4newVars$bor.m, skew=F)) %>%
   mutate(vars = "Boredom") %>%
@@ -678,7 +680,7 @@ as.data.frame(psych::describe(dt4newVars$bor.m, skew=F)) %>%
 
 dt4newVars$bor.c <- scale(dt4newVars$bor.m, scale = F, center = T)
 dt4newVars$bor.z <- scale(dt4newVars$bor.m, scale = T)
-dt4newVars$bor.fa <- fa(dt4newVars %>% select(starts_with("bor0"), -bor03, -bor03_R))$scores
+dt4newVars$bor.fa <- fa(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))$scores
 ```
   
 ### Isolation
@@ -696,18 +698,18 @@ as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(ends_with("inPerson")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(ends_with("inPerson")))
+pairs.panels.new(dt4newVars %>% dplyr::select(ends_with("inPerson")))
 
 cat("<br>")
 
-dt4newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(ends_with("inPerson")), min = 0, max = 7)$scores
+dt4newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(ends_with("inPerson")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation offline") %>%
@@ -716,7 +718,7 @@ as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
 
 dt4newVars$isoPers.c <- scale(dt4newVars$isoPers.m, scale = F, center = T)
 dt4newVars$isoPers.z <- scale(dt4newVars$isoPers.m, scale = T)
-dt4newVars$isoPers.fa <- fa(dt4newVars %>% select(ends_with("inPerson")))$scores
+dt4newVars$isoPers.fa <- fa(dt4newVars %>% dplyr::select(ends_with("inPerson")))$scores
 
 cat(crayon::bold("Online Isolation"))
 ia.isoOnl <- dt4newVars %>%
@@ -731,18 +733,18 @@ as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(ends_with("inPerson")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(ends_with("online")))
+pairs.panels.new(dt4newVars %>% dplyr::select(ends_with("online")))
 
 cat("<br>")
 
-dt4newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(ends_with("online")), min = 0, max = 7)$scores
+dt4newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(ends_with("online")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation online") %>%
@@ -751,7 +753,7 @@ as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
 
 dt4newVars$isoOnl.c <- scale(dt4newVars$isoOnl.m, scale = F, center = T)
 dt4newVars$isoOnl.z <- scale(dt4newVars$isoOnl.m, scale = T)
-dt4newVars$isoOnl.fa <- fa(dt4newVars %>% select(ends_with("online")))$scores
+dt4newVars$isoOnl.fa <- fa(dt4newVars %>% dplyr::select(ends_with("online")))$scores
 
 # Leave House
 as.data.frame(psych::describe(dt4newVars$houseLeave, skew=F)) %>%
@@ -780,18 +782,18 @@ as.data.frame(Scale::ReportTable(ia.ext)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("extC19"), -extC19Msg))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("extC19"), -extC19Msg))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
 
 cat("<br>")
 
-dt4newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(starts_with("extC19"), -extC19Msg), 
+dt4newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg), 
                              min = 1, max = 6)$scores
 
 as.data.frame(psych::describe(dt4newVars$ext.m, skew=F)) %>%
@@ -801,7 +803,7 @@ as.data.frame(psych::describe(dt4newVars$ext.m, skew=F)) %>%
 
 dt4newVars$ext.c <- scale(dt4newVars$ext.m, scale = F, center = T)
 dt4newVars$ext.z <- scale(dt4newVars$ext.m, scale = T)
-dt4newVars$ext.fa <- fa(dt4newVars %>% select(starts_with("extC19"), -extC19Msg))$scores
+dt4newVars$ext.fa <- fa(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))$scores
 ```
 
 ### Behavioral Response
@@ -818,18 +820,18 @@ as.data.frame(Scale::ReportTable(ia.beh)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("c19per")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("c19per")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Behavioral response: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("c19per")))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("c19per")))
 
 cat("<br>")
 
-dt4newVars$beh.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(starts_with("c19per")), 
+dt4newVars$beh.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("c19per")), 
                              min = -3, max = 3)$scores
 
 as.data.frame(psych::describe(dt4newVars$beh.m, skew=F)) %>%
@@ -839,7 +841,7 @@ as.data.frame(psych::describe(dt4newVars$beh.m, skew=F)) %>%
 
 dt4newVars$beh.c <- scale(dt4newVars$beh.m, scale = F, center = T)
 dt4newVars$beh.z <- scale(dt4newVars$beh.m, scale = T)
-dt4newVars$beh.fa <- fa(dt4newVars %>% select(starts_with("c19per")))$scores
+dt4newVars$beh.fa <- fa(dt4newVars %>% dplyr::select(starts_with("c19per")))$scores
 ```
 
 ### Hope and Efficacy
@@ -881,18 +883,18 @@ as.data.frame(Scale::ReportTable(ia.para)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("para")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("para")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "State Paranoia: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("para")))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("para")))
 
 cat("<br>")
 
-dt4newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(starts_with("para")), 
+dt4newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("para")), 
                              min = 0, max = 10)$scores
 
 as.data.frame(psych::describe(dt4newVars$para.m, skew=F)) %>%
@@ -902,7 +904,7 @@ as.data.frame(psych::describe(dt4newVars$para.m, skew=F)) %>%
 
 dt4newVars$para.c <- scale(dt4newVars$para.m, scale = F, center = T)
 dt4newVars$para.z <- scale(dt4newVars$para.m, scale = T)
-dt4newVars$para.fa <- fa(dt4newVars %>% select(starts_with("para")))$scores
+dt4newVars$para.fa <- fa(dt4newVars %>% dplyr::select(starts_with("para")))$scores
 ```
 
 ### Conspiracy Theory
@@ -919,18 +921,18 @@ as.data.frame(Scale::ReportTable(ia.consp)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("consp")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("consp")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Conspiracy Theory: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("consp")))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("consp")))
 
 cat("<br>")
 
-dt4newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% select(starts_with("consp")), 
+dt4newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("consp")), 
                              min = 0, max = 10)$scores
 
 as.data.frame(psych::describe(dt4newVars$consp.m, skew=F)) %>%
@@ -940,7 +942,7 @@ as.data.frame(psych::describe(dt4newVars$consp.m, skew=F)) %>%
 
 dt4newVars$para.c <- scale(dt4newVars$consp.m, scale = F, center = T)
 dt4newVars$para.z <- scale(dt4newVars$consp.m, scale = T)
-dt4newVars$para.fa <- fa(dt4newVars %>% select(starts_with("consp")))$scores
+dt4newVars$para.fa <- fa(dt4newVars %>% dplyr::select(starts_with("consp")))$scores
 ```
 
 ### Job Insecurity
@@ -958,19 +960,19 @@ as.data.frame(Scale::ReportTable(ia.jobinsec)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Job insecurity: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
 
 cat("<br>")
 
 dt4newVars$jobinsec.m <- scoreItems(keys=c(1,1,1), 
-                                  items = dt4newVars %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
+                                  items = dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
                                   min = -2, max = 2)$scores
 
 as.data.frame(psych::describe(dt4newVars$jobinsec.m, skew=F)) %>%
@@ -980,7 +982,7 @@ as.data.frame(psych::describe(dt4newVars$jobinsec.m, skew=F)) %>%
 
 dt4newVars$jobinsec.c <- scale(dt4newVars$jobinsec.m, scale = F, center = T)
 dt4newVars$jobinsec.z <- scale(dt4newVars$jobinsec.m, scale = T)
-dt4newVars$jobinsec.fa <- fa(dt4newVars %>% select(starts_with("jbInsec"), -jbInsec02, -jbInsec04))$scores
+dt4newVars$jobinsec.fa <- fa(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04))$scores
 ```
 
 ### Financial Strain
@@ -997,19 +999,19 @@ as.data.frame(Scale::ReportTable(ia.pfs)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% select(starts_with("PFS0")))) %>%
+as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("PFS0")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Financial Strain: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% select(starts_with("PFS0")))
+pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("PFS0")))
 
 cat("<br>")
 
 dt4newVars$pfs.m <- scoreItems(keys=c(1,1,1), 
-                                  items = dt4newVars %>% select(starts_with("PFS0")),
+                                  items = dt4newVars %>% dplyr::select(starts_with("PFS0")),
                                   min = -2, max = 2)$scores
 
 as.data.frame(psych::describe(dt4newVars$pfs.m, skew=F)) %>%
@@ -1019,7 +1021,7 @@ as.data.frame(psych::describe(dt4newVars$pfs.m, skew=F)) %>%
 
 dt4newVars$pfs.c <- scale(dt4newVars$pfs.m, scale = F, center = T)
 dt4newVars$pfs.z <- scale(dt4newVars$pfs.m, scale = T)
-dt4newVars$pfs.fa <- fa(dt4newVars %>% select(starts_with("PFS0")))$scores
+dt4newVars$pfs.fa <- fa(dt4newVars %>% dplyr::select(starts_with("PFS0")))$scores
 ```
 
 
@@ -1030,7 +1032,7 @@ rm(list=ls(pattern="ia"))
 
 # remove directly identifiable data (with and without page timers)
 dt5ReducedTimer <- dt4newVars %>%
-  select(-c(IPAddress, 
+  dplyr::select(-c(IPAddress, 
             RecipientLastName, 
             RecipientFirstName, 
             RecipientEmail, 
@@ -1040,19 +1042,19 @@ dt5ReducedTimer <- dt4newVars %>%
             DistributionChannel,
             ICRec_1_TEXT))
 dt5Reduced <- dt5ReducedTimer %>%
-  select(-starts_with("t_"))
+  dplyr::select(-starts_with("t_"))
 
 # remove filtered cases (with and without page timers)
 dt5ReducedTimerCases <- dt5ReducedTimer %>%
   filter(FilterPreview == 0,
          FilterTime == 0,
          FilterStraightliner == 0) %>%
-  select(-starts_with("Filter"))
+  dplyr::select(-starts_with("Filter"))
 dt5ReducedCases <- dt5Reduced %>%
   filter(FilterPreview == 0,
          FilterTime == 0,
          FilterStraightliner == 0) %>%
-  select(-starts_with("Filter"))
+  dplyr::select(-starts_with("Filter"))
 ```
 
 ## **Export**   
