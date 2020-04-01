@@ -36,10 +36,13 @@ editor_options:
   
 # Install and Load Packages
   #if(!require(pacman)) install.packages("pacman")
-  require(pacman)
-  pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
-                 knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
-                 Scale)
+  # require(pacman)
+  # pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
+  #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
+  #                Scale)
+lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+lapply(lib, library, character.only = TRUE)  
   
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
@@ -86,7 +89,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_March+30,+2020_00.32.sav")
+dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+1,+2020_07.26.sav")
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
@@ -146,7 +149,7 @@ dt1Preview <- dt0Raw %>%
 
 
 ### Filter: Short Duration on Survey   
-Filter survey responses that were shorter than 10 minutes.   
+Filter survey responses that were shorter than 5 minutes.   
 ```{r Duration, echo=T, warning=F, message=F}
 # truncate data:
 tOutlierHigh <- dt1Preview %>%
@@ -155,7 +158,7 @@ tOutlierHigh <- dt1Preview %>%
   mutate(Minutes = Duration__in_seconds_/60)
 
 # set time cut-off criterion:
-tCutOff <- 10 #cut-off criterion in minutes
+tCutOff <- 5 #cut-off criterion in minutes
 # CJ: This might be a bit strict, I suspect that I completed it in <10 minutes. 
 tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt1Preview)*100,2) # percent of missing data with current cut-off criterion
 tOutlierHigh$out <- tOutlierHigh$Minutes < 10
@@ -188,10 +191,10 @@ ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
 
 rm(tOutlierHigh, tCutOff, tCutOffPerc)
 
-# flag anyone with less than 10 minutes survey duration
+# flag anyone with less than 5 minutes survey duration
 dt2Time <- dt1Preview %>%
-  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 600,0,1),
-                               labels = c(`extremely quick` = 1), label="Filter: Took less than 10 minutes on survey"))
+  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
+                               labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
 ```
 
 
