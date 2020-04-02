@@ -91,7 +91,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+1,+2020_07.26.sav")
+dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
@@ -298,6 +298,7 @@ library(rgeolocate)
 file <- system.file("extdata","GeoLite2-Country.mmdb", package = "rgeolocate")
 geolocations <- maxmind(dt5newVars$IPAddress, file, c("continent_name", "country_code", "country_name"))
 dt5newVars$coded_country_ip <- geolocations$country_name
+rm(geolocations)
 
 # CJ: This is a slightly cleaner, faster, and more informative regex based approach.
 # CJ: The function and dictionary (based on the code below, some errors corrected) 
@@ -1096,11 +1097,13 @@ dt6Reduced <- dt6ReducedTimer %>%
 # remove filtered cases (with and without page timers)
 dt6ReducedTimerCases <- dt6ReducedTimer %>%
   filter(FilterPreview == 0,
+         FilterProgress == 0,
          FilterTime == 0,
          FilterStraightliner == 0) %>%
   dplyr::select(-starts_with("Filter"))
 dt6ReducedCases <- dt6Reduced %>%
   filter(FilterPreview == 0,
+         FilterProgress == 0,
          FilterTime == 0,
          FilterStraightliner == 0) %>%
   dplyr::select(-starts_with("Filter"))

@@ -8,5 +8,5 @@
 *.csv
 *.zip
 #data/
-Icon[
-]
+Icon?
+Icon^M^M
