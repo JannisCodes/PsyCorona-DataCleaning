@@ -42,7 +42,9 @@ editor_options:
   #                Scale)
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
          "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+
 invisible(lapply(lib, library, character.only = TRUE))  
+lapply(lib, library, character.only = TRUE)
   
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
@@ -233,7 +235,12 @@ dt3Time <- dt2Progress %>%
   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > tCutOff*60,0,1),
                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
 
+
 rm(tOutlierHigh, tCutOff, tCutOffPerc)
+# flag anyone with less than 5 minutes survey duration
+dt2Time <- dt1Preview %>%
+  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
+                               labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
 ```
 
 
