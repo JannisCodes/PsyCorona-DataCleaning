@@ -815,7 +815,16 @@ as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
 ### Government Response
 No responses yet
 ```{r gov, echo=T, results='asis', warning=F, message=F}
-# extC19Msg
+as.data.frame(psych::describe(dt5newVars$extC19Msg)) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Government Response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = extC19Msg)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Government Response distribution",x="Government Response", y = "Frequency") +
+  theme_Publication()
 ```
 
 ### Community Response
@@ -1090,6 +1099,7 @@ dt6ReducedTimer <- dt5newVars %>%
             LocationLatitude, 
             LocationLongitude,
             DistributionChannel,
+            ICRec_0_TEXT,
             ICRec_1_TEXT))
 dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
@@ -1107,6 +1117,20 @@ dt6ReducedCases <- dt6Reduced %>%
          FilterTime == 0,
          FilterStraightliner == 0) %>%
   dplyr::select(-starts_with("Filter"))
+
+as.Date(dt5newVars$EndDate) 
+
+library("lubridate")
+ContactList <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) < "2020-03-31 12:00:00 UTC") %>%
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId, 
+                Language = Q_Language, 
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate, 
+                EndDateBaseline = EndDate)
 ```
 
 ## **Export**   
@@ -1116,6 +1140,7 @@ namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.ti
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 write_sav(dt6Reduced, namSPSS)
 write_sav(dt6ReducedTimer, namTSPSS)
 save(dt6Reduced, file = namR)
@@ -1124,4 +1149,7 @@ rm(list=ls(pattern="nam"))
 
 # export for Shiny
 saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
+
+# export Contact List
+write.csv(ContactList, file = namCL)
 ```
