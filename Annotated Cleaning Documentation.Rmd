@@ -91,10 +91,10 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+7,+2020_14.44.sav")
+dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 7, 2020_06.47.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 7, 2020_04.44.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # merge adn fill missing
@@ -298,7 +298,7 @@ dt5newVars <- merge(x=dt5newVars, y=qualtricsLanguage, by="Q_Language", all.x=TR
 rm(qualtricsLanguage)
 ```
 
-### Filter Items
+### Filter Participants
 ```{r filtBefCalc, echo=T, warning=F, message=F}
 dt5newVars <- dt5newVars %>%
   filter(FilterPreview == 0,
@@ -323,186 +323,185 @@ rm(geolocations)
 # CJ: is in source("./scripts/functions/dictionary_functions.R")
 country_matches <- cat_words(tolower(dt5newVars$country), country_dict)
 # Check duplicates, and which regular expressions triggered them
-invisible(country_matches$dup)
+View(country_matches$dup)
 # Check unmatched strings, fix common ones
-invisible(head(country_matches$unmatched))
-dt5newVars$coded_country_cj <- country_matches$words
+View(country_matches$unmatched)
+dt5newVars$coded_country <- country_matches$words
 
 #code originally provided by Courtney Soderberg
+# dt5newVars <- dt5newVars %>%
+#   mutate(coded_country = case_when(grepl('^usa$', country, ignore.case = T) | grepl('unites state', country, ignore.case = T) | 
+#                                      grepl('united state', country, ignore.case = T) | grepl('^america$', country, ignore.case = T) |
+#                                      grepl('U\\.S\\.', country, ignore.case = T) | grepl('Estados Unidos', country, ignore.case = T) |
+#                                      grepl('colorado', country, ignore.case = T) | grepl('^us$', country, ignore.case = T) |
+#                                      grepl('xas', country, ignore.case = T) | grepl('sates', country, ignore.case = T) |
+#                                      grepl('Amerika Serikat', country, ignore.case = T) | grepl('california', country, ignore.case = T) |
+#                                      grepl('corlifornia', country, ignore.case = T) | grepl('états-unis', country, ignore.case = T) |
+#                                      grepl('york', country, ignore.case = T) | grepl('yark', country, ignore.case = T) |
+#                                      grepl('puerto rico', country, ignore.case = T) | grepl('^tx$', country, ignore.case = T) |
+#                                      grepl('^tn$', country, ignore.case = T) | grepl('U S', country, ignore.case = T) ~ 'United States of America',
+#                                    grepl('canad', country, ignore.case = T) | grepl('vancouver', country, ignore.case = T) ~ 'Canada',
+#                                    grepl('mexico', country, ignore.case = T) | grepl('México', country, ignore.case = T) ~ 'Mexico',
+#                                    grepl('spain', country, ignore.case = T) | grepl('esp', country, ignore.case = T) |
+#                                      grepl('Spagna', country, ignore.case = T) | grepl('Spanien', country, ignore.case = T) |
+#                                      grepl('Catal', country, ignore.case = T) | grepl('Euskal Herria', country, ignore.case = T) |
+#                                      grepl('basque', country, ignore.case = T) | grepl('Eapaña', country, ignore.case = T) |
+#                                      grepl('Esapaña', country, ignore.case = T) | grepl('madrid', country, ignore.case = T) |
+#                                      grepl('Montalbán de Córdoba', country, ignore.case = T) | grepl('Pais vasco', country, ignore.case = T) |
+#                                      grepl('Spanje', country, ignore.case = T) ~ 'Spain',
+#                                    grepl('france', country, ignore.case = T) | grepl('Francia', country, ignore.case = T) |
+#                                      grepl('Frankrijk', country, ignore.case = T) ~ 'France',
+#                                    grepl('germany', country, ignore.case = T) | grepl('deutschland', country, ignore.case = T) | 
+#                                      grepl('Alemania', country, ignore.case = T) | grepl('germania', country, ignore.case = T) |
+#                                      grepl('^Almanya$', country, ignore.case = T) | grepl('berlin', country, ignore.case = T) |
+#                                      grepl('Duitsland', country, ignore.case = T) ~ 'Germany',
+#                                    grepl('portugal', country, ignore.case = T) ~ 'Portugal',
+#                                    grepl('weden', country, ignore.case = T) ~ 'Sweden',
+#                                    grepl('netherland', country, ignore.case = T) | grepl('nederland', country, ignore.case = T) | 
+#                                      grepl('Niederlande', country, ignore.case = T) | grepl('Belanda', country, ignore.case = T) |
+#                                      grepl('^NL$', country, ignore.case = T) | grepl('Olanda', country, ignore.case = T) |
+#                                      grepl('Paesi Bassi', country, ignore.case = T) | grepl('bajos', country, ignore.case = T) |
+#                                      grepl('Gelderland', country, ignore.case = T) | grepl('Hollanda', country, ignore.case = T) ~ 'Netherlands',
+#                                    grepl('^indonesia$', country, ignore.case = T) | grepl('indonesian', country, ignore.case = T) | 
+#                                      grepl('kota Tarakan', country, ignore.case = T) | grepl('Imdonesia', country, ignore.case = T) |
+#                                      grepl('Indònesia', country, ignore.case = T) | grepl('jakarta', country, ignore.case = T) ~ 'Indonesia',
+#                                    grepl('ital', country, ignore.case = T) | grepl('Sardegna', country, ignore.case = T) | 
+#                                      grepl('Bisceglie', country, ignore.case = T) | grepl('Ladispoli', country, ignore.case = T) |
+#                                      grepl('Castelforte', country, ignore.case = T) | grepl('milano', country, ignore.case = T) |
+#                                      (grepl('roma', country, ignore.case = T) & !grepl('romania', country, ignore.case = T)) |
+#                                      grepl('Dorgali', country, ignore.case = T) | grepl('bari', country, ignore.case = T) |
+#                                      grepl('bologna', country, ignore.case = T) | grepl('Brescia', country, ignore.case = T) |
+#                                      grepl('Cala gonone', country, ignore.case = T) | grepl('Chieti', country, ignore.case = T) |
+#                                      grepl('Ferentino', country, ignore.case = T) | grepl('Frosinone', country, ignore.case = T) |
+#                                      grepl('Gragnano lucca	', country, ignore.case = T) | grepl('Guidonia', country, ignore.case = T) |
+#                                      grepl('Itaia', country, ignore.case = T) | grepl('İtalya', country, ignore.case = T) |
+#                                      grepl('Mareno di Piave', country, ignore.case = T) | grepl('modena', country, ignore.case = T) |
+#                                      grepl('Pellizzano', country, ignore.case = T) | grepl('Predazzo', country, ignore.case = T) |
+#                                      grepl('Refrontolo', country, ignore.case = T) | grepl('Cosma e Damiano', country, ignore.case = T) |
+#                                      grepl('Scalea', country, ignore.case = T) | grepl('Scauri', country, ignore.case = T) |
+#                                      grepl('Segni', country, ignore.case = T) | grepl('SETTIMO VITTONE', country, ignore.case = T) |
+#                                      grepl('Susegana', country, ignore.case = T) | grepl('Terralba', country, ignore.case = T) |
+#                                      grepl('trento', country, ignore.case = T) | grepl('treviso', country, ignore.case = T) |
+#                                      grepl('Tezze di Piave', country, ignore.case = T) | grepl('Valmontone', country, ignore.case = T) |
+#                                      grepl('Vergato', country, ignore.case = T) | grepl('veneto', country, ignore.case = T) |
+#                                      grepl('Gragnano lucca', country, ignore.case = T) ~ 'Italy',
+#                                    grepl('hong kong', country, ignore.case = T) ~ 'Hong Kong S.A.R.',
+#                                    grepl('phil', country, ignore.case = T) | grepl('Filipinas', country, ignore.case = T) ~ 'Philippines',
+#                                    grepl('argentina', country, ignore.case = T) | grepl('arge', country, ignore.case = T) ~ 'Argentina',
+#                                    grepl('pakistan', country, ignore.case = T) | grepl('Abbottabad', country, ignore.case = T) |
+#                                      grepl('Peshawar', country, ignore.case = T) ~ 'Pakistan',
+#                                    grepl('united kingdo', country, ignore.case = T) | grepl('^uk$', country, ignore.case = T) |
+#                                      grepl('Reino Unido', country, ignore.case = T) | grepl('britain', country, ignore.case = T) |
+#                                      grepl('Regno Unito', country, ignore.case = T) | grepl('u\\.k\\.', country, ignore.case = T) |
+#                                      grepl('بريطانيا', country, ignore.case = T) | grepl('the uk', country, ignore.case = T) |
+#                                      grepl('U K', country, ignore.case = T) | grepl('Verenigd Koninkrijk', country, ignore.case = T) |
+#                                      grepl('Windsor', country, ignore.case = T) | grepl('scotland', country, ignore.case = T) |
+#                                      grepl('england', country, ignore.case = T) | grepl('wales', country, ignore.case = T) |
+#                                      grepl('İngiltere', country, ignore.case = T) | grepl('Northern Ireland', country, ignore.case = T) |
+#                                      grepl('Egland', country, ignore.case = T) | grepl('^gb$', country, ignore.case = T) |
+#                                      grepl('N Ireland', country, ignore.case = T) | grepl('Schotland', country, ignore.case = T) |
+#                                      grepl('Scozia', country, ignore.case = T) ~ 'United Kingdom',
+#                                    grepl('africa', country, ignore.case = T) | grepl('^SA$', country, ignore.case = T) |
+#                                      grepl('Sudáfrica', country, ignore.case = T) | grepl('western cape', country, ignore.case = T) ~ 'South Africa',
+#                                    grepl('^chile$', country, ignore.case = T) ~ 'Chile',
+#                                    grepl('australia', country, ignore.case = T) | grepl('Austrija', country, ignore.case = T) ~ 'Australia',
+#                                    grepl('colombia', country, ignore.case = T) ~ 'Colombia',
+#                                    grepl('turkey', country, ignore.case = T) | grepl('tür', country, ignore.case = T) ~ 'Turkey',
+#                                    grepl('taiwan', country, ignore.case = T) ~ 'Taiwan',
+#                                    grepl('^Venezuela$', country, ignore.case = T) ~ 'Venezuela',
+#                                    grepl('israel', country, ignore.case = T) | grepl('اللد', country, ignore.case = T) |
+#                                      grepl('اسرائيل', country, ignore.case = T) | grepl('كفر قاسم', country, ignore.case = T) |
+#                                      grepl('Isreal', country, ignore.case = T) | grepl('רמלה', country, ignore.case = T) ~ 'Israel',
+#                                    grepl('greece', country, ignore.case = T) | grepl('Grecia', country, ignore.case = T) ~ 'Greece',
+#                                    grepl('austria', country, ignore.case = T) | grepl('sterreich', country, ignore.case = T) ~ 'Austria',
+#                                    grepl('new zealand', country, ignore.case = T) | grepl('Neuseeland', country, ignore.case = T) ~ 'New Zealand',
+#                                    grepl('Tuni', country, ignore.case = T) | grepl('تونس', country, ignore.case = T) ~ 'Tunisia',
+#                                    grepl('Belg', country, ignore.case = T) | grepl('Bélgica', country, ignore.case = T) ~ 'Belgium',
+#                                    grepl('China', country, ignore.case = T) ~ 'China',
+#                                    grepl('cyp', country, ignore.case = T) ~ 'Cyprus',
+#                                    grepl('Schweiz', country, ignore.case = T) | grepl('Suiza', country, ignore.case = T) |
+#                                      grepl('Svizzera', country, ignore.case = T) | grepl('Zwitserland', country, ignore.case = T) |
+#                                      grepl('switzerland', country, ignore.case = T) ~ 'Switzerland',
+#                                    grepl('United Arab Emirates', country, ignore.case = T) | grepl('uae', country, ignore.case = T) ~ 'United Arab Emirates',
+#                                    grepl('Croa', country, ignore.case = T) ~ 'Croatia',
+#                                    grepl('india', country, ignore.case = T) ~ 'India',
+#                                    grepl('algeri', country, ignore.case = T) | grepl('الجزائر', country, ignore.case = T) |
+#                                      grepl('Algérie', country, ignore.case = T) ~ 'Algeria',
+#                                    grepl('bulgaria', country, ignore.case = T) ~ 'Bulgaria',
+#                                    grepl('Poland', country, ignore.case = T) | grepl('POLONIA', country, ignore.case = T) ~ 'Poland',
+#                                    grepl('romania', country, ignore.case = T) ~ 'Romania',
+#                                    grepl('singapore', country, ignore.case = T) ~ 'Singapore',
+#                                    grepl('Srbija', country, ignore.case = T) | grepl('serbia', country, ignore.case = T) |
+#                                      grepl('Србија', country, ignore.case = T) ~ 'Republic of Serbia',
+#                                    grepl('czech', country, ignore.case = T) | grepl('checa', country, ignore.case = T) ~ 'Czech Republic',
+#                                    grepl('lux', country, ignore.case = T) ~ 'Luxembourg',
+#                                    grepl('slova', country, ignore.case = T) ~ 'Slovakia',
+#                                    grepl('brazil', country, ignore.case = T) | grepl('brasil', country, ignore.case = T)~ 'Brazil',
+#                                    grepl('^ireland$', country, ignore.case = T) | grepl('Irlanda', country, ignore.case = T) ~ 'Ireland',
+#                                    grepl('japan', country, ignore.case = T) | grepl('Giappone', country, ignore.case = T) |
+#                                      grepl('Japonya', country, ignore.case = T) ~ 'Japan',
+#                                    grepl('Malay', country, ignore.case = T) ~ 'Malaysia',
+#                                    grepl('nigeria', country, ignore.case = T) ~ 'Nigeria',
+#                                    grepl('Riyad', country, ignore.case = T) | grepl('^Saudi arabia$', country, ignore.case = T) |
+#                                      grepl('Arabia Saudita', country, ignore.case = T) | grepl('^saudi$', country, ignore.case = T) |
+#                                      grepl('Kingdom of Saudia arabia', country, ignore.case = T) | grepl('KSA', country, ignore.case = T) |
+#                                      grepl('k\\.s\\.a', country, ignore.case = T) | grepl('Arabie saoudite', country, ignore.case = T) | 
+#                                      grepl('الرياض', country, ignore.case = T) | grepl('السعودية', country, ignore.case = T) |
+#                                      grepl('السعوديه', country, ignore.case = T) ~ 'Saudi Arabia',
+#                                    grepl('^thailand$', country, ignore.case = T) ~ 'Thailand',
+#                                    grepl('urug', country, ignore.case = T) ~ 'Uruguay',
+#                                    grepl('costa', country, ignore.case = T) ~ 'Costa Rica', 
+#                                    grepl('ecuador', country, ignore.case = T) ~ 'Ecuador',
+#                                    grepl('finland', country, ignore.case = T) ~ 'Finland', 
+#                                    grepl('guat', country, ignore.case = T) ~ 'Guatemala',
+#                                    grepl('iceland', country, ignore.case = T) ~ 'Iceland',
+#                                    grepl('iraq', country, ignore.case = T) | grepl('العراق', country, ignore.case = T) ~ 'Iraq',
+#                                    grepl('iran', country, ignore.case = T) ~ 'Iran',
+#                                    grepl('lebanon', country, ignore.case = T) | grepl('liban', country, ignore.case = T) ~ 'Lebanon',
+#                                    grepl('norway', country, ignore.case = T) ~ 'Norway',
+#                                    grepl('palestine', country, ignore.case = T) | grepl('فلسطين	', country, ignore.case = T) |
+#                                      grepl('^فلسطين$', country, ignore.case = T) | grepl('الرملة', country, ignore.case = T) ~ 'Palestine',
+#                                    grepl('peru', country, ignore.case = T) ~ 'Peru',
+#                                    grepl('domin', country, ignore.case = T) ~ 'Dominican Republic',
+#                                    grepl('albania', country, ignore.case = T) ~ 'Albania',
+#                                    grepl('andorra', country, ignore.case = T) ~ 'Andorra',
+#                                    grepl('bahrain', country, ignore.case = T) ~ 'Bahrain',
+#                                    grepl('bangladesh', country, ignore.case = T) ~ 'Bangladesh',
+#                                    grepl('botswana', country, ignore.case = T) ~ 'Botswana',
+#                                    grepl('camer', country, ignore.case = T) ~ 'Cameroon',
+#                                    grepl('المغرب', country, ignore.case = T) | grepl('Maroc', country, ignore.case = T) ~ 'Morocco',
+#                                    grepl('jordan', country, ignore.case = T) ~ 'Jordan',
+#                                    grepl('ليبيا', country, ignore.case = T) ~ 'Libya',
+#                                    grepl('مصر', country, ignore.case = T) ~ 'Egypt',
+#                                    grepl('mark', country, ignore.case = T) ~ 'Denmark',
+#                                    grepl('salvador', country, ignore.case = T) ~ 'El Salvador',
+#                                    grepl('estonia', country, ignore.case = T) ~ 'Estonia',
+#                                    grepl('korea', country, ignore.case = T) | grepl('Güney Kore', country, ignore.case = T) ~ 'South Korea',
+#                                    grepl('hungary', country, ignore.case = T) ~ 'Hungary',
+#                                    grepl('maurice', country, ignore.case = T) ~ 'Mauritius',
+#                                    grepl('jamaica', country, ignore.case = T) ~ 'Jamaica',
+#                                    grepl('kenia', country, ignore.case = T) ~ 'Kenya',
+#                                    grepl('laos', country, ignore.case = T) ~ 'Laos',
+#                                    grepl('latvia', country, ignore.case = T) ~ 'Latvia',
+#                                    grepl('malta', country, ignore.case = T) ~ 'Malta',
+#                                    grepl('myanmar', country, ignore.case = T) ~ 'Myanmar',
+#                                    grepl('nepal', country, ignore.case = T) ~ 'Nepal',
+#                                    grepl('^oman$', country, ignore.case = T) ~ 'Oman',
+#                                    grepl('qatar', country, ignore.case = T) ~ 'Qatar',
+#                                    grepl('panam', country, ignore.case = T) ~ 'Panama',
+#                                    grepl('tanzania', country, ignore.case = T) ~ 'United Republic of Tanzania',
+#                                    grepl('vietnam', country, ignore.case = T) ~ 'Vietnam'))
+# # tallying un-recoded countries to see missing ones
+# country_counts <- dt5newVars %>%
+#   filter(is.na(coded_country)) %>%
+#   group_by(country) %>%
+#   tally()
 
-dt5newVars <- dt5newVars %>%
-  mutate(coded_country = case_when(grepl('^usa$', country, ignore.case = T) | grepl('unites state', country, ignore.case = T) | 
-                                     grepl('united state', country, ignore.case = T) | grepl('^america$', country, ignore.case = T) |
-                                     grepl('U\\.S\\.', country, ignore.case = T) | grepl('Estados Unidos', country, ignore.case = T) |
-                                     grepl('colorado', country, ignore.case = T) | grepl('^us$', country, ignore.case = T) |
-                                     grepl('xas', country, ignore.case = T) | grepl('sates', country, ignore.case = T) |
-                                     grepl('Amerika Serikat', country, ignore.case = T) | grepl('california', country, ignore.case = T) |
-                                     grepl('corlifornia', country, ignore.case = T) | grepl('états-unis', country, ignore.case = T) |
-                                     grepl('york', country, ignore.case = T) | grepl('yark', country, ignore.case = T) |
-                                     grepl('puerto rico', country, ignore.case = T) | grepl('^tx$', country, ignore.case = T) |
-                                     grepl('^tn$', country, ignore.case = T) | grepl('U S', country, ignore.case = T) ~ 'United States of America',
-                                   grepl('canad', country, ignore.case = T) | grepl('vancouver', country, ignore.case = T) ~ 'Canada',
-                                   grepl('mexico', country, ignore.case = T) | grepl('México', country, ignore.case = T) ~ 'Mexico',
-                                   grepl('spain', country, ignore.case = T) | grepl('esp', country, ignore.case = T) |
-                                     grepl('Spagna', country, ignore.case = T) | grepl('Spanien', country, ignore.case = T) |
-                                     grepl('Catal', country, ignore.case = T) | grepl('Euskal Herria', country, ignore.case = T) |
-                                     grepl('basque', country, ignore.case = T) | grepl('Eapaña', country, ignore.case = T) |
-                                     grepl('Esapaña', country, ignore.case = T) | grepl('madrid', country, ignore.case = T) |
-                                     grepl('Montalbán de Córdoba', country, ignore.case = T) | grepl('Pais vasco', country, ignore.case = T) |
-                                     grepl('Spanje', country, ignore.case = T) ~ 'Spain',
-                                   grepl('france', country, ignore.case = T) | grepl('Francia', country, ignore.case = T) |
-                                     grepl('Frankrijk', country, ignore.case = T) ~ 'France',
-                                   grepl('germany', country, ignore.case = T) | grepl('deutschland', country, ignore.case = T) | 
-                                     grepl('Alemania', country, ignore.case = T) | grepl('germania', country, ignore.case = T) |
-                                     grepl('^Almanya$', country, ignore.case = T) | grepl('berlin', country, ignore.case = T) |
-                                     grepl('Duitsland', country, ignore.case = T) ~ 'Germany',
-                                   grepl('portugal', country, ignore.case = T) ~ 'Portugal',
-                                   grepl('weden', country, ignore.case = T) ~ 'Sweden',
-                                   grepl('netherland', country, ignore.case = T) | grepl('nederland', country, ignore.case = T) | 
-                                     grepl('Niederlande', country, ignore.case = T) | grepl('Belanda', country, ignore.case = T) |
-                                     grepl('^NL$', country, ignore.case = T) | grepl('Olanda', country, ignore.case = T) |
-                                     grepl('Paesi Bassi', country, ignore.case = T) | grepl('bajos', country, ignore.case = T) |
-                                     grepl('Gelderland', country, ignore.case = T) | grepl('Hollanda', country, ignore.case = T) ~ 'Netherlands',
-                                   grepl('^indonesia$', country, ignore.case = T) | grepl('indonesian', country, ignore.case = T) | 
-                                     grepl('kota Tarakan', country, ignore.case = T) | grepl('Imdonesia', country, ignore.case = T) |
-                                     grepl('Indònesia', country, ignore.case = T) | grepl('jakarta', country, ignore.case = T) ~ 'Indonesia',
-                                   grepl('ital', country, ignore.case = T) | grepl('Sardegna', country, ignore.case = T) | 
-                                     grepl('Bisceglie', country, ignore.case = T) | grepl('Ladispoli', country, ignore.case = T) |
-                                     grepl('Castelforte', country, ignore.case = T) | grepl('milano', country, ignore.case = T) |
-                                     (grepl('roma', country, ignore.case = T) & !grepl('romania', country, ignore.case = T)) |
-                                     grepl('Dorgali', country, ignore.case = T) | grepl('bari', country, ignore.case = T) |
-                                     grepl('bologna', country, ignore.case = T) | grepl('Brescia', country, ignore.case = T) |
-                                     grepl('Cala gonone', country, ignore.case = T) | grepl('Chieti', country, ignore.case = T) |
-                                     grepl('Ferentino', country, ignore.case = T) | grepl('Frosinone', country, ignore.case = T) |
-                                     grepl('Gragnano lucca	', country, ignore.case = T) | grepl('Guidonia', country, ignore.case = T) |
-                                     grepl('Itaia', country, ignore.case = T) | grepl('İtalya', country, ignore.case = T) |
-                                     grepl('Mareno di Piave', country, ignore.case = T) | grepl('modena', country, ignore.case = T) |
-                                     grepl('Pellizzano', country, ignore.case = T) | grepl('Predazzo', country, ignore.case = T) |
-                                     grepl('Refrontolo', country, ignore.case = T) | grepl('Cosma e Damiano', country, ignore.case = T) |
-                                     grepl('Scalea', country, ignore.case = T) | grepl('Scauri', country, ignore.case = T) |
-                                     grepl('Segni', country, ignore.case = T) | grepl('SETTIMO VITTONE', country, ignore.case = T) |
-                                     grepl('Susegana', country, ignore.case = T) | grepl('Terralba', country, ignore.case = T) |
-                                     grepl('trento', country, ignore.case = T) | grepl('treviso', country, ignore.case = T) |
-                                     grepl('Tezze di Piave', country, ignore.case = T) | grepl('Valmontone', country, ignore.case = T) |
-                                     grepl('Vergato', country, ignore.case = T) | grepl('veneto', country, ignore.case = T) |
-                                     grepl('Gragnano lucca', country, ignore.case = T) ~ 'Italy',
-                                   grepl('hong kong', country, ignore.case = T) ~ 'Hong Kong S.A.R.',
-                                   grepl('phil', country, ignore.case = T) | grepl('Filipinas', country, ignore.case = T) ~ 'Philippines',
-                                   grepl('argentina', country, ignore.case = T) | grepl('arge', country, ignore.case = T) ~ 'Argentina',
-                                   grepl('pakistan', country, ignore.case = T) | grepl('Abbottabad', country, ignore.case = T) |
-                                     grepl('Peshawar', country, ignore.case = T) ~ 'Pakistan',
-                                   grepl('united kingdo', country, ignore.case = T) | grepl('^uk$', country, ignore.case = T) |
-                                     grepl('Reino Unido', country, ignore.case = T) | grepl('britain', country, ignore.case = T) |
-                                     grepl('Regno Unito', country, ignore.case = T) | grepl('u\\.k\\.', country, ignore.case = T) |
-                                     grepl('بريطانيا', country, ignore.case = T) | grepl('the uk', country, ignore.case = T) |
-                                     grepl('U K', country, ignore.case = T) | grepl('Verenigd Koninkrijk', country, ignore.case = T) |
-                                     grepl('Windsor', country, ignore.case = T) | grepl('scotland', country, ignore.case = T) |
-                                     grepl('england', country, ignore.case = T) | grepl('wales', country, ignore.case = T) |
-                                     grepl('İngiltere', country, ignore.case = T) | grepl('Northern Ireland', country, ignore.case = T) |
-                                     grepl('Egland', country, ignore.case = T) | grepl('^gb$', country, ignore.case = T) |
-                                     grepl('N Ireland', country, ignore.case = T) | grepl('Schotland', country, ignore.case = T) |
-                                     grepl('Scozia', country, ignore.case = T) ~ 'United Kingdom',
-                                   grepl('africa', country, ignore.case = T) | grepl('^SA$', country, ignore.case = T) |
-                                     grepl('Sudáfrica', country, ignore.case = T) | grepl('western cape', country, ignore.case = T) ~ 'South Africa',
-                                   grepl('^chile$', country, ignore.case = T) ~ 'Chile',
-                                   grepl('australia', country, ignore.case = T) | grepl('Austrija', country, ignore.case = T) ~ 'Australia',
-                                   grepl('colombia', country, ignore.case = T) ~ 'Colombia',
-                                   grepl('turkey', country, ignore.case = T) | grepl('tür', country, ignore.case = T) ~ 'Turkey',
-                                   grepl('taiwan', country, ignore.case = T) ~ 'Taiwan',
-                                   grepl('^Venezuela$', country, ignore.case = T) ~ 'Venezuela',
-                                   grepl('israel', country, ignore.case = T) | grepl('اللد', country, ignore.case = T) |
-                                     grepl('اسرائيل', country, ignore.case = T) | grepl('كفر قاسم', country, ignore.case = T) |
-                                     grepl('Isreal', country, ignore.case = T) | grepl('רמלה', country, ignore.case = T) ~ 'Israel',
-                                   grepl('greece', country, ignore.case = T) | grepl('Grecia', country, ignore.case = T) ~ 'Greece',
-                                   grepl('austria', country, ignore.case = T) | grepl('sterreich', country, ignore.case = T) ~ 'Austria',
-                                   grepl('new zealand', country, ignore.case = T) | grepl('Neuseeland', country, ignore.case = T) ~ 'New Zealand',
-                                   grepl('Tuni', country, ignore.case = T) | grepl('تونس', country, ignore.case = T) ~ 'Tunisia',
-                                   grepl('Belg', country, ignore.case = T) | grepl('Bélgica', country, ignore.case = T) ~ 'Belgium',
-                                   grepl('China', country, ignore.case = T) ~ 'China',
-                                   grepl('cyp', country, ignore.case = T) ~ 'Cyprus',
-                                   grepl('Schweiz', country, ignore.case = T) | grepl('Suiza', country, ignore.case = T) |
-                                     grepl('Svizzera', country, ignore.case = T) | grepl('Zwitserland', country, ignore.case = T) |
-                                     grepl('switzerland', country, ignore.case = T) ~ 'Switzerland',
-                                   grepl('United Arab Emirates', country, ignore.case = T) | grepl('uae', country, ignore.case = T) ~ 'United Arab Emirates',
-                                   grepl('Croa', country, ignore.case = T) ~ 'Croatia',
-                                   grepl('india', country, ignore.case = T) ~ 'India',
-                                   grepl('algeri', country, ignore.case = T) | grepl('الجزائر', country, ignore.case = T) |
-                                     grepl('Algérie', country, ignore.case = T) ~ 'Algeria',
-                                   grepl('bulgaria', country, ignore.case = T) ~ 'Bulgaria',
-                                   grepl('Poland', country, ignore.case = T) | grepl('POLONIA', country, ignore.case = T) ~ 'Poland',
-                                   grepl('romania', country, ignore.case = T) ~ 'Romania',
-                                   grepl('singapore', country, ignore.case = T) ~ 'Singapore',
-                                   grepl('Srbija', country, ignore.case = T) | grepl('serbia', country, ignore.case = T) |
-                                     grepl('Србија', country, ignore.case = T) ~ 'Republic of Serbia',
-                                   grepl('czech', country, ignore.case = T) | grepl('checa', country, ignore.case = T) ~ 'Czech Republic',
-                                   grepl('lux', country, ignore.case = T) ~ 'Luxembourg',
-                                   grepl('slova', country, ignore.case = T) ~ 'Slovakia',
-                                   grepl('brazil', country, ignore.case = T) | grepl('brasil', country, ignore.case = T)~ 'Brazil',
-                                   grepl('^ireland$', country, ignore.case = T) | grepl('Irlanda', country, ignore.case = T) ~ 'Ireland',
-                                   grepl('japan', country, ignore.case = T) | grepl('Giappone', country, ignore.case = T) |
-                                     grepl('Japonya', country, ignore.case = T) ~ 'Japan',
-                                   grepl('Malay', country, ignore.case = T) ~ 'Malaysia',
-                                   grepl('nigeria', country, ignore.case = T) ~ 'Nigeria',
-                                   grepl('Riyad', country, ignore.case = T) | grepl('^Saudi arabia$', country, ignore.case = T) |
-                                     grepl('Arabia Saudita', country, ignore.case = T) | grepl('^saudi$', country, ignore.case = T) |
-                                     grepl('Kingdom of Saudia arabia', country, ignore.case = T) | grepl('KSA', country, ignore.case = T) |
-                                     grepl('k\\.s\\.a', country, ignore.case = T) | grepl('Arabie saoudite', country, ignore.case = T) | 
-                                     grepl('الرياض', country, ignore.case = T) | grepl('السعودية', country, ignore.case = T) |
-                                     grepl('السعوديه', country, ignore.case = T) ~ 'Saudi Arabia',
-                                   grepl('^thailand$', country, ignore.case = T) ~ 'Thailand',
-                                   grepl('urug', country, ignore.case = T) ~ 'Uruguay',
-                                   grepl('costa', country, ignore.case = T) ~ 'Costa Rica', 
-                                   grepl('ecuador', country, ignore.case = T) ~ 'Ecuador',
-                                   grepl('finland', country, ignore.case = T) ~ 'Finland', 
-                                   grepl('guat', country, ignore.case = T) ~ 'Guatemala',
-                                   grepl('iceland', country, ignore.case = T) ~ 'Iceland',
-                                   grepl('iraq', country, ignore.case = T) | grepl('العراق', country, ignore.case = T) ~ 'Iraq',
-                                   grepl('iran', country, ignore.case = T) ~ 'Iran',
-                                   grepl('lebanon', country, ignore.case = T) | grepl('liban', country, ignore.case = T) ~ 'Lebanon',
-                                   grepl('norway', country, ignore.case = T) ~ 'Norway',
-                                   grepl('palestine', country, ignore.case = T) | grepl('فلسطين	', country, ignore.case = T) |
-                                     grepl('^فلسطين$', country, ignore.case = T) | grepl('الرملة', country, ignore.case = T) ~ 'Palestine',
-                                   grepl('peru', country, ignore.case = T) ~ 'Peru',
-                                   grepl('domin', country, ignore.case = T) ~ 'Dominican Republic',
-                                   grepl('albania', country, ignore.case = T) ~ 'Albania',
-                                   grepl('andorra', country, ignore.case = T) ~ 'Andorra',
-                                   grepl('bahrain', country, ignore.case = T) ~ 'Bahrain',
-                                   grepl('bangladesh', country, ignore.case = T) ~ 'Bangladesh',
-                                   grepl('botswana', country, ignore.case = T) ~ 'Botswana',
-                                   grepl('camer', country, ignore.case = T) ~ 'Cameroon',
-                                   grepl('المغرب', country, ignore.case = T) | grepl('Maroc', country, ignore.case = T) ~ 'Morocco',
-                                   grepl('jordan', country, ignore.case = T) ~ 'Jordan',
-                                   grepl('ليبيا', country, ignore.case = T) ~ 'Libya',
-                                   grepl('مصر', country, ignore.case = T) ~ 'Egypt',
-                                   grepl('mark', country, ignore.case = T) ~ 'Denmark',
-                                   grepl('salvador', country, ignore.case = T) ~ 'El Salvador',
-                                   grepl('estonia', country, ignore.case = T) ~ 'Estonia',
-                                   grepl('korea', country, ignore.case = T) | grepl('Güney Kore', country, ignore.case = T) ~ 'South Korea',
-                                   grepl('hungary', country, ignore.case = T) ~ 'Hungary',
-                                   grepl('maurice', country, ignore.case = T) ~ 'Mauritius',
-                                   grepl('jamaica', country, ignore.case = T) ~ 'Jamaica',
-                                   grepl('kenia', country, ignore.case = T) ~ 'Kenya',
-                                   grepl('laos', country, ignore.case = T) ~ 'Laos',
-                                   grepl('latvia', country, ignore.case = T) ~ 'Latvia',
-                                   grepl('malta', country, ignore.case = T) ~ 'Malta',
-                                   grepl('myanmar', country, ignore.case = T) ~ 'Myanmar',
-                                   grepl('nepal', country, ignore.case = T) ~ 'Nepal',
-                                   grepl('^oman$', country, ignore.case = T) ~ 'Oman',
-                                   grepl('qatar', country, ignore.case = T) ~ 'Qatar',
-                                   grepl('panam', country, ignore.case = T) ~ 'Panama',
-                                   grepl('tanzania', country, ignore.case = T) ~ 'United Republic of Tanzania',
-                                   grepl('vietnam', country, ignore.case = T) ~ 'Vietnam'))
-# tallying un-recoded countries to see missing ones
-country_counts <- dt5newVars %>%
-  filter(is.na(coded_country)) %>%
-  group_by(country) %>%
-  tally()
-
+# CODE FOR EXPORT:
 # country_entry <- dt5newVars$country
 # country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
 # namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 # save(country_entry, country_names, file = namTR)
-
 ```
 <br>
 <div class="alert alert-warning">
@@ -1155,6 +1154,8 @@ ContactList <- dt5newVars %>%
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate, 
                 EndDateBaseline = EndDate)
+
+LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
 ```
 
 ## **Export**   
@@ -1165,15 +1166,22 @@ namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+
 write_sav(dt6Reduced, namSPSS)
 write_sav(dt6ReducedTimer, namTSPSS)
+
 save(dt6Reduced, file = namR)
 save(dt6ReducedTimer, file = namTR)
-rm(list=ls(pattern="nam"))
 
 # export for Shiny
-saveRDS(dt6ReducedCases, file = "PsyCorona-WebApp/data/reducedData.rds")
+saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 
 # export Contact List
 #write.csv(ContactList, file = namCL)
+
+# export Language List
+write.csv(LanguageList, file = namLL)
+
+rm(list=ls(pattern="nam"))
 ```
