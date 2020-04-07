@@ -91,7 +91,16 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
+dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
+dt0RawRUG$source <- "RUG"
+
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 6, 2020_08.53.sav")
+dt0RawNYUAD$source <- "NYU-AD"
+
+# merge adn fill missing
+dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD)
+
+rm(dt0RawRUG, dt0RawNYUAD)
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
@@ -479,6 +488,12 @@ country_counts <- dt5newVars %>%
   filter(is.na(coded_country)) %>%
   group_by(country) %>%
   tally()
+
+# country_entry <- dt5newVars$country
+# country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
+# namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+# save(country_entry, country_names, file = namTR)
+
 ```
 <br>
 <div class="alert alert-warning">
@@ -1151,5 +1166,5 @@ rm(list=ls(pattern="nam"))
 saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 
 # export Contact List
-write.csv(ContactList, file = namCL)
+#write.csv(ContactList, file = namCL)
 ```
