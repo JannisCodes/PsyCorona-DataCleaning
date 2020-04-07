@@ -91,10 +91,10 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
+dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+7,+2020_14.44.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 6, 2020_08.53.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 7, 2020_06.47.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # merge adn fill missing
@@ -280,7 +280,7 @@ rm(jobinsecRed)
 
 
 ## **Data Preparation**   
-Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet.  
+Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet. For centering and standardizing to be accurate, we first filter the relevant criteria.
 
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
@@ -296,6 +296,15 @@ dt5newVars <- dt4Straightliner %>%
 qualtricsLanguage <- read_excel("data/raw data/qualtricsLanguageCodes.xlsx")
 dt5newVars <- merge(x=dt5newVars, y=qualtricsLanguage, by="Q_Language", all.x=TRUE)
 rm(qualtricsLanguage)
+```
+
+### Filter Items
+```{r filtBefCalc, echo=T, warning=F, message=F}
+dt5newVars <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0)
 ```
 
 ### Country
@@ -1163,7 +1172,7 @@ save(dt6ReducedTimer, file = namTR)
 rm(list=ls(pattern="nam"))
 
 # export for Shiny
-saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
+saveRDS(dt6ReducedCases, file = "PsyCorona-WebApp/data/reducedData.rds")
 
 # export Contact List
 #write.csv(ContactList, file = namCL)
