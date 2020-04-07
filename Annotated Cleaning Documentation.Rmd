@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 6, 2020_08.53.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 7, 2020_04.44.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # merge adn fill missing
@@ -1146,6 +1146,8 @@ ContactList <- dt5newVars %>%
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate, 
                 EndDateBaseline = EndDate)
+
+LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
 ```
 
 ## **Export**   
@@ -1156,15 +1158,22 @@ namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+
 write_sav(dt6Reduced, namSPSS)
 write_sav(dt6ReducedTimer, namTSPSS)
+
 save(dt6Reduced, file = namR)
 save(dt6ReducedTimer, file = namTR)
-rm(list=ls(pattern="nam"))
 
 # export for Shiny
 saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 
 # export Contact List
 #write.csv(ContactList, file = namCL)
+
+# export Language List
+write.csv(LanguageList, file = namLL)
+
+rm(list=ls(pattern="nam"))
 ```
