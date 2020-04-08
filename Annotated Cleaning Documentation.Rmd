@@ -91,10 +91,10 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+7,+2020_14.44.sav")
+dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 7, 2020_10.16.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 8, 2020_03.41.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # merge adn fill missing
@@ -438,11 +438,14 @@ country_dict <- list('Albania' = c('albania'),
 
 
 country_matches <- cat_words(dt5newVars$country, country_dict) 
+country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-View(country_matches$unmatched)
+## View(country_matches$unmatched)
 # Check duplicates, and which regular expressions triggered them
-View(country_matches$dup)
+## View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
+dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
+
 
 # CODE FOR EXPORT:
 # country_entry <- dt5newVars$country
@@ -458,7 +461,7 @@ We currently have `r length(unique(dt5newVars$country))` different free text cou
 
 ### Visualize Response Rates (maybe moved somewhere else?)
 We visualize how many responses we have per day.
-```{r PolOr, echo=T, warning=F, message=F}
+```{r RespVis, echo=T, warning=F, message=F}
 tmp <- setNames(data.frame(table(lubridate::round_date(dt5newVars$EndDate, unit = "12 hours"))),c("Date","Count"))
 ggplot(tmp, aes(x=Date, y = Count))+
    geom_line(group = 1)+
@@ -1088,19 +1091,19 @@ dt6ReducedTimer <- dt5newVars %>%
 dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
 
-# remove filtered cases (with and without page timers)
-dt6ReducedTimerCases <- dt6ReducedTimer %>%
-  filter(FilterPreview == 0,
-         FilterProgress == 0,
-         FilterTime == 0,
-         FilterStraightliner == 0) %>%
-  dplyr::select(-starts_with("Filter"))
-dt6ReducedCases <- dt6Reduced %>%
-  filter(FilterPreview == 0,
-         FilterProgress == 0,
-         FilterTime == 0,
-         FilterStraightliner == 0) %>%
-  dplyr::select(-starts_with("Filter"))
+# # remove filtered cases (with and without page timers)
+# dt6ReducedTimerCases <- dt6ReducedTimer %>%
+#   filter(FilterPreview == 0,
+#          FilterProgress == 0,
+#          FilterTime == 0,
+#          FilterStraightliner == 0) %>%
+#   dplyr::select(-starts_with("Filter"))
+# dt6ReducedCases <- dt6Reduced %>%
+#   filter(FilterPreview == 0,
+#          FilterProgress == 0,
+#          FilterTime == 0,
+#          FilterStraightliner == 0) %>%
+#   dplyr::select(-starts_with("Filter"))
 
 as.Date(dt5newVars$EndDate) 
 
@@ -1119,6 +1122,43 @@ ContactList <- dt5newVars %>%
 LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
 ```
 
+## **Descriptives for Representativeness**
+```{r rep, echo=T, warning=F, message=F}
+ctry.rep2 <- dt5newVars %>%
+  #filter(!is.na(coded_country)) %>%
+  filter(!is.na(PLRAC19),
+         !is.na(extC19Msg),
+         !is.na(pfs.m),
+         !is.na(consp.m),
+         !is.na(lone.m)
+         ) %>%
+  filter_at(vars(jbInsec01,jbInsec02, jbInsec03, jbInsec04, PLRAEco),all_vars(!is.na(.))) %>%
+  filter_at(vars(disc01,disc02, disc03),all_vars(!is.na(.))) %>%
+  filter_at(vars(isoFriends_inPerson, isoOthPpl_inPerson, isoFriends_online, isoOthPpl_online),all_vars(!is.na(.))) %>%
+  filter_at(vars(c19Hope, c19Eff, ecoHope, ecoEff),all_vars(!is.na(.))) %>%
+  filter_at(vars(c19RCA01, c19RCA02, c19RCA03, ecoPerBeh01, ecoPerBeh02, ecoPerBeh03),all_vars(!is.na(.))) %>%
+  filter_at(vars(c19NormShould, c19ProSo01, c19ProSo02, c19ProSo03),all_vars(!is.na(.))) %>%
+  filter_at(vars(c19NormDo, extC19Rules, extC19Punish, extC19Org),all_vars(!is.na(.))) %>%
+  filter_at(vars(c19ProSo01, c19ProSo02, c19ProSo03, c19ProSo04, ecoProSo01, ecoProSo02, ecoProSo03, ecoProSo04),all_vars(!is.na(.))) %>%
+  group_by(coded_country) %>%
+  dplyr::summarize(
+    n = n(),
+    gender_women = sum(gender == 1, na.rm = T),
+    gender_men = sum(gender == 2, na.rm = T),
+    gender_other = sum(gender == 3, na.rm = T),
+    gender_na = sum(is.na(gender), na.rm = T),
+    age_18to24 = sum(age == 1, na.rm = T),
+    age_25to34 = sum(age == 2, na.rm = T),
+    age_35to44 = sum(age == 3, na.rm = T),
+    age_45to54 = sum(age == 4, na.rm = T),
+    age_55to64 = sum(age == 5, na.rm = T),
+    age_65to75 = sum(age == 6, na.rm = T),
+    age_75to85 = sum(age == 7, na.rm = T),
+    age_85plus = sum(age == 8, na.rm = T),
+    age_na = sum(is.na(age), na.rm = T)
+  )
+```
+
 ## **Export**   
 Export main dataframe as RData and SPSS sav files. We export versions with and without page timers
 ```{r export, echo=T, warning=F, message=F}
@@ -1128,6 +1168,7 @@ namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
 write_sav(dt6Reduced, namSPSS)
 write_sav(dt6ReducedTimer, namTSPSS)
@@ -1142,7 +1183,10 @@ saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 #write.csv(ContactList, file = namCL)
 
 # export Language List
-write.csv(LanguageList, file = namLL)
+#write.csv(LanguageList, file = namLL)
+
+# export Country Demographics
+write.csv(ctry.rep, file = namDemo)
 
 rm(list=ls(pattern="nam"))
 ```
