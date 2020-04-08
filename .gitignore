@@ -8,5 +8,6 @@
 *.Rdata
 *.csv
 *.zip
+*.png
 #data/
 Icon?
