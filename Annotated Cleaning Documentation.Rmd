@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 8, 2020_03.41.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 10, 2020_02.55.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # merge adn fill missing
@@ -289,6 +289,8 @@ Re-coding reverse coded items and the Qualtrics language codes.
 dt5newVars <- dt4Straightliner %>%
   mutate(jbInsec02_R = labelled(recode(as.numeric(jbInsec02), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2, `-99` = -99),
                                 labels = NULL, label="Job Insecurity 02 (re-coded)"),
+         disc03_R = labelled(recode(as.numeric(disc03), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2),
+                            labels = NULL, label="Discontent 03 (re-coded)"),
          bor03_R = labelled(recode(as.numeric(bor03), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2),
                             labels = NULL, label="Boredom 03 (re-coded)"))
 # Language
@@ -469,7 +471,6 @@ ggplot(tmp, aes(x=Date, y = Count))+
    # scale_y_continuous(limits = c(0, 158),
    #                    breaks = seq(0,160,20))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))
-
 ```
 
 
@@ -799,8 +800,7 @@ as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 ```
 
-### Government Response
-No responses yet
+### Government Clarity
 ```{r gov, echo=T, results='asis', warning=F, message=F}
 as.data.frame(psych::describe(dt5newVars$extC19Msg)) %>%
   mutate(vars = rownames(.)) %>%
@@ -814,7 +814,8 @@ ggplot(dt5newVars, aes(x = extC19Msg)) +
   theme_Publication()
 ```
 
-### Community Response
+### Coronavirus Responses
+#### Community Response
 ```{r community, echo=T, results='asis', warning=F, message=F}
 ia.ext <- dt5newVars %>%
     dplyr::select(starts_with("extC19"), -extC19Msg) %>%
@@ -852,7 +853,7 @@ dt5newVars$ext.z <- scale(dt5newVars$ext.m, scale = T)
 dt5newVars$ext.fa <- fa(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))$scores
 ```
 
-### Behavioral Response
+#### Behavioral Response
 ```{r beh, echo=T, results='asis', warning=F, message=F}
 ia.beh <- dt5newVars %>%
     dplyr::select(starts_with("c19per")) %>%
@@ -888,6 +889,69 @@ as.data.frame(psych::describe(dt5newVars$beh.m, skew=F)) %>%
 dt5newVars$beh.c <- scale(dt5newVars$beh.m, scale = F, center = T)
 dt5newVars$beh.z <- scale(dt5newVars$beh.m, scale = T)
 dt5newVars$beh.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19per")))$scores
+```
+
+#### Pro-Social Response
+```{r beh, echo=T, results='asis', warning=F, message=F}
+ia.proSo <- dt5newVars %>%
+    dplyr::select(starts_with("c19ProSo")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.proSo$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.proSo)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Pro-Social response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
+
+cat("<br>")
+
+dt5newVars$proSo.m <- scoreItems(keys=c(1,1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19ProSo")), 
+                             min = -3, max = 3)$scores
+
+as.data.frame(psych::describe(dt5newVars$proSo.m, skew=F)) %>%
+  mutate(vars = "Pro-Social response") %>%
+  kable(., caption = "Pro-Social response: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$proSo.c <- scale(dt5newVars$proSo.m, scale = F, center = T)
+dt5newVars$proSo.z <- scale(dt5newVars$proSo.m, scale = T)
+dt5newVars$proSo.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))$scores
+```
+
+### Likelihood Threat
+```{r likelihood, echo=T, results='asis', warning=F, message=F}
+as.data.frame(psych::describe(dt5newVars$PLRAC19)) %>%
+  mutate(vars = "Likelihood c19") %>%
+  kable(., caption = "Likelihood c19: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = PLRAC19)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Likelihood c19 distribution",x="Likelihood c19", y = "Frequency") +
+  theme_Publication()
+  
+as.data.frame(psych::describe(dt5newVars$PLRAEco)) %>%
+  mutate(vars = "Likelihood Eco") %>%
+  kable(., caption = "Likelihood Eco: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = PLRAEco)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Likelihood Eco distribution",x="Likelihood Eco", y = "Frequency") +
+  theme_Publication()
 ```
 
 ### Hope and Efficacy
@@ -991,6 +1055,86 @@ dt5newVars$para.z <- scale(dt5newVars$consp.m, scale = T)
 dt5newVars$para.fa <- fa(dt5newVars %>% dplyr::select(starts_with("consp")))$scores
 ```
 
+### Disempowerment
+```{r disemp, echo=T, results='asis', warning=F, message=F}
+ia.disemp<- dt5newVars %>%
+    dplyr::select(starts_with("fail"), -contains("DO")) %>%
+    na_if(., -99) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.disemp$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.disemp)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Disempowerment: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))
+
+cat("<br>")
+
+dt5newVars$disemp.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$disemp.m, skew=F)) %>%
+  mutate(vars = "Disempowerment") %>%
+  kable(., caption = "Disempowerment: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$disemp.c <- scale(dt5newVars$disemp.m, scale = F, center = T)
+dt5newVars$disemp.z <- scale(dt5newVars$disemp.m, scale = T)
+dt5newVars$disemp.fa <- fa(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")))$scores
+```
+
+### Societal Discontent
+```{r socDis, echo=T, results='asis', warning=F, message=F}
+ia.socdisc<- dt5newVars %>%
+    dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>%
+    na_if(., -99) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.socdisc$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.socdisc)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Societal Discontent: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))
+
+cat("<br>")
+
+dt5newVars$socdisc.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$socdisc.m, skew=F)) %>%
+  mutate(vars = "Societal Discontent") %>%
+  kable(., caption = "Societal Discontent: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$socdisc.c <- scale(dt5newVars$socdisc.m, scale = F, center = T)
+dt5newVars$socdisc.z <- scale(dt5newVars$socdisc.m, scale = T)
+dt5newVars$socdisc.fa <- fa(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")))$scores
+```
+
 ### Job Insecurity
 ```{r jbinsc, echo=T, results='asis', warning=F, message=F}
 ia.jobinsec<- dt5newVars %>%
@@ -1061,8 +1205,8 @@ dt5newVars$pfs.m <- scoreItems(keys=c(1,1,1),
                                   min = -2, max = 2)$scores
 
 as.data.frame(psych::describe(dt5newVars$pfs.m, skew=F)) %>%
-  mutate(vars = "inancial Strain") %>%
-  kable(., caption = "inancial Strain: Scale Descriptives", row.names = FALSE) %>% 
+  mutate(vars = "Financial Strain") %>%
+  kable(., caption = "Financial Strain: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$pfs.c <- scale(dt5newVars$pfs.m, scale = F, center = T)
@@ -1070,6 +1214,84 @@ dt5newVars$pfs.z <- scale(dt5newVars$pfs.m, scale = T)
 dt5newVars$pfs.fa <- fa(dt5newVars %>% dplyr::select(starts_with("PFS0")))$scores
 ```
 
+### Coping
+#### Problem Solving
+```{r probSolv, echo=T, results='asis', warning=F, message=F}
+ia.probSolv<- dt5newVars %>%
+    dplyr::select(starts_with("probSolving"), -contains("DO")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.probSolv$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.probSolv)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Problem Solving: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))
+
+cat("<br>")
+
+dt5newVars$probSolv.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$probSolv.m, skew=F)) %>%
+  mutate(vars = "Problem Solving") %>%
+  kable(., caption = "Problem Solving: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$probSolv.c <- scale(dt5newVars$probSolv.m, scale = F, center = T)
+dt5newVars$probSolv.z <- scale(dt5newVars$probSolv.m, scale = T)
+dt5newVars$probSolv.fa <- fa(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))$scores
+```
+
+#### Distraction
+```{r distract, echo=T, results='asis', warning=F, message=F}
+ia.distract<- dt5newVars %>%
+    dplyr::select(starts_with("posrefocus"), -contains("DO")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.distract$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.distract)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Distraction: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))
+
+cat("<br>")
+
+dt5newVars$distract.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$distract.m, skew=F)) %>%
+  mutate(vars = "Distraction") %>%
+  kable(., caption = "Distraction: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$distract.c <- scale(dt5newVars$distract.m, scale = F, center = T)
+dt5newVars$distract.z <- scale(dt5newVars$distract.m, scale = T)
+dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))$scores
+```
 
 ## **Reduce to Relevant Variales**   
 ```{r keyVars, echo=T, warning=F, message=F}
@@ -1124,39 +1346,63 @@ LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing =
 
 ## **Descriptives for Representativeness**
 ```{r rep, echo=T, warning=F, message=F}
-ctry.rep2 <- dt5newVars %>%
-  #filter(!is.na(coded_country)) %>%
-  filter(!is.na(PLRAC19),
-         !is.na(extC19Msg),
-         !is.na(pfs.m),
-         !is.na(consp.m),
-         !is.na(lone.m)
-         ) %>%
-  filter_at(vars(jbInsec01,jbInsec02, jbInsec03, jbInsec04, PLRAEco),all_vars(!is.na(.))) %>%
-  filter_at(vars(disc01,disc02, disc03),all_vars(!is.na(.))) %>%
-  filter_at(vars(isoFriends_inPerson, isoOthPpl_inPerson, isoFriends_online, isoOthPpl_online),all_vars(!is.na(.))) %>%
-  filter_at(vars(c19Hope, c19Eff, ecoHope, ecoEff),all_vars(!is.na(.))) %>%
-  filter_at(vars(c19RCA01, c19RCA02, c19RCA03, ecoPerBeh01, ecoPerBeh02, ecoPerBeh03),all_vars(!is.na(.))) %>%
-  filter_at(vars(c19NormShould, c19ProSo01, c19ProSo02, c19ProSo03),all_vars(!is.na(.))) %>%
-  filter_at(vars(c19NormDo, extC19Rules, extC19Punish, extC19Org),all_vars(!is.na(.))) %>%
-  filter_at(vars(c19ProSo01, c19ProSo02, c19ProSo03, c19ProSo04, ecoProSo01, ecoProSo02, ecoProSo03, ecoProSo04),all_vars(!is.na(.))) %>%
-  group_by(coded_country) %>%
-  dplyr::summarize(
-    n = n(),
-    gender_women = sum(gender == 1, na.rm = T),
-    gender_men = sum(gender == 2, na.rm = T),
-    gender_other = sum(gender == 3, na.rm = T),
-    gender_na = sum(is.na(gender), na.rm = T),
-    age_18to24 = sum(age == 1, na.rm = T),
-    age_25to34 = sum(age == 2, na.rm = T),
-    age_35to44 = sum(age == 3, na.rm = T),
-    age_45to54 = sum(age == 4, na.rm = T),
-    age_55to64 = sum(age == 5, na.rm = T),
-    age_65to75 = sum(age == 6, na.rm = T),
-    age_75to85 = sum(age == 7, na.rm = T),
-    age_85plus = sum(age == 8, na.rm = T),
-    age_na = sum(is.na(age), na.rm = T)
-  )
+# missing filter per item
+  ctry.repMiss <- dt5newVars %>%
+    #filter(!is.na(coded_country)) %>%
+    filter(!is.na(PLRAC19),
+           !is.na(extC19Msg),
+           !is.na(pfs.m),
+           !is.na(consp.m),
+           !is.na(lone.m)
+           ) %>%
+    filter_at(vars(jbInsec01,jbInsec02, jbInsec03, jbInsec04, PLRAEco),all_vars(!is.na(.))) %>%
+    filter_at(vars(disc01,disc02, disc03),all_vars(!is.na(.))) %>%
+    filter_at(vars(isoFriends_inPerson, isoOthPpl_inPerson, isoFriends_online, isoOthPpl_online),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19Hope, c19Eff, ecoHope, ecoEff),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19RCA01, c19RCA02, c19RCA03, ecoPerBeh01, ecoPerBeh02, ecoPerBeh03),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19NormShould, c19ProSo01, c19ProSo02, c19ProSo03),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19NormDo, extC19Rules, extC19Punish, extC19Org),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19ProSo01, c19ProSo02, c19ProSo03, c19ProSo04, ecoProSo01, ecoProSo02, ecoProSo03, ecoProSo04),all_vars(!is.na(.))) %>%
+    group_by(coded_country) %>%
+    dplyr::summarize(
+      n = n(),
+      gender_women = sum(gender == 1, na.rm = T),
+      gender_men = sum(gender == 2, na.rm = T),
+      gender_other = sum(gender == 3, na.rm = T),
+      gender_na = sum(is.na(gender), na.rm = T),
+      age_18to24 = sum(age == 1, na.rm = T),
+      age_25to34 = sum(age == 2, na.rm = T),
+      age_35to44 = sum(age == 3, na.rm = T),
+      age_45to54 = sum(age == 4, na.rm = T),
+      age_55to64 = sum(age == 5, na.rm = T),
+      age_65to75 = sum(age == 6, na.rm = T),
+      age_75to85 = sum(age == 7, na.rm = T),
+      age_85plus = sum(age == 8, na.rm = T),
+      age_na = sum(is.na(age), na.rm = T)
+    )
+# no missing filter per item
+  ctry.repFull <- dt5newVars %>%
+    group_by(coded_country) %>%
+    dplyr::summarize(
+      n = n(),
+      gender_women = sum(gender == 1, na.rm = T),
+      gender_men = sum(gender == 2, na.rm = T),
+      gender_other = sum(gender == 3, na.rm = T),
+      gender_na = sum(is.na(gender), na.rm = T),
+      age_18to24 = sum(age == 1, na.rm = T),
+      age_25to34 = sum(age == 2, na.rm = T),
+      age_35to44 = sum(age == 3, na.rm = T),
+      age_45to54 = sum(age == 4, na.rm = T),
+      age_55to64 = sum(age == 5, na.rm = T),
+      age_65to75 = sum(age == 6, na.rm = T),
+      age_75to85 = sum(age == 7, na.rm = T),
+      age_85plus = sum(age == 8, na.rm = T),
+      age_na = sum(is.na(age), na.rm = T)
+    )
+  ctry.repFull <- ctry.repFull %>%
+    filter(n > 20)%>%
+    transmute(coded_country = coded_country,
+           n = n)
 ```
 
 ## **Export**   
@@ -1186,7 +1432,11 @@ saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 #write.csv(LanguageList, file = namLL)
 
 # export Country Demographics
+ctry.rep2 <- 
 write.csv(ctry.rep, file = namDemo)
+
+write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
+write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
 
 rm(list=ls(pattern="nam"))
 ```
