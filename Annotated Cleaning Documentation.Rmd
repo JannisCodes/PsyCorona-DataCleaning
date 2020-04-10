@@ -1489,9 +1489,6 @@ saveRDS(shiny_data, file = "../PsyCorona-WebApp/data/reducedData.rds")
 #write.csv(LanguageList, file = namLL)
 
 # export Country Demographics
-ctry.rep2 <- 
-write.csv(ctry.rep, file = namDemo)
-
 write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
 write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
 
