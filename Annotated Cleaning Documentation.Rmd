@@ -85,8 +85,8 @@ Note. Boxplots display the interquartile range (IQR, center box), and the whiske
 
 ## **Import Data**
 In a first step we import the raw Qualtrics data, which was downloaded as an SPSS file.   
-
-```{r LoadRaw, echo=T, warning=F, message=F}
+### Baseline
+```{r LoadRawBase, echo=T, warning=F, message=F}
 # Reset working directory to folder current file is saved in
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -94,8 +94,17 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 13, 2020_04.53.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 13, 2020_07.28.sav")
 dt0RawNYUAD$source <- "NYU-AD"
+
+# prepare dfs before merge (basically naming variables correct)
+notRug <- dt0RawRUG %>%
+  dplyr::select_if(!(names(dt0RawRUG) %in% names(dt0RawNYUAD)))
+notNyu <- dt0RawNYUAD %>%
+  dplyr::select_if(!(names(dt0RawNYUAD) %in% names(dt0RawRUG)))
+names(notRug)
+names(notNyu)
+cat("Looks good as non-overlapping variables pertain to the political items"); rm(notRug, notNyu)
 
 # merge adn fill missing
 dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD)
@@ -105,6 +114,41 @@ rm(dt0RawRUG, dt0RawNYUAD)
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
 
+### Recontacts
+```{r LoadRawRec, echo=T, warning=F, message=F}
+# Import Wave 1
+  dt0w1 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
+  #dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
+
+# prepare dfs before merge (basically naming variables correct)
+notBase <- dt0Raw %>%
+  dplyr::select_if(!(names(dt0Raw) %in% names(dt0w1)))
+notRec <- dt0w1 %>%
+  dplyr::select_if(!(names(dt0w1) %in% names(dt0Raw)))
+names(notBase)
+names(notRec)
+cat("Needs fixing so that item names correspond to same construct"); rm(notBase, notRec)
+
+# change column names for waves
+  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
+  #colnames(dt0w2) <- paste(colnames(dt0w1), "w2",  sep = "_")
+
+# create correct ID for merge across waves
+  dt0Raw$mergeID <- as.character(dt0Raw$ResponseId)
+  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
+  #dt0w2$mergeID <- dt0w1$ExternalReference_w2
+  
+# merge
+  dt0Raw <- list(dt0w1, dt0Raw) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::right_join(dtf1,dtf2,by="mergeID"), .)
+
+# find mistakes if not the same length
+cat("How many people did we loose in wave 1:")
+  nrow(dt0w1) - sum(dt0Raw$ICRec_1_TEXT == dt0Raw$w1_RecipientEmail, na.rm = T)
+cat("We lost them because an independent link was sent around")
+
+rm(dt0w1)
+```
 
 ## **Data Quality**   
 
@@ -1322,16 +1366,16 @@ rm(list=ls(pattern="ia"))
 
 # remove directly identifiable data (with and without page timers)
 dt6ReducedTimer <- dt5newVars %>%
-  dplyr::select(-c(IPAddress, 
-            RecipientLastName, 
-            RecipientFirstName, 
-            RecipientEmail, 
-            ExternalReference, 
-            LocationLatitude, 
-            LocationLongitude,
-            DistributionChannel,
-            ICRec_0_TEXT,
-            ICRec_1_TEXT))
+  dplyr::select(-c(contains("IPAddress"),
+                   contains("RecipientLastName"), 
+                   contains("RecipientFirstName"), 
+                   contains("Email"),
+                   contains("ExternalReference"), 
+                   contains("LocationLatitude"), 
+                   contains("LocationLongitude"),
+                   contains("DistributionChannel"),
+                   contains("ICRec_0_TEXT"),
+                   contains("ICRec_1_TEXT")))
 dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
 
