@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 13, 2020_07.28.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 14, 2020_06.56.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -117,35 +117,54 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 ### Recontacts
 ```{r LoadRawRec, echo=T, warning=F, message=F}
 # Import Wave 1
-  dt0w1 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
-  #dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
+  dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2+April+3th_April+14,+2020_17.22.sav")
+  dt0w3 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+3+April+11th_April+14,+2020_15.04.sav")
 
 # prepare dfs before merge (basically naming variables correct)
-notBase <- dt0Raw %>%
-  dplyr::select_if(!(names(dt0Raw) %in% names(dt0w1)))
-notRec <- dt0w1 %>%
-  dplyr::select_if(!(names(dt0w1) %in% names(dt0Raw)))
-names(notBase)
-names(notRec)
-cat("Needs fixing so that item names correspond to same construct"); rm(notBase, notRec)
+notBaseW2 <- dt0w2 %>%
+  dplyr::select_if(!(names(dt0w2) %in% names(dt0Raw)))
+notBaseW3 <- dt0w3 %>%
+  dplyr::select_if(!(names(dt0w3) %in% names(dt0Raw)))
+
+cat("Missmatch between wave 2 and baseline:")
+names(notBaseW2) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBaseW2)
+
+cat("Missmatch between wave 3 and baseline:")
+names(notBaseW3) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBaseW3)
 
 # change column names for waves
-  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
-  #colnames(dt0w2) <- paste(colnames(dt0w1), "w2",  sep = "_")
+  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
+  colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
 
 # create correct ID for merge across waves
   dt0Raw$mergeID <- as.character(dt0Raw$ResponseId)
-  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
-  #dt0w2$mergeID <- dt0w1$ExternalReference_w2
+  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
+  dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
   
 # merge
-  dt0Raw <- list(dt0w1, dt0Raw) %>% #merge multiple dfs at once
-    Reduce(function(dtf1,dtf2) dplyr::right_join(dtf1,dtf2,by="mergeID"), .)
+  tmp <- list(dt0Raw, dt0w2, dt0w3) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .)
 
 # find mistakes if not the same length
-cat("How many people did we loose in wave 1:")
-  nrow(dt0w1) - sum(dt0Raw$ICRec_1_TEXT == dt0Raw$w1_RecipientEmail, na.rm = T)
-cat("We lost them because an independent link was sent around")
+cat("How many people did we loose in wave 2:")
+  nrow(dt0w2) - sum(tmp$ICRec_1_TEXT == tmp$w2_RecipientEmail, na.rm = T)
+  cat("We lost them because an independent link was sent around")
+  
+cat("How many people did we loose in wave 3:")
+  nrow(dt0w3) - sum(tmp$ICRec_1_TEXT == tmp$w3_RecipientEmail, na.rm = T)
+  cat("We lost them because an independent link was sent around")
 
 rm(dt0w1)
 ```
@@ -1397,21 +1416,33 @@ dt6Reduced <- dt6ReducedTimer %>%
 ## **Recontact**
 ```{r recontact, echo=T, warning=F, message=F}
 # COMMENT IF NEEDED
-# as.Date(dt5newVars$EndDate) 
-# 
-# library("lubridate")
-# ContactList1 <- dt5newVars %>%
-#   filter(FilterPreview == 0,
-#          ICRec_1_TEXT!="",
-#          ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
-#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-#   dplyr::select(ExternalDataReference = ResponseId, 
-#                 Language = Q_Language, 
-#                 Email = ICRec_1_TEXT,
-#                 StartDateBaseline = StartDate, 
-#                 EndDateBaseline = EndDate)
-# 
-# table(ContactList1$Language)
+as.Date(dt5newVars$EndDate)
+
+library("lubridate")
+ContactList1 <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+
+ContactList2 <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+
+table(ContactList1$Language)
+table(ContactList2$Language)
 # 
 # # check how many have an @ (not really worth the effort to discard those)
 #   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
@@ -1423,7 +1454,10 @@ dt6Reduced <- dt6ReducedTimer %>%
 # write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
 # 
 # #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+```
 
+## **Shiny App**
+```{r shinyApp, echo=T, warning=F, message=F}
 # Dataframe for Shiny App
 # load geo spatial data
 library(rnaturalearth)
