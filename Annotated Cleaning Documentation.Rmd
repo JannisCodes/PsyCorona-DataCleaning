@@ -85,8 +85,8 @@ Note. Boxplots display the interquartile range (IQR, center box), and the whiske
 
 ## **Import Data**
 In a first step we import the raw Qualtrics data, which was downloaded as an SPSS file.   
-
-```{r LoadRaw, echo=T, warning=F, message=F}
+### Baseline
+```{r LoadRawBase, echo=T, warning=F, message=F}
 # Reset working directory to folder current file is saved in
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
@@ -94,8 +94,17 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 10, 2020_02.55.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 13, 2020_07.28.sav")
 dt0RawNYUAD$source <- "NYU-AD"
+
+# prepare dfs before merge (basically naming variables correct)
+notRug <- dt0RawRUG %>%
+  dplyr::select_if(!(names(dt0RawRUG) %in% names(dt0RawNYUAD)))
+notNyu <- dt0RawNYUAD %>%
+  dplyr::select_if(!(names(dt0RawNYUAD) %in% names(dt0RawRUG)))
+names(notRug)
+names(notNyu)
+cat("Looks good as non-overlapping variables pertain to the political items"); rm(notRug, notNyu)
 
 # merge adn fill missing
 dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD)
@@ -105,6 +114,41 @@ rm(dt0RawRUG, dt0RawNYUAD)
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
 
+### Recontacts
+```{r LoadRawRec, echo=T, warning=F, message=F}
+# Import Wave 1
+  dt0w1 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
+  #dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2_April+13,+2020_19.07.sav")
+
+# prepare dfs before merge (basically naming variables correct)
+notBase <- dt0Raw %>%
+  dplyr::select_if(!(names(dt0Raw) %in% names(dt0w1)))
+notRec <- dt0w1 %>%
+  dplyr::select_if(!(names(dt0w1) %in% names(dt0Raw)))
+names(notBase)
+names(notRec)
+cat("Needs fixing so that item names correspond to same construct"); rm(notBase, notRec)
+
+# change column names for waves
+  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
+  #colnames(dt0w2) <- paste(colnames(dt0w1), "w2",  sep = "_")
+
+# create correct ID for merge across waves
+  dt0Raw$mergeID <- as.character(dt0Raw$ResponseId)
+  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
+  #dt0w2$mergeID <- dt0w1$ExternalReference_w2
+  
+# merge
+  dt0Raw <- list(dt0w1, dt0Raw) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::right_join(dtf1,dtf2,by="mergeID"), .)
+
+# find mistakes if not the same length
+cat("How many people did we loose in wave 1:")
+  nrow(dt0w1) - sum(dt0Raw$ICRec_1_TEXT == dt0Raw$w1_RecipientEmail, na.rm = T)
+cat("We lost them because an independent link was sent around")
+
+rm(dt0w1)
+```
 
 ## **Data Quality**   
 
@@ -327,7 +371,9 @@ We currently have `r length(table(dt5newVars$country))` different free text coun
 # CJ: The function and dictionary (based on the code below, some errors corrected) 
 # CJ: is in
 
-dt5newVars$country <- dt5newVars$country %>%
+#saveRDS(dt5newVars$country, file = "country.RDS")
+
+dt5newVars$countryAdj <- dt5newVars$country %>%
   tolower() %>% #make them lower case
   gsub(" ", "", ., fixed = TRUE) %>% # remove white space
   as.character() #make sure everything is characters
@@ -335,125 +381,145 @@ dt5newVars$country <- dt5newVars$country %>%
 source("./scripts/functions/dictionary_functions.R")
 
 # sourcing seems to destroy everything
-country_dict <- list('Albania' = c('albania'),
-                     'Algeria' = c('algeri','الجزائر','algérie','الجزاءر'),
-                     'Andorra' = c('andorra'),
-                     'Argentina' = c('argentina',  'arge'),
-                     'Australia' = c('australia',  'austrija'),
-                     'Austria' = c('austria',  'sterreich'),
-                     'Azerbaijan' = c('azerba'),
-                     'Bahrain' = c('bahrain'),
-                     'Bangladesh' = c('bangladesh'),
-                     'Belgium' = c('belg',  'bélgica', 'бельгия'),
-                     'Bosnia and Herzegovina' = c('bosnaihercegovina'),
-                     'Botswana' = c('botswana'),
-                     'Brazil' = c('brazil',  'brasil'),
-                     'Bulgaria' = c('bulgaria', 'българия'),
-                     'Cameroon' = c('camer'),
-                     'Canada' = c('canad',  'vancouver', 'канада'),
-                     'Chile' = c('^chile$'),
-                     'China' = c('^china', '中国', '中华人民共和国'),
-                     'Colombia' = c('colombia'),
-                     'Costa Rica' = c('costa'), 
-                     'Croatia' = c('croa', "hrvatsk"),
-                     'Cyprus' = c('cyp', '^κ...ο.', '^κ...ο'), 
-                     'Czech Republic' = c('czech',  'checa'),
-                     'Denmark' = c('mark'),
-                     'Dominican Republic' = c('domin'),
-                     'Ecuador' = c('ecuador'),
-                     'Egypt' = c('مصر'),
-                     'El Salvador' = c('salvador'),
-                     'Estonia' = c('estonia'),
-                     'Finland' = c('finland'),
-                     'France' = c('france',  'francia',  'frankrijk'),
-                     'Germany' = c('germany',  'deutschland',  'alemania',  'germania',  '^almanya$', 'allemagne',  'berlin',  'duitsland', 'γ.ρ.....'),
-                     'Greece' = c('greece',  'grecia', 	'.λλ...', '.λλ..'),
-                     'Guatemala' = c('guat'),
-                     'Hong Kong S.A.R.' = c('hong.{0,}kong', '香港'),
-                     'Hungary' = c('hungary', '^magyarorsz', 'magyar', 'ungarn'),
-                     'Iceland' = c('iceland'),
-                     'India' = c('india'),
-                     'Indonesia' = c('^indonesia$',  'indonesian',  'kota, tarakan',  'imdonesia',  'indònesia',  'jakarta'),
-                     'Iran' = c('iran'),
-                     'Iraq' = c('iraq',  'العراق'),
-                     'Ireland' = c('^ireland$',  'irlanda', 'ιρλ.....'),
-                     'Israel' = c('القدس', 'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
-                     'Italy' = c('ital',  'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia',  'cala, gonone',  'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
-                     'Jamaica' = c('jamaica'),
-                     'Japan' = c('japan',  'giappone',  'japonya', '日本'),
-                     'Jordan' = c('jordan', 'الأردن'),
-                     'Kazakhstan' = c('казахстан', 'kazakhstan'),
-                     'Kenya' = c('kenia'),
-                     'Laos' = c('laos'),
-                     'Latvia' = c('latvia'),
-                     'Lebanon' = c('lebanon',  'liban'),
-                     'Libya' = c('ليبيا'),
-                     'Luxembourg' = c('lux'),
-                     'Malaysia' = c('malay'),
-                     'Malta' = c('malta'),
-                     'Mauritius' = c('maurice'),
-                     'Mexico' = c('mexico',  'méxico'),
-                     'Montenegro' = c('crnagora'),
-                     'Morocco' = c('المغرب',  'maroc'),
-                     'Myanmar' = c('myanmar'),
-                     'Nepal' = c('nepal'),
-                     'Netherlands' = c('netherland',  'nederland',  'niederlande',  'belanda',  '^nl$',  'olanda',  'paesi, bassi',  'paesi bassi',  'bajos',  'gelderland',  'hollanda', 'paes.+bass.'),
-                     'New Zealand' = c('new.+zeal', 'newzealand',  'neuseeland'),
-                     'Nigeria' = c('nigeria'),
-                     'Norway' = c('norway'),
-                     'Oman' = c('^oman$'),
-                     'Pakistan' = c('pakistan',  'abbottabad',  'peshawar'),
-                     'Palestine' = c('palestine',  'فلسطين, ',  '^فلسطين$',  'الرملة'),
-                     'Panama' = c('panam'), 
-                     'Peru' = c('peru', 'perú'),
-                     'Philippines' = c('phil',  'filipinas'),
-                     'Poland' = c('poland',  'polonia', 'польша'),
-                     'Portugal' = c('portugal'), 
-                     'Qatar' = c('qatar'),
-                     'Republic of Serbia' = c('srbija',  'serbia',  'србија'),
-                     'Romania' = c('romania', 'rom.nia'),
-                     'Russia' = c('россия'),
-                     'Saudi Arabia' = c('riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia',  'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab'),
-                     'Republic of Serbia' = c('srbiji', 's.erbia'),
-                     'Singapore' = c('singapore'),
-                     'Slovakia' = c('slova'),
-                     'South Africa' = c('africa',  '^sa$',  'sudáfrica',  'western, cape', 'southaf...'),
-                     'South Korea' = c('korea',  'güney, kore'),
-                     'Spain' = c('spain',  'esp',  'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje'),
-                     'Sweden' = c('weden'),
-                     'Switzerland' = c('schweiz',  'suiza',  'svizzera',  'zwitserland',  'switzerland', 'suisse'),
-                     'Taiwan' = c('taiwan', '台灣'),
-                     'Thailand' = c('^thailand$'),
-                     "Trinidad and Tobago" = c("trinid"),
-                     'Tunisia' = c('tuni',  'تونس'),
-                     'Turkey' = c('turkey',  't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye"), #"'\u00fcrkiye'"
-                     'Ukraine' = c('ukraine', 'у.ра..а'),
-                     'United Arab Emirates' = c('الخرج',  'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
-                     'United Kingdom' = c('uni.+kin',  '^uk$',  'reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk',  'windsor',  'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland',  'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido'),
-                     'United Republic of Tanzania' = c('tanzania'),
-                     'United States of America' = c('america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$',  '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  '^us$',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$',  'u, s', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona'), 
-                     'Uruguay' = c('urug'),
-                     'Uzbekistan' = c('u.{2,5}istan'),
-                     'Venezuela' = c('^venezuela$'),
-                     'Vietnam' = c('vietnam')
-                     )
+country_dict <- list('Afghanistan' = c('Afghanistan'),
+                       'Albania' = c('albania', 'Albania'),
+                       'Algeria' = c('Algrie', 'الجزاء و', 'ALGERIE',  'جزائر',   'Alger',  'الجزاء و ', 'الجزاير',  '🇩🇿', 'ALGÉRIE',  'البليدة',  'algeri', 'الجزاىر',  'الجوائر',    'Algeria', 'الحزائر',  'الجزائر', 'algérie', 'الجزاءر', 'Algérie', 'Algerie'),
+                       'Algeria' = c('الجزاير (حمادي بومرداس)', 'الحزاءر'),
+                       'Andorra' = c('andorra', 'Andorra'),
+                       'Argentina' = c('Αργεντινή', 'argentina', 'Argentine', 'ARGENTINA', 'Argentina', 'arge'),
+                       'Australia' = c('australia', 'austrlaia',  'austrija', 'Australia'),
+                       'Austria' = c('Австрія', 'Asturies', 'austria', 'Austrija', 'Austria', 'sterreich', 'Australia'),
+                       'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', 'Azerbaijan'),
+                       'Bahrain' = c('bahrain', 'Bahrain'),
+                       'Bangladesh' = c('bangladesh', 'Bangladesh'),
+                       'Belgium' = c('Βελγιο', 'βελγιο', 'Belgien', 'Бельгия', 'Bélgica', 'Βελγιο', 'βελγιο', 'Belgica', 'Belgio', 'Belgie', 'België', 'belg', 'Belgique', 'bélgica', 'бельгия', 	'Belgium'),
+                       'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina'),
+                       'Botswana' = c('botswana'),
+                       'Brazil' = c('brazil', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
+                       'Bulgaria' = c('bulgaria', 'Bulgaria', 'българия'),
+                       'Cambodia' = c('Cambodia'),
+                       'Cameroon' = c('camer', 'Cameroun'),
+                       'Canada' = c('canad', 'کانادا', 'Windsor', 'Québec', 'Ontario', 'Vancouver', 'vancouver', 'КАНАДА', 'CANADA', 'Canadá', 'Канада',  'канада', 'Canada'),
+                       'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
+                       'China' = c('^china','Macao', 'Macau',  'Hui', 'Chine', '山东泰安东平县', '中国', '中华人民共和国', 'China', '中國'),
+                       'Colombia' = c('colombia', 'Colombia', 'COLOMBIA'),
+                       'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
+                       'Croatia' = c('croa', 'Kroatien', 'Horvátország',  'Croácia', 'Croazia',  'HRVATSKA', 'Hrvatskoj', 'Hrv', 	'Hrvarska', 'Hrvatska', "hrvatsk", 'Croatia'),
+                       'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
+                       'Czech Republic' = c('czech', 'Τσεχία', 'Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  'Czechia',  'Czech Republic', 'checa'),
+                       'Denmark' = c('mark'), 
+                       'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
+                       'Ecuador' = c('ecuador', 'Quito', 'Ecuador'),
+                       'Egypt' = c('مصر', 'Egypt'),
+                       'El Salvador' = c('salvador', 'El salvado', 'El Salvaodr', 'El Salvador'),
+                       'Estonia' = c('estonia', 'Estonia'),
+                       'Finland' = c('finland', 'Finnland', 'Finland'),
+                       'France' = c('france', 'Vendée', 'Valmontone (RM)', 'vouziers', 'Région PACA', 'Paris', 'París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', 'Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'Frankreich', 'França',  'Frankrijk', '^fr$', 'La Réunion', 'La réunion', 'Francia', 'France', 'FRANCE', 'francia',  'frankrijk'),
+                       'Gabon' = c('Gabon'),
+                       'Germany' = c('Duitsland', 'Németország', 'Nemačka', 'Nemacka', 'Germanis', 'ΓΕΡΜΑΝΙΑ', 'آلمان', 'Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'Allemagne', 'germany', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', 'Germania',  'Germany', 'Deutschland', 'deutschland',  'alemania',  'germania',  '^almanya$', 'allemagne',  'berlin',  'duitsland', 'γ.ρ.....'),
+                       'Greece' = c('ΕΛΛΑΣΑ', 'Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', 'Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  'Ellada', '希腊', 'GRECE', 'ellada', 'Grecia', 'GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', 	'.λλ...', '.λλ..', 'ελλάδα'),
+                       'Guatemala' = c('guat', 'Guatemala'),
+                       'Hong Kong S.A.R.' = c('Hongkong', 'Hk', 'HK', 'HONG KONG', 'HongKong', 'Hong kong',  'hong.{0,}kong', '香港', 'Hong Kong'),
+                       'Hungary' = c('Hungary', 'Ungheria', 'Ungarn', 'Mađarska', 'hungary', 'Magyar', 'Magyarorszag', 'Magyaroszág', 'Magyarország', '^magyarorsz', 'magyar', 'ungarn'),
+                       'Iceland' = c('iceland', 'Iceland'),
+                       'India' = c('india', 'هند', 'Imdia', 'INDIA', 'Infis',  'India'),
+                       'Indonesia' = c('Jakarta', 'Indomesia', 'Insonesia', 'Indònesia', 'Yogyakarta, indonesia', 'Indonesià', 'Indonedia', 'Indomesia	', 'Indoesia', 'Indobesia', 'Imdonesia', 'Indoasia', 'indo', 'INdonesia', 'INDONESIA', '^indonesia$', 'Indonesia', 'indonesian',  'kota, tarakan',  'imdonesia',  'indònesia',  'jakarta'),
+                       'Iran' = c('iran', 'ایران', 'Iran'),
+                       'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
+                       'Ireland' = c('Ιρλανδία', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
+                       'Israel' = c('عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  'Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
+                       'Italy' = c('Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'Италия',   'İtalya', 'Mareno di Piave', 'Frosinone', 'Italia', 'Milano', 'Dorgali', 'Castelforte', 'Bisceglie',  'Italie', 'Italië', 'Itali', 'Italien', 'Sardegna',  'ITALIA', 'ital', 'Roma', 'Italy', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia',  'cala, gonone',  'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
+                       'Jamaica' = c('jamaica', 'Jamaica'),
+                       'Japan' = c('japan', 'Japão', 'Japonya', 'にほん', 'japon', 'Giappone',  'giappone', 'Japan', 'japonya', '日本'),
+                       'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
+                       'Kazakhstan' = c('казахстан', 'Qazaqstan', 'Kazahstan', 'Kazakhstan', 'kazakhstan', 'Казахстан'),
+                       'Kenya' = c('kenia', 'Kenia'),
+                       'Kuwait' = c('الكويت'),
+                       'Laos' = c('laos', 'Laos'),
+                       'Latvia' = c('latvia', 'Latvia'),
+                       'Lebanon' = c('lebanon', 'LIBAN', 'Ливан',  'لبنان',  'Lebanon', 'liban'),
+                       'Libya' = c('ليبيا'),
+                       'Luxembourg' = c('lux','Luksemburg',  'Luxembourg', 'Luxemburg'),
+                       'Malaysia' = c('malay', 'Malaysia', 'ماليزيا'),
+                       'Mali' = c('Mali'),
+                       'Malta' = c('malta', 'Malta'),
+                       'Mauritius' = c('maurice', 'İle Maurice', 'Mauritius'),
+                       'Mexico' = c('mexico', 'Μεξικό', 'MÉXICO', 'México', 'méxico', 'Mexico'),
+                       'Moldova' = c('Moldova'),
+                       'Mongolia' = c('Mongolia'),
+                       'Montenegro' = c('crnagora', 'Montenegro', 'Crna Gora'),
+                       'Morocco' = c('المغرب',  'rabat', 'النغرب',  'MAROC', 'مغرب',  'Morocco', 'Morroco', 'Maroko', 'Marruecos', 'maroc', 'Maroc'),
+                       'Myanmar' = c('myanmar'),
+                       'Namibia' = c('Namibia'),
+                       'Nepal' = c('nepal', 'Nepal'),
+                       'Netherlands' = c('Netherland','Nizozemska',  'Holandija',  'Gelderland', '荷兰', 'Нидерланды',  'Голандія', 'Paises Bajos', 'Curacao',  'Hollanda', 'Países Bajos', 'Paesi Bassi', 'netherland', 'Nl', 'Belanda', 'Olanda', 'New Zealand', 'NL', 'Niederlande', 'The Netherlands', 'Netherlands', 'Nederland',  'nederland',  'niederlande',  'belanda',  '^nl$',  'olanda',  'paesi, bassi',  'paesi bassi',  'bajos',  'gelderland',  'hollanda', 'paes.+bass.'),
+                       'New Zealand' = c('new.+zeal',  'newzealand',  'neuseeland'),
+                       'Nigeria' = c('nigeria', 'Nigeria'),
+                       'North Macedonia' = c('North Macedonia'),
+                       'Norway' = c('norway', 'Norway', 'Norvège', 'Norvége', 'Norwegen'),
+                       'Oman' = c('^oman$', 'Oman'),
+                       'Pakistan' = c('pakistan', 'پاکستان', 'Peshawar',  'Abbottabad', 'Pak',	'Pakistan',  'abbottabad',  'peshawar'),
+                       'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
+                       'Panama' = c('panam'), 
+                       'Peru' = c('PERÚ', 'Peru', 'Perú', 'peru', 'perú'),
+                       'Philippines' = c('Phillipines', 'Ph', 'Pilipinas', 'Phil', 'Philippinea', 'phil',  'filipinas', 'Philippines', 'PHILIPPINES'),
+                       'Poland' = c('poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', 'Польша', 'польша'),
+                       'Portugal' = c('portugal', '葡萄牙', 'Portugal'), 
+                       'Qatar' = c('qatar', 'Qatar', 'Katar'),
+                       'Romania' = c('romania', 'ROMANIA', 'Roumanie',  'Romania', 'România', 'rom.nia'),
+                       'Russia' = c('россия', 'Россия', 'Rusia'),
+                       'Republic of Belarus' = c('Belarus'),
+                       'Republic of Kosovo' = c('Kosovo'),
+                       'Republic of Chad' = c('Tchad'),
+                       'Republic of Serbia' = c('srbija', 'Serbis', 'Servië', 'SEBIA', 'У Србији',  'у Србији',  'Србијс', 'Szerbia', 'Srpski', 'Srbiji', 'SRBIJA',  'serbia',  'србија', 'Serbia','srbiji', 'Србија', 's.erbia', 'Srbija'),
+                       'Rwanda' = c('Rwanda'),
+                       'Saudi Arabia' = c('اريا',  'المدينة المنورة', 'المملكة', 'جازان',  'جده',  'SaudiArabia', 'جدة',  'Riyadh',  'Sa',    'سعوديه',  'Riyad', 'Saudi', 'K.S.A',  'Arabia Saudita', 'Arabie saoudite', 'Saidi Arabia', '	Saudi arbia', 'Ksa', 'Saudi Arabia', 'SA', 'riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia',  'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab'),
+                       'Singapore' = c('singapore', 'SINGAPORE', 'Singapur', 'Singapore'),
+                       'Slovakia' = c('slova', 'Словаччина',   'Szlovákia',  'Slovakia', 'Slovak Republic'),
+                       'Slovenia' = c('Slovenia', 'Slovenija'),
+                       'South Africa' = c('جنوب أفريقيا', 'Garankuwa','Western Cape',  'Limpopo', 'Western cape', 'Eastern Cape', 'Cape Town', 'Gauteng', 'SOUTH AFRICA', 'South aftica', 'South Afica', 'South AFRICA', 'South Africa', 'africa',  '^sa$',  'sudáfrica',  'western, cape', 'southaf...'),
+                       'South Korea' = c('korea', '한국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore'),
+                       'Spain' = c('Испания', 'Ισπανία', 'Pais vasco', 'Montalbán de Córdoba', 'Madrid', 'Málaga', 'Fuerteventura', 'Espña', 'Es', 'Esapaña', 'El Rocío', 'Eapaña', 'Cataluña', 'Andalucia', 'Catalunya', 'Espsña', 'Euskal Herria', 'Іспанія', 'Spanyolország', 'SPAIN', 'Estado Español', 'Españistan', 'ESpaña', 'Espanha', 'Espana', 'Spanje', 'Españs', 'Españ', 'Espagne', 'Spanien', 'Español', 'Espanya', 'spain', 'Spagna', 'Spain', 'esp', 'ESPAÑA', 'España', 'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje'),
+                       'Sweden' = c('weden','Svezia', 'SWEDEN',  'Isvec', 'Suède'),
+                       'Switzerland' = c('Ελβετία', 'switzerl', 'Zwitserland', 'Switzerlannd', 'Svizzera','İsviçre',  'Швейцарія', 'Suiza', 'SUIZA', 'schweiz', 'Ελβετία', 'Schweiz', 'Switzerland', 'suiza', 'Suisse', 'svizzera',  'zwitserland',  'switzerland', 'suisse'),
+                       'Taiwan' = c('taiwan', 'Tayvan', '台灣', 'Taiwan'),
+                       'Thailand' = c('^thailand$', 'Thailand'),
+                       "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
+                       'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
+                       'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', 'Tr', 'TR', 'tr', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye"), #"'\u00fcrkiye'"
+                       'Ukraine' = c('ukraine', 'Ураїна', 'Киев', 'Укрїна', 'Украiна', 'Українська', 'Украине', 'УКРАЇНА', 'Украіна', 'у.ра..а', 'україна', 'украина', 'Україна', 'Украина'),
+                       'United Arab Emirates' = c('U.A.E.',  'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
+                       'United Kingdom' = c('Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', 'GB', 'Anglia', 'Ecosse', 'Angleterre', 'Великобритания', 'Αγγλια', 'U.K','SCOTLAN', 'Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', 'London', 'ENGLAND', 'Verenigd Koninkrijk', 'Αγγλία', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', 'Northern ireland', 'UNITED KINGDOM', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales', 'Reino Unido', 'Uk', 'Scotland', 'United Kingdom', 'England', 'UK',  '^uk$',  'reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk',  'windsor',  'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland',  'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
+                       'United Republic of Tanzania' = c('tanzania', 'Tanzania'),
+                       'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   'Αμερική', 'U.s.a.', 'Tempe', 'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'Amerika Serikat', 'AMERICA', 'ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', 'Pennsylvania', 'Pennssylvania', 'United stated', 'United stares', 'Estados unidos', 'NEWYORK', 'Arizona',  'New York', 'new york', 'New york', 'NEW YORK', 'США', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States','United STates','United sTATES', 'uNITED STATES', 'United Stares', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'UNited States', 'united States', 'United statea', 'United Sates', 'UNITED STATES', 'Estados Unidos', '	Estados unidos', '	ESTADOS UNIDOS', 'Untied statest', 'Unites States', 'United State', 'U.S', 'United states', 'America', 'United States', 'Usa', 'USA', 'america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$',  '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona'), 
+                       'Uruguay' = c('urug', 'Uruguay'),
+                       'Uzbekistan' = c('u.{2,5}istan', 'Uzbekistan'),
+                       'Venezuela' = c('^venezuela$', 'Venezuela'),
+                       'Vietnam' = c('vietnam', 'Vietnam'),
+                       'Yemen' = c('العند'),
+                       
+                       
+                       'United States of America' = c('امریکا'), 
+                       'Saudi Arabia' = c('مدينة ضرماء',      'عنيزة',    'سكاكا الجوف',     'ضرماء',      '	سكاكا الجوف',  'سعودية',   'الدمام', 'الرباض', 'السعرديه', 'السعوديّه' ),
+                       'Saudi Arabia' = c('رياض',  'خرخير',  'حفر الباطن',  'القويعيه',   'المدينه المنورة')
+      )
 
 
-country_matches <- cat_words(dt5newVars$country, country_dict) 
-country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
+country_matches <- cat_words(dt5newVars$countryAdj, country_dict) 
+#country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-## View(country_matches$unmatched)
+View(country_matches$unmatched)
 # Check duplicates, and which regular expressions triggered them
-## View(country_matches$dup)
+View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
 dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
 
 
 # CODE FOR EXPORT:
-# country_entry <- dt5newVars$country
-# country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
+country_entry <- dt5newVars$country
+country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
 # namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-# save(country_entry, country_names, file = namTR)
+ save(country_entry, country_names, file = namTR)
 ```
 <br>
 <div class="alert alert-warning">
@@ -517,7 +583,7 @@ attr(dt5newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
 ```{r affHighNeg, echo=T, results='asis', warning=F, message=F}
 # High Arousal Negative
 ## Anger not measured in wave 1
-pairs.panels.new(dt5newVars %>% dplyr::select(affAnx, affNerv))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affAnx, affNerv))
 
 cat("<br>")
 
@@ -555,7 +621,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affBor, affExh, affDe
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))
 
 cat("<br>")
 
@@ -593,7 +659,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affCalm, affContent, 
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))
 
 cat("<br>")
 
@@ -631,7 +697,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affEnerg, affExc, aff
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))
 
 cat("<br>")
 
@@ -668,7 +734,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("lone")))
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("lone")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("lone")))
 
 cat("<br>")
 
@@ -696,7 +762,7 @@ as.data.frame(Scale::ReportTable(ia.bor)) %>%
   kable(., row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03))
 ```
 <div class="alert alert-info">
 <strong><i class="fa fa-exclamation-triangle"></i> Item dropped:</strong> <br> 
@@ -705,7 +771,7 @@ Item three was not well behaved. It seems to measure something else. We dropped 
 
 ```{r bore.red, echo=T, results='asis', warning=F, message=F}
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
 
 cat("<br>")
 
@@ -743,7 +809,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson")
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson")))
 
 cat("<br>")
 
@@ -778,7 +844,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson")
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online")))
 
 cat("<br>")
 
@@ -836,7 +902,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("extC19")
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
 
 cat("<br>")
 
@@ -874,7 +940,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19per")
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19per")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19per")))
 
 cat("<br>")
 
@@ -912,7 +978,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19ProSo
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
 
 cat("<br>")
 
@@ -1000,7 +1066,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("para")))
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("para")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("para")))
 
 cat("<br>")
 
@@ -1038,7 +1104,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("consp"))
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("consp")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("consp")))
 
 cat("<br>")
 
@@ -1077,7 +1143,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("fail"), 
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))
 
 cat("<br>")
 
@@ -1117,7 +1183,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("disc"), 
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))
 
 cat("<br>")
 
@@ -1157,7 +1223,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("jbInsec"
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
 
 cat("<br>")
 
@@ -1196,7 +1262,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("PFS0")))
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("PFS0")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("PFS0")))
 
 cat("<br>")
 
@@ -1236,7 +1302,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("probSolv
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))
 
 cat("<br>")
 
@@ -1275,7 +1341,7 @@ as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("posrefoc
 
 cat("<br>")
 
-pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))
 
 cat("<br>")
 
@@ -1300,16 +1366,16 @@ rm(list=ls(pattern="ia"))
 
 # remove directly identifiable data (with and without page timers)
 dt6ReducedTimer <- dt5newVars %>%
-  dplyr::select(-c(IPAddress, 
-            RecipientLastName, 
-            RecipientFirstName, 
-            RecipientEmail, 
-            ExternalReference, 
-            LocationLatitude, 
-            LocationLongitude,
-            DistributionChannel,
-            ICRec_0_TEXT,
-            ICRec_1_TEXT))
+  dplyr::select(-c(contains("IPAddress"),
+                   contains("RecipientLastName"), 
+                   contains("RecipientFirstName"), 
+                   contains("Email"),
+                   contains("ExternalReference"), 
+                   contains("LocationLatitude"), 
+                   contains("LocationLongitude"),
+                   contains("DistributionChannel"),
+                   contains("ICRec_0_TEXT"),
+                   contains("ICRec_1_TEXT")))
 dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
 
@@ -1326,22 +1392,37 @@ dt6Reduced <- dt6ReducedTimer %>%
 #          FilterTime == 0,
 #          FilterStraightliner == 0) %>%
 #   dplyr::select(-starts_with("Filter"))
+```
 
-as.Date(dt5newVars$EndDate) 
-
-library("lubridate")
-ContactList <- dt5newVars %>%
-  filter(FilterPreview == 0,
-         ICRec_1_TEXT!="",
-         ymd_hms(dt5newVars$EndDate) < "2020-03-31 12:00:00 UTC") %>%
-  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-  dplyr::select(ExternalDataReference = ResponseId, 
-                Language = Q_Language, 
-                Email = ICRec_1_TEXT,
-                StartDateBaseline = StartDate, 
-                EndDateBaseline = EndDate)
-
-LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+## **Recontact**
+```{r recontact, echo=T, warning=F, message=F}
+# COMMENT IF NEEDED
+# as.Date(dt5newVars$EndDate) 
+# 
+# library("lubridate")
+# ContactList1 <- dt5newVars %>%
+#   filter(FilterPreview == 0,
+#          ICRec_1_TEXT!="",
+#          ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+#   dplyr::select(ExternalDataReference = ResponseId, 
+#                 Language = Q_Language, 
+#                 Email = ICRec_1_TEXT,
+#                 StartDateBaseline = StartDate, 
+#                 EndDateBaseline = EndDate)
+# 
+# table(ContactList1$Language)
+# 
+# # check how many have an @ (not really worth the effort to discard those)
+#   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
+# 
+# n_occur <- data.frame(table(ContactList1$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
+# n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
+# ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
+# 
+# write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
+# 
+# #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
 
 # Dataframe for Shiny App
 # load geo spatial data
@@ -1460,6 +1541,13 @@ shiny_data <- shiny_prep %>%
     filter(n > 20)%>%
     transmute(coded_country = coded_country,
            n = n)
+# language
+  lang.repFull <- dt5newVars %>%
+    group_by(language) %>%
+    dplyr::summarize(
+      n = n())
+  lang.repFull <- lang.repFull %>%
+    filter(n > 20)
 ```
 
 ## **Export**   
@@ -1489,8 +1577,10 @@ saveRDS(shiny_data, file = "../PsyCorona-WebApp/data/reducedData.rds")
 #write.csv(LanguageList, file = namLL)
 
 # export Country Demographics
-write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
-write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
+
+  #write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
+  write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
+  write.csv(lang.repFull,'data/cleaned data/Language.csv')
 
 rm(list=ls(pattern="nam"))
 ```
