@@ -1423,6 +1423,63 @@ dt6Reduced <- dt6ReducedTimer %>%
 # write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
 # 
 # #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+
+# Dataframe for Shiny App
+# load geo spatial data
+library(rnaturalearth)
+library(rnaturalearthdata)
+world.data <- ne_countries(scale = "medium", returnclass = "sf")
+unique(dt5newVars$coded_country)[!unique(dt5newVars$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
+
+# all ISO-2 country code to dataframe and flags
+shiny_prep <- merge(x = dt5newVars, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
+shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
+
+shiny_data <- shiny_prep %>%
+  dplyr::select(coded_country,
+         iso_a2,
+         flag,
+         # sample:
+         language,
+         gender,
+         age,
+         edu,
+         PolOrCat,
+         # affect individual:
+         affAnx,
+         affBor,
+         affCalm,
+         affContent,
+         affDepr,
+         affEnerg,
+         affExc,
+         affNerv,
+         affExh,
+         affInsp,
+         affRel,
+         # affect compound:
+         affHighPos.m,
+         affHighNeg.m,
+         affLowPos.m,
+         affLowNeg.m,
+         # Government:
+         extC19Msg,
+         # Community:
+         extC19Rules,
+         extC19Punish,
+         extC19Org,
+         # Cognitive:
+         c19Hope,
+         c19Eff,
+         lone.m,
+         para.m,
+         consp.m,
+         # Behavior:
+         c19perBeh01,
+         c19perBeh02,
+         isoPers.m,
+         isoOnl.m
+         )
 ```
 
 ## **Descriptives for Representativeness**
@@ -1511,7 +1568,7 @@ save(dt6Reduced, file = namR)
 save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
+saveRDS(shiny_data, file = "../PsyCorona-WebApp/data/reducedData.rds")
 
 # export Contact List
 #write.csv(ContactList, file = namCL)
@@ -1520,6 +1577,7 @@ saveRDS(dt6ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
 #write.csv(LanguageList, file = namLL)
 
 # export Country Demographics
+
   #write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
   write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
   write.csv(lang.repFull,'data/cleaned data/Language.csv')
