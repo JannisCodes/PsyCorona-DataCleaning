@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 14, 2020_06.56.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 16, 2020_03.30.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -153,17 +153,17 @@ cat("Checked and all mismatches were added later!"); rm(notBaseW3)
   dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
   dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
   
-# merge
-  tmp <- list(dt0Raw, dt0w2, dt0w3) %>% #merge multiple dfs at once
+# merge (can also be dt0Raw but for now seperate)
+  dt0All <- list(dt0Raw, dt0w2, dt0w3) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .)
 
 # find mistakes if not the same length
 cat("How many people did we loose in wave 2:")
-  nrow(dt0w2) - sum(tmp$ICRec_1_TEXT == tmp$w2_RecipientEmail, na.rm = T)
+  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
   cat("We lost them because an independent link was sent around")
   
 cat("How many people did we loose in wave 3:")
-  nrow(dt0w3) - sum(tmp$ICRec_1_TEXT == tmp$w3_RecipientEmail, na.rm = T)
+  nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
   cat("We lost them because an independent link was sent around")
 
 rm(dt0w1)
@@ -371,7 +371,18 @@ dt5newVars <- dt5newVars %>%
          FilterTime == 0,
          FilterStraightliner == 0)
 
-# TO DO: REMOVE TESTS (OFTEN STRING)
+# prepare country before checking for test
+  dt5newVars$countryAdj <- dt5newVars$country %>%
+    tolower() %>% #make them lower case
+    gsub(" ", "", ., fixed = TRUE) %>% # remove white space
+    as.character() #make sure everything is characters
+
+# remove test sessions
+  strings <- c("^test", "test$", "^yasin", '^check') # add strings that need removing
+  tmp <- dt5newVars %>%
+    dplyr::select(countryAdj, ICRec_1_TEXT, deb, ResponseId)%>%
+    dplyr::filter_all(any_vars(stringr::str_detect(., paste(strings, collapse = "|")))) #loop over cols
+  dt5newVars <- dt5newVars[!(dt5newVars$ResponseId %in% tmp$ResponseId), ]; rm(tmp) # remove test Response IDs 
 ```
 
 ### Country
@@ -392,137 +403,132 @@ We currently have `r length(table(dt5newVars$country))` different free text coun
 
 #saveRDS(dt5newVars$country, file = "country.RDS")
 
-dt5newVars$countryAdj <- dt5newVars$country %>%
-  tolower() %>% #make them lower case
-  gsub(" ", "", ., fixed = TRUE) %>% # remove white space
-  as.character() #make sure everything is characters
-
 source("./scripts/functions/dictionary_functions.R")
 
 # sourcing seems to destroy everything
 country_dict <- list('Afghanistan' = c('Afghanistan'),
-                       'Albania' = c('albania', 'Albania'),
-                       'Algeria' = c('Algrie', 'الجزاء و', 'ALGERIE',  'جزائر',   'Alger',  'الجزاء و ', 'الجزاير',  '🇩🇿', 'ALGÉRIE',  'البليدة',  'algeri', 'الجزاىر',  'الجوائر',    'Algeria', 'الحزائر',  'الجزائر', 'algérie', 'الجزاءر', 'Algérie', 'Algerie'),
-                       'Algeria' = c('الجزاير (حمادي بومرداس)', 'الحزاءر'),
-                       'Andorra' = c('andorra', 'Andorra'),
-                       'Argentina' = c('Αργεντινή', 'argentina', 'Argentine', 'ARGENTINA', 'Argentina', 'arge'),
-                       'Australia' = c('australia', 'austrlaia',  'austrija', 'Australia'),
-                       'Austria' = c('Австрія', 'Asturies', 'austria', 'Austrija', 'Austria', 'sterreich', 'Australia'),
-                       'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', 'Azerbaijan'),
-                       'Bahrain' = c('bahrain', 'Bahrain'),
-                       'Bangladesh' = c('bangladesh', 'Bangladesh'),
-                       'Belgium' = c('Βελγιο', 'βελγιο', 'Belgien', 'Бельгия', 'Bélgica', 'Βελγιο', 'βελγιο', 'Belgica', 'Belgio', 'Belgie', 'België', 'belg', 'Belgique', 'bélgica', 'бельгия', 	'Belgium'),
-                       'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina'),
-                       'Botswana' = c('botswana'),
-                       'Brazil' = c('brazil', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
-                       'Bulgaria' = c('bulgaria', 'Bulgaria', 'българия'),
-                       'Cambodia' = c('Cambodia'),
-                       'Cameroon' = c('camer', 'Cameroun'),
-                       'Canada' = c('canad', 'کانادا', 'Windsor', 'Québec', 'Ontario', 'Vancouver', 'vancouver', 'КАНАДА', 'CANADA', 'Canadá', 'Канада',  'канада', 'Canada'),
-                       'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
-                       'China' = c('^china','Macao', 'Macau',  'Hui', 'Chine', '山东泰安东平县', '中国', '中华人民共和国', 'China', '中國'),
-                       'Colombia' = c('colombia', 'Colombia', 'COLOMBIA'),
-                       'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
-                       'Croatia' = c('croa', 'Kroatien', 'Horvátország',  'Croácia', 'Croazia',  'HRVATSKA', 'Hrvatskoj', 'Hrv', 	'Hrvarska', 'Hrvatska', "hrvatsk", 'Croatia'),
-                       'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
-                       'Czech Republic' = c('czech', 'Τσεχία', 'Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  'Czechia',  'Czech Republic', 'checa'),
-                       'Denmark' = c('mark'), 
-                       'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
-                       'Ecuador' = c('ecuador', 'Quito', 'Ecuador'),
-                       'Egypt' = c('مصر', 'Egypt'),
-                       'El Salvador' = c('salvador', 'El salvado', 'El Salvaodr', 'El Salvador'),
-                       'Estonia' = c('estonia', 'Estonia'),
-                       'Finland' = c('finland', 'Finnland', 'Finland'),
-                       'France' = c('france', 'Vendée', 'Valmontone (RM)', 'vouziers', 'Région PACA', 'Paris', 'París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', 'Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'Frankreich', 'França',  'Frankrijk', '^fr$', 'La Réunion', 'La réunion', 'Francia', 'France', 'FRANCE', 'francia',  'frankrijk'),
-                       'Gabon' = c('Gabon'),
-                       'Germany' = c('Duitsland', 'Németország', 'Nemačka', 'Nemacka', 'Germanis', 'ΓΕΡΜΑΝΙΑ', 'آلمان', 'Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'Allemagne', 'germany', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', 'Germania',  'Germany', 'Deutschland', 'deutschland',  'alemania',  'germania',  '^almanya$', 'allemagne',  'berlin',  'duitsland', 'γ.ρ.....'),
-                       'Greece' = c('ΕΛΛΑΣΑ', 'Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', 'Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  'Ellada', '希腊', 'GRECE', 'ellada', 'Grecia', 'GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', 	'.λλ...', '.λλ..', 'ελλάδα'),
-                       'Guatemala' = c('guat', 'Guatemala'),
-                       'Hong Kong S.A.R.' = c('Hongkong', 'Hk', 'HK', 'HONG KONG', 'HongKong', 'Hong kong',  'hong.{0,}kong', '香港', 'Hong Kong'),
-                       'Hungary' = c('Hungary', 'Ungheria', 'Ungarn', 'Mađarska', 'hungary', 'Magyar', 'Magyarorszag', 'Magyaroszág', 'Magyarország', '^magyarorsz', 'magyar', 'ungarn'),
-                       'Iceland' = c('iceland', 'Iceland'),
-                       'India' = c('india', 'هند', 'Imdia', 'INDIA', 'Infis',  'India'),
-                       'Indonesia' = c('Jakarta', 'Indomesia', 'Insonesia', 'Indònesia', 'Yogyakarta, indonesia', 'Indonesià', 'Indonedia', 'Indomesia	', 'Indoesia', 'Indobesia', 'Imdonesia', 'Indoasia', 'indo', 'INdonesia', 'INDONESIA', '^indonesia$', 'Indonesia', 'indonesian',  'kota, tarakan',  'imdonesia',  'indònesia',  'jakarta'),
-                       'Iran' = c('iran', 'ایران', 'Iran'),
-                       'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
-                       'Ireland' = c('Ιρλανδία', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
-                       'Israel' = c('عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  'Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
-                       'Italy' = c('Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'Италия',   'İtalya', 'Mareno di Piave', 'Frosinone', 'Italia', 'Milano', 'Dorgali', 'Castelforte', 'Bisceglie',  'Italie', 'Italië', 'Itali', 'Italien', 'Sardegna',  'ITALIA', 'ital', 'Roma', 'Italy', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia',  'cala, gonone',  'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
-                       'Jamaica' = c('jamaica', 'Jamaica'),
-                       'Japan' = c('japan', 'Japão', 'Japonya', 'にほん', 'japon', 'Giappone',  'giappone', 'Japan', 'japonya', '日本'),
-                       'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
-                       'Kazakhstan' = c('казахстан', 'Qazaqstan', 'Kazahstan', 'Kazakhstan', 'kazakhstan', 'Казахстан'),
-                       'Kenya' = c('kenia', 'Kenia'),
-                       'Kuwait' = c('الكويت'),
-                       'Laos' = c('laos', 'Laos'),
-                       'Latvia' = c('latvia', 'Latvia'),
-                       'Lebanon' = c('lebanon', 'LIBAN', 'Ливан',  'لبنان',  'Lebanon', 'liban'),
-                       'Libya' = c('ليبيا'),
-                       'Luxembourg' = c('lux','Luksemburg',  'Luxembourg', 'Luxemburg'),
-                       'Malaysia' = c('malay', 'Malaysia', 'ماليزيا'),
-                       'Mali' = c('Mali'),
-                       'Malta' = c('malta', 'Malta'),
-                       'Mauritius' = c('maurice', 'İle Maurice', 'Mauritius'),
-                       'Mexico' = c('mexico', 'Μεξικό', 'MÉXICO', 'México', 'méxico', 'Mexico'),
-                       'Moldova' = c('Moldova'),
-                       'Mongolia' = c('Mongolia'),
-                       'Montenegro' = c('crnagora', 'Montenegro', 'Crna Gora'),
-                       'Morocco' = c('المغرب',  'rabat', 'النغرب',  'MAROC', 'مغرب',  'Morocco', 'Morroco', 'Maroko', 'Marruecos', 'maroc', 'Maroc'),
-                       'Myanmar' = c('myanmar'),
-                       'Namibia' = c('Namibia'),
-                       'Nepal' = c('nepal', 'Nepal'),
-                       'Netherlands' = c('Netherland','Nizozemska',  'Holandija',  'Gelderland', '荷兰', 'Нидерланды',  'Голандія', 'Paises Bajos', 'Curacao',  'Hollanda', 'Países Bajos', 'Paesi Bassi', 'netherland', 'Nl', 'Belanda', 'Olanda', 'New Zealand', 'NL', 'Niederlande', 'The Netherlands', 'Netherlands', 'Nederland',  'nederland',  'niederlande',  'belanda',  '^nl$',  'olanda',  'paesi, bassi',  'paesi bassi',  'bajos',  'gelderland',  'hollanda', 'paes.+bass.'),
-                       'New Zealand' = c('new.+zeal',  'newzealand',  'neuseeland'),
-                       'Nigeria' = c('nigeria', 'Nigeria'),
-                       'North Macedonia' = c('North Macedonia'),
-                       'Norway' = c('norway', 'Norway', 'Norvège', 'Norvége', 'Norwegen'),
-                       'Oman' = c('^oman$', 'Oman'),
-                       'Pakistan' = c('pakistan', 'پاکستان', 'Peshawar',  'Abbottabad', 'Pak',	'Pakistan',  'abbottabad',  'peshawar'),
-                       'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
-                       'Panama' = c('panam'), 
-                       'Peru' = c('PERÚ', 'Peru', 'Perú', 'peru', 'perú'),
-                       'Philippines' = c('Phillipines', 'Ph', 'Pilipinas', 'Phil', 'Philippinea', 'phil',  'filipinas', 'Philippines', 'PHILIPPINES'),
-                       'Poland' = c('poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', 'Польша', 'польша'),
-                       'Portugal' = c('portugal', '葡萄牙', 'Portugal'), 
-                       'Qatar' = c('qatar', 'Qatar', 'Katar'),
-                       'Romania' = c('romania', 'ROMANIA', 'Roumanie',  'Romania', 'România', 'rom.nia'),
-                       'Russia' = c('россия', 'Россия', 'Rusia'),
-                       'Republic of Belarus' = c('Belarus'),
-                       'Republic of Kosovo' = c('Kosovo'),
-                       'Republic of Chad' = c('Tchad'),
-                       'Republic of Serbia' = c('srbija', 'Serbis', 'Servië', 'SEBIA', 'У Србији',  'у Србији',  'Србијс', 'Szerbia', 'Srpski', 'Srbiji', 'SRBIJA',  'serbia',  'србија', 'Serbia','srbiji', 'Србија', 's.erbia', 'Srbija'),
-                       'Rwanda' = c('Rwanda'),
-                       'Saudi Arabia' = c('اريا',  'المدينة المنورة', 'المملكة', 'جازان',  'جده',  'SaudiArabia', 'جدة',  'Riyadh',  'Sa',    'سعوديه',  'Riyad', 'Saudi', 'K.S.A',  'Arabia Saudita', 'Arabie saoudite', 'Saidi Arabia', '	Saudi arbia', 'Ksa', 'Saudi Arabia', 'SA', 'riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia',  'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab'),
-                       'Singapore' = c('singapore', 'SINGAPORE', 'Singapur', 'Singapore'),
-                       'Slovakia' = c('slova', 'Словаччина',   'Szlovákia',  'Slovakia', 'Slovak Republic'),
-                       'Slovenia' = c('Slovenia', 'Slovenija'),
-                       'South Africa' = c('جنوب أفريقيا', 'Garankuwa','Western Cape',  'Limpopo', 'Western cape', 'Eastern Cape', 'Cape Town', 'Gauteng', 'SOUTH AFRICA', 'South aftica', 'South Afica', 'South AFRICA', 'South Africa', 'africa',  '^sa$',  'sudáfrica',  'western, cape', 'southaf...'),
-                       'South Korea' = c('korea', '한국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore'),
-                       'Spain' = c('Испания', 'Ισπανία', 'Pais vasco', 'Montalbán de Córdoba', 'Madrid', 'Málaga', 'Fuerteventura', 'Espña', 'Es', 'Esapaña', 'El Rocío', 'Eapaña', 'Cataluña', 'Andalucia', 'Catalunya', 'Espsña', 'Euskal Herria', 'Іспанія', 'Spanyolország', 'SPAIN', 'Estado Español', 'Españistan', 'ESpaña', 'Espanha', 'Espana', 'Spanje', 'Españs', 'Españ', 'Espagne', 'Spanien', 'Español', 'Espanya', 'spain', 'Spagna', 'Spain', 'esp', 'ESPAÑA', 'España', 'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje'),
-                       'Sweden' = c('weden','Svezia', 'SWEDEN',  'Isvec', 'Suède'),
-                       'Switzerland' = c('Ελβετία', 'switzerl', 'Zwitserland', 'Switzerlannd', 'Svizzera','İsviçre',  'Швейцарія', 'Suiza', 'SUIZA', 'schweiz', 'Ελβετία', 'Schweiz', 'Switzerland', 'suiza', 'Suisse', 'svizzera',  'zwitserland',  'switzerland', 'suisse'),
-                       'Taiwan' = c('taiwan', 'Tayvan', '台灣', 'Taiwan'),
-                       'Thailand' = c('^thailand$', 'Thailand'),
-                       "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
-                       'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
-                       'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', 'Tr', 'TR', 'tr', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye"), #"'\u00fcrkiye'"
-                       'Ukraine' = c('ukraine', 'Ураїна', 'Киев', 'Укрїна', 'Украiна', 'Українська', 'Украине', 'УКРАЇНА', 'Украіна', 'у.ра..а', 'україна', 'украина', 'Україна', 'Украина'),
-                       'United Arab Emirates' = c('U.A.E.',  'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
-                       'United Kingdom' = c('Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', 'GB', 'Anglia', 'Ecosse', 'Angleterre', 'Великобритания', 'Αγγλια', 'U.K','SCOTLAN', 'Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', 'London', 'ENGLAND', 'Verenigd Koninkrijk', 'Αγγλία', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', 'Northern ireland', 'UNITED KINGDOM', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales', 'Reino Unido', 'Uk', 'Scotland', 'United Kingdom', 'England', 'UK',  '^uk$',  'reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk',  'windsor',  'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland',  'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
-                       'United Republic of Tanzania' = c('tanzania', 'Tanzania'),
-                       'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   'Αμερική', 'U.s.a.', 'Tempe', 'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'Amerika Serikat', 'AMERICA', 'ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', 'Pennsylvania', 'Pennssylvania', 'United stated', 'United stares', 'Estados unidos', 'NEWYORK', 'Arizona',  'New York', 'new york', 'New york', 'NEW YORK', 'США', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States','United STates','United sTATES', 'uNITED STATES', 'United Stares', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'UNited States', 'united States', 'United statea', 'United Sates', 'UNITED STATES', 'Estados Unidos', '	Estados unidos', '	ESTADOS UNIDOS', 'Untied statest', 'Unites States', 'United State', 'U.S', 'United states', 'America', 'United States', 'Usa', 'USA', 'america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$',  '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona'), 
-                       'Uruguay' = c('urug', 'Uruguay'),
-                       'Uzbekistan' = c('u.{2,5}istan', 'Uzbekistan'),
-                       'Venezuela' = c('^venezuela$', 'Venezuela'),
-                       'Vietnam' = c('vietnam', 'Vietnam'),
-                       'Yemen' = c('العند'),
-                       
-                       
-                       'United States of America' = c('امریکا'), 
-                       'Saudi Arabia' = c('مدينة ضرماء',      'عنيزة',    'سكاكا الجوف',     'ضرماء',      '	سكاكا الجوف',  'سعودية',   'الدمام', 'الرباض', 'السعرديه', 'السعوديّه' ),
-                       'Saudi Arabia' = c('رياض',  'خرخير',  'حفر الباطن',  'القويعيه',   'المدينه المنورة')
-      )
-
+                     'Albania' = c('albania', '(?i)Albania'),
+                     'Algeria' = c('(?i)Algrie', 'الجزاء و', 'ALGERIE',  'جزائر',   'Alger',  'الجزاء و ', 'الجزاير',  '🇩🇿', 'ALGÉRIE',  'البليدة',  'algeri', 'الجزاىر',  'الجوائر',    'Algeria', 'الحزائر',  'الجزائر', 'algérie', 'الجزاءر', 'Algérie', 'Algerie'),
+                     'Algeria' = c('الجزاير (حمادي بومرداس)', 'الحزاءر'),
+                     'Andorra' = c('(?i)andorra'),
+                     'Argentina' = c('Αργεντινή', '(?i)αργεντινή', 'argentina', 'Argentine', 'ARGENTINA', 'Argentina', 'arge'),
+                     'Armenia' = c('(?i)армения'),
+                     'Australia' = c('(?i)australia', 'austrlaia',  'austrija', '(?i)Australia'),
+                     'Austria' = c('(?i)Австрія', '(?i)autriche', 'Asturies', '(?i)austria', 'Austrija', 'Austria', 'sterreich'),
+                     'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', '(?i)Azerbaijan'),
+                     'Bahrain' = c('bahrain', 'Bahrain'),
+                     'Bangladesh' = c('bangladesh', 'Bangladesh'),
+                     'Belgium' = c('βελγιο', 'belgien', 'Бельгия', 'b.lgica', 'belgi.', 'belg', 'belgique', 'бельгия', 'belgium'),
+                     'Benin' = c('(?i)bénin'),
+                     'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosniaandherzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina', "bih"),
+                     'Botswana' = c('(?i)botswana'),
+                     'Brazil' = c('brazil', 'riodejaneiro', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
+                     'Brunei' = c('bruneidarussalam'),
+                     'Bulgaria' = c('(?i)bulgaria', 'Bulgaria', 'българия'),
+                     'Cambodia' = c('(?i)Cambodia'),
+                     'Cameroon' = c('camer', 'Cameroun'),
+                     'Canada' = c('canad', 'کانادا', '(?i)Windsor', '(?i)Québec', 'Ontario', 'Vancouver', 'vancouver', 'КАНАДА', 'CANADA', 'Canadá', '(?i)Канада',  'канада', 'Canada', '^ca$'),
+                     'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
+                     'China' = c('^china','Macao', 'kina',  'macau',  'hui', 'chine', '山东泰安东平县', '中华人民共和国', 'china','(?i)китай','^中国', '中國',   '中華民國', '中国大陆'),
+                     'Colombia' = c('(?i)colombia', 'Colombia', 'COLOMBIA'),
+                     'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
+                     'Croatia' = c('croa', '(?i)Kroatien', '(?i)Horvátország',  '(?i)Croácia', '(?i)Croazia',  '(?i)HRVATSKA', 'Hrvatskoj', '(?i)Hrv', 	'(?i)Hrvarska', '(?i)Hrvatska', "hrvatsk", '(?i)Croatia'),
+                     'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
+                     'Czech Republic' = c('czech',  'tschechien', 'Τσεχία', '(?i)Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  '(?i)Czechia',  '(?i)Czech Republic', 'checa'),
+                     'Denmark' = c('mark', 'danemarca'), 
+                     'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
+                     'Ecuador' = c('(?i)ecuador', 'Quito', 'Ecuador'),
+                     'Egypt' = c('مصر', '(?i)Egypt'),
+                     'El Salvador' = c('salvador', '(?i)elsalvado', 'El salvado', 'El Salvaodr', 'El Salvador'),
+                     'Estonia' = c('(?i)estonia', '(?i)эстония', 'Estonia'),
+                     'Finland' = c('(?i)finland', '(?i)финляндия', '(?i)Finnland', 'Finland'),
+                     'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'Frankreich', 'França',  'Frankrijk', '^fr$', 'La Réunion', 'laréunion', 'La réunion', '(?i)Francia', '(?i)France', 'FRANCE', 'francia',  'frankrijk'),
+                     'Gabon' = c('Gabon'),
+                     'Georgia' = c('(?i)грузия', 'georgien'),
+                     'Germany' = c('Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'allemagne', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....'),
+                     'Greece' = c('ΕΛΛΑΣΑ', '(?i)athens', 'αθήνα', 'θεσσαλονίκη', 'ιωάννινα', '(?i)Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', '(?i)Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  '(?i)Ellada', '希腊', '(?i)GRECE', '(?i)ellada', 'Grecia', 'grèce', 'greee', 'griechenland', 'griekenland', '(?i)GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', 	'.λλ...', '.λλ..', 'ελλάδα'),
+                     'Guatemala' = c('guat', 'Guatemala'),
+                     'Hong Kong S.A.R.' = c('Hongkong', '^hk$', 'hong.{0,}kong', '香港'),
+                     'Hungary' = c('(?i)hungary', 'ungheria', 'magxarország', 'Ungheria', 'Ungarn', 'mađarska', '(?i)Magyar', '(?i)Magyarorszag', 'magyarosz.g', '^magyarorsz', '(?i)magyar', 'ungarn'),
+                     'Iceland' = c('iceland'),
+                     'India' = c('i.dia', 'هند', 'Infis'),
+                     'Indonesia' = c('Jakarta', 'bali,indonesia', 'denpasar,bali,indonesia', 'Indomesia', 'indobesia', 'indonesia.', 'indonesia,bali', 'indonesia-kotatarakan', 'indonesià', 'Insonesia', 'republikindonesia', 'Indònesia', 'Yogyakarta, indonesia', 'Indonesià', 'Indonedia', 'Indomesia	', 'Indoesia', 'Indobesia', 'Imdonesia', 'Indoasia', '^indo$', 'i.d.nesi.', 'i.d.nesi..',  'kota, tarakan',  'jakarta'),
+                     'Iran' = c('iran', 'abd',  'ایران', 'Iran'),
+                     'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
+                     'Ireland' = c('Ιρλανδία', 'irska', '^nireland$', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
+                     'Israel' = c('كفرقاسم', '(?i)израиль',  'عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  '(?i)Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
+                     'Italy' = c('(?i)İtalya', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия',   'İtalya', 'Mareno di Piave', 'Frosinone', '(?i)Italia', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  '(?i)Italie', '(?i)Italië', '(?i)Itali', '(?i)Italien', 'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', 'ITALIA', 'ital', 'Roma', '(?i)Italy', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
+                     'Jamaica' = c('jamaica', 'Jamaica'),
+                     'Japan' = c('(?i)japan', 'japao', '(?i)Japão', '(?i)Japonya', 'にほん', '(?i)japon', 'Giappone',  'giappone', 'Japan', 'japonya', '日本', '일본', '愛知県'),
+                     'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
+                     'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', '(?i)Qazaqstan', '(?i)Kazahstan', '(?i)Kazakhstan', 'kazakhstan', 'Казахстан', 'қазақстан'),
+                     'Kenya' = c('kenia', 'Kenia'),
+                     'Kuwait' = c('الكويت'),
+                     'Kyrgyzstan' = c('(?i)кыргызстан'),
+                     'Laos' = c('(?i)laos', 'Laos'),
+                     'Latvia' = c('latvia', 'Latvia'),
+                     'Lebanon' = c('(?i)lebanon', 'LIBAN', '(?i)Ливан',  'لبنان',  'Lebanon', '(?i)liban'),
+                     'Libya' = c('ليبيا'),
+                     'Lithuania' = c('(?i)lithuania', 'lituania'),
+                     'Luxembourg' = c('lux','(?i)Luksemburg',  '(?i)Luxembourg', '(?i)Luxemburg'),
+                     'Malaysia' = c('malay', 'Malaysia', 'ماليزيا', '马来西亚', '馬來西亞'),
+                     'Mali' = c('(?i)Mali'),
+                     'Malta' = c('(?i)malta', 'Malta'),
+                     'Mauritius' = c('maurice', 'İle Maurice', 'Mauritius'),
+                     'Mexico' = c('mexico', 'Μεξικό', 'MÉXICO', 'México', 'méxico', 'Mexico'),
+                     'Moldova' = c('(?i)Moldova', 're..........dova', 'модова', 'moldova'),
+                     'Mongolia' = c('(?i)Mongolia'),
+                     'Montenegro' = c('crnagora', '(?i)Montenegro', 'Crna Gora'),
+                     'Morocco' = c('المغرب',  'rabat', 'النغرب',  'MAROC', 'مغرب', 'morocco', '(?i)Morocco', 'Morroco', 'Maroko', 'Marruecos', 'maroc', 'Maroc'),
+                     'Myanmar' = c('(?i)myanmar'),
+                     'Namibia' = c('(?i)Namibia'),
+                     'Nepal' = c('nepal', 'Nepal'),
+                     'Netherlands' = c('(?i)Netherland', 'holandija',  'țăriledejos', '(?i)Nizozemska',  'Holandija',  'Gelderland', '荷兰', '(?i)Нидерланды',  '(?i)Голандія', '(?i)Paises Bajos', '(?i)Curacao',  '(?i)Hollanda', 'Países Bajos', 'Paesi Bassi', '(?i)netherland', 'Nl', 'Belanda', 'Olanda', 'New Zealand', 'NL', 'Niederlande', 'The Netherlands', 'Netherlands', 'Nederland',  'nederland',  'niederlande',  'belanda',  '^nl$',  'olanda',  'paesi, bassi',  'paesi bassi',  'bajos',  'gelderland',  '(?i)hollanda', 'paes.+bass.', 'nerderland', 'aruba'),
+                     'New Zealand' = c('new.+zeal',  'newzealand',  'neuseeland'),
+                     'Nigeria' = c('nigeria', 'Nigeria'),
+                     'North Macedonia' = c('North Macedonia'),
+                     'Norway' = c('norway', '(?i)Norway', '(?i)Norvège', '(?i)Norvége', '(?i)Norwegen'),
+                     'Oman' = c('^oman$', 'Oman'),
+                     'Pakistan' = c('^pakistan', 'pakistan$', 'پاکستان', 'Peshawar',  'Abbottabad', 'Pak',	'Pakistan',  'abbottabad',  'peshawar'),
+                     'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
+                     'Panama' = c('panam'), 
+                     'Peru' = c('PERÚ', '(?i)Peru', '(?i)Perú', '(?i)peru', 'perú'),
+                     'Philippines' = c('(?i)Phillipines', 'phils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES'),
+                     'Poland' = c('(?i)poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', '(?i)Польша', '(?i)поль.а', '(?i)polska'),
+                     'Portugal' = c('(?i)portugal', '葡萄牙', 'portogallo', 'Portugal'), 
+                     'Qatar' = c('qatar', 'Qatar', 'Katar'),
+                     'Romania' = c('(?i)rom.ni.', 'rom.n.', 'suceava', 'romanis', 'piatrasoimuluijudețuneamț', '(?i)Roumanie'),
+                     'Russia' = c('россия', 'rusia', '(?i)Россия', '^рф$',  'Rusia', 'российскаяфедерация'),
+                     'Republic of Belarus' = c('(?i)Belarus', '(?i)беларусь'),
+                     'Republic of Kosovo' = c('(?i)Kosovo'),
+                     'Republic of Chad' = c('(?i)Tchad'),
+                     'Republic of Serbia' = c('(?i)srbija', 'svrbija', 'srbijs', 'sebia',  '(?i)Serbis', '(?i)Servië', 'SEBIA', 'У Србији',  'у Србији',  '(?i)Србијс', '(?i)усрбији', 'Szerbia', '(?i)Srpski', '(?i)Srbiji', 'SRBIJA',  'serbia',  'србија', 'Serbia','srbiji', 'Србија', 's.erbia', 'Srbija'),
+                     'Rwanda' = c('Rwanda'),
+                     'Saudi Arabia' = c('اريا',  'المدينة المنورة', 'المملكة', 'جازان',  'جده',  '(?i)SaudiArabia', 'جدة',  'Riyadh',  'Sa',    'سعوديه',  '(?i)Riyad', '(?i)Saudi', 'K.S.A',  '(?i)Arabia Saudita', 'Arabie saoudite', 'Saidi Arabia', '	Saudi arbia', 'Ksa', 'Saudi Arabia', 'SA', 'riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia', '(?i)arabiasaudita', '(?i)arabiesaoudite',   'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab', 'رياض',  'خرخير',  'حفر الباطن',  'القويعيه',   'المدينه المنورة', 'مدينة ضرماء',      'عنيزة',    'سكاكا الجوف',     'ضرماء',      '	سكاكا الجوف',  'سعودية',   'الدمام', 'الرباض', 'السعرديه', 'السعوديّه'),
+                     'Singapore' = c('(?i)singapore', 'SINGAPORE', '(?i)Singapur', '(?i)Singapore', '新加坡'),
+                     'Slovakia' = c('slova', '(?i)Словаччина',   '(?i)Szlovákia',  'Slovakia', 'Slovak Republic'),
+                     'Slovenia' = c('(?i)Slovenia', 'Slovenija'),
+                     'South Africa' = c('جنوب أفريقيا', 'Garankuwa','Western Cape',  'Limpopo', 'Western cape', 'Eastern Cape', 'Cape Town', 'Gauteng', 'limpopo', 'SOUTH AFRICA', 'southafrica🇿���america', 'South aftica', 'South Afica', 'South AFRICA', 'South Africa', 'africa',  '^sa$',  'sudáfrica',  'western, cape', '(?i)westerncape', 'southaf...', 'afriquedusud'),
+                     'South Korea' = c('korea', 'güneykore', '한국', '대한민국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore'),
+                     'Spain' = c('(?i).спан.я', 'saipan', 'espanya',  '^es$', 'euskadi', 'espagne', 'espsña', 'ισπανία', 'spania', 'Ισπανία', 'Pais vasco', 'Montalbán de Córdoba', 'Madrid', 'Málaga', '(?i)Fuerteventura', 'Espña', '^Es$', '(?i)Esapaña', 'El Rocío', 'Eapaña', 'Cataluña', 'Andalucia', 'Catalunya', 'Espsña', 'Euskal Herria', 'Іспанія', '(?i)Spanyolország', 'SPAIN', 'Estado Español', 'estadoespañol', 'españs', 'español', 'españ', 'espana', 'Españistan', 'ESpaña', 'Espanha', 'paisvasco', 'Espana', 'montalbándecórdoba', 'Spanje', 'Españs', 'Españ', 'Espagne', 'Spanien', 'Español', 'Espanya', 'spain', 'Spagna', '(?i)Spain', '^esp$', '(?i)ESPAÑA', 'España', 'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje', 'euskalherria'),
+                     'Sweden' = c('weden', 'Svezia', 'σουηδια', '(?i)SWEDEN',  'Isvec', '(?i)Suède'),
+                     'Switzerland' = c('(?i)Ελβετία', 'İsviçre',  'switzerl', 'Zwitserland', 'Switzerlannd', 'Svizzera','İsviçre',  'Швейцарія', 'Suiza', 'SUIZA', 'schweiz', 'Ελβετία', 'Schweiz', 'Switzerland', 'suiza', 'Suisse', 'svizzera',  'zwitserland',  'switzerland', 'suisse'),
+                     'Taiwan' = c('taiwan', 'Tayvan', 'Taiwan', '.灣'),
+                     'Thailand' = c('^thailand$', 'Thailand', 'ไทย'),
+                     "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
+                     'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
+                     'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', '^Tr$', '^TR$', 'tr$', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye", 'турция'), #"'\u00fcrkiye'"
+                     'Ukraine' = c('(?i)ukraine', '(?i)Ураїна', 'укра.н.', 'Киев', '(?i)Укрїна', '(?i)Ук...на', 'Українська', 'Украине', 'УКРАЇНА', 'Украіна', 'у.ра..а', 'україна', '(?i)украина', 'Україна', 'Украина'),
+                     'United Arab Emirates' = c('u\\.a\\.\\.', 'emiradosarabesunidos', 'emiratelearabeunite', 'emiratosarabesunidos', 'emiratsarabesunis', '(?i)abudhabi',    'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'(?i)Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
+                     'United Kingdom' = c('.γγλ..', 'regatulunit', '(?i)ecosse',  	'ηνωμένοβασίλειο', 'ηνωμένοβασίλειο(αγγλία)', 'theuk', '(?i)regnounito', 'mareabritanie',  '(?i)Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', '^GB$', 'Anglia', 'Ecosse', '(?i)Angleterre', '(?i)Великобритания', 'Αγγλια', 'U.K','SCOTLAN', '(?i)Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', '(?i)London', 'Verenigd Koninkrijk', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', '^Northern ireland$', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales','verenigdkoninkrijk', 'Reino Unido', '^Uk$', 'Scotland', 'United Kingdom', 'england', '^UK$',  '^uk$',  '(?i)reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk', 'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland', 'grandcayman,caymanislands', 'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
+                     'United Republic of Tanzania' = c('tanzania', 'Tanzania'),
+                     'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   '(?i)Αμερική' , 'ηπα',   'U.s.a.', 'Tempe' , 'alameda',  'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'puertorico', 'idaho', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'concord,ca', 'Amerika Serikat', 'amerikaserikat', '(?i)AMERICA', '(?i)ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', '(?i)Pennsylvania', '(?i)Pennssylvania', 'united sta.e.', 'Estados unidos', 'mcdonaughcounty', 'southcarolina', 'minnesota', 'NEWYORK', 'Arizona',  '(?i)New York', 'new york', 'New york', 'NEW YORK', 'США', 'newjersey', 'newyark', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'United statea', 'United Sates', 'Estados Unidos', 'northcarolina', '^ny$',  'Estados unidos', 'munford', 'wisconsin', 'ESTADOS UNIDOS', 'Untied statest', '\\d{0,30}merica$', 'United State', 'U.S', 'unite. sta//w{1,3}es', 'America', 'america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$', 'unitedststes', 'unitedstaes', '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona', '^\\w{1,3}us$', 'merica$', 'theu.s.', 'امریکا', '美國'), 
+                     'Uruguay' = c('urug', 'Uruguay'),
+                     'Uzbekistan' = c('u.{2,5}istan', 'u\\w{2,6}istan', '(?i)Uzbekistan', '(?i)узбекистан'),
+                     'Venezuela' = c('venezuela'),
+                     'Vietnam' = c('vi.tnam'),
+                     'Yemen' = c('العند')
+)
 
 country_matches <- cat_words(dt5newVars$countryAdj, country_dict) 
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
