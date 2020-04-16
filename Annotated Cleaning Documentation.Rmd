@@ -45,7 +45,8 @@ lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr"
 
 invisible(lapply(lib, library, character.only = TRUE))  
 lapply(lib, library, character.only = TRUE)
-  
+rm(lib)  
+
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
   source("./scripts/functions/themes.R")
@@ -94,7 +95,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 13, 2020_07.28.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 14, 2020_03.00.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -519,7 +520,9 @@ dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unm
 country_entry <- dt5newVars$country
 country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
 # namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
- save(country_entry, country_names, file = namTR)
+# save(country_entry, country_names, file = namTR)
+
+rm(country_dict, country_matches)
 ```
 <br>
 <div class="alert alert-warning">
@@ -791,7 +794,7 @@ dt5newVars$bor.fa <- fa(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03
 ```{r iso, echo=T, results='asis', warning=F, message=F}
 cat(crayon::bold("Offline Isolation"))
 ia.isoPers <- dt5newVars %>%
-    dplyr::select(ends_with("inPerson")) %>%
+    dplyr::select(ends_with("inPerson"), -starts_with("w1_")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoPers$rely   
@@ -802,18 +805,18 @@ as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))
 
 cat("<br>")
 
-dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson")), min = 0, max = 7)$scores
+dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation offline") %>%
@@ -822,11 +825,11 @@ as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
 
 dt5newVars$isoPers.c <- scale(dt5newVars$isoPers.m, scale = F, center = T)
 dt5newVars$isoPers.z <- scale(dt5newVars$isoPers.m, scale = T)
-dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson")))$scores
+dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))$scores
 
 cat(crayon::bold("Online Isolation"))
 ia.isoOnl <- dt5newVars %>%
-    dplyr::select(ends_with("online")) %>%
+    dplyr::select(ends_with("online"), -starts_with("w1_")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoOnl$rely   
@@ -837,18 +840,18 @@ as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))
 
 cat("<br>")
 
-dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online")), min = 0, max = 7)$scores
+dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation online") %>%
@@ -857,7 +860,7 @@ as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
 
 dt5newVars$isoOnl.c <- scale(dt5newVars$isoOnl.m, scale = F, center = T)
 dt5newVars$isoOnl.z <- scale(dt5newVars$isoOnl.m, scale = T)
-dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online")))$scores
+dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))$scores
 
 # Leave House
 as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
@@ -1423,7 +1426,10 @@ dt6Reduced <- dt6ReducedTimer %>%
 # write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
 # 
 # #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+```
 
+## **Data for Shiny App**
+```{r shiny, echo=T, warning=F, message=F}
 # Dataframe for Shiny App
 # load geo spatial data
 library(rnaturalearth)
@@ -1435,51 +1441,269 @@ unique(dt5newVars$coded_country)[!unique(dt5newVars$coded_country) %in% world.da
 shiny_prep <- merge(x = dt5newVars, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
 shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
 
-shiny_data <- shiny_prep %>%
-  dplyr::select(coded_country,
-         iso_a2,
-         flag,
-         # sample:
-         language,
-         gender,
-         age,
-         edu,
-         PolOrCat,
-         # affect individual:
-         affAnx,
-         affBor,
-         affCalm,
-         affContent,
-         affDepr,
-         affEnerg,
-         affExc,
-         affNerv,
-         affExh,
-         affInsp,
-         affRel,
-         # affect compound:
-         affHighPos.m,
-         affHighNeg.m,
-         affLowPos.m,
-         affLowNeg.m,
-         # Government:
-         extC19Msg,
-         # Community:
-         extC19Rules,
-         extC19Punish,
-         extC19Org,
-         # Cognitive:
-         c19Hope,
-         c19Eff,
-         lone.m,
-         para.m,
-         consp.m,
-         # Behavior:
-         c19perBeh01,
-         c19perBeh02,
-         isoPers.m,
-         isoOnl.m
-         )
+ctry.scales <- shiny_prep %>%
+  filter(!is.na(coded_country)) %>%
+  dplyr::group_by(coded_country) %>%
+  dplyr::summarize(
+    n = n()+sample(-5:5, 1, replace=TRUE),
+    
+    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    
+    #ext = mean(ext.m, na.rm = T),
+    
+    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov.sd = sd(extC19Msg, na.rm = T),
+    gov.se = gov.sd/sqrt(n),
+    
+    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule.se = comRule.sd/sqrt(n),
+    
+    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish.se = comPunish.sd/sqrt(n),
+    
+    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg.se = comOrg.sd/sqrt(n),
+    
+    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone.sd = sd(lone.m, na.rm = T),
+    lone.se = lone.sd/sqrt(n),
+    
+    #bor = mean(bor.m, na.rm = T),
+    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers.sd = sd(isoPers.m, na.rm = T),
+    isoPers.se = isoPers.sd/sqrt(n),
+    
+    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl.sd = sd(isoOnl.m, na.rm = T),
+    isoOnl.se = isoOnl.sd/sqrt(n),
+    
+    #beh = mean(beh.m, na.rm = T),
+    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash.sd = sd(c19perBeh01, na.rm = T),
+    behWash.se = behWash.sd/sqrt(n),
+    
+    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid.sd = sd(c19perBeh02, na.rm = T),
+    behAvoid.se = behAvoid.sd/sqrt(n),
+    
+    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope.sd = sd(c19Hope, na.rm = T),
+    covidHope.se = covidHope.sd/sqrt(n),
+    
+    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff.sd = sd(c19Eff, na.rm = T),
+    covidEff.se = covidEff.sd/sqrt(n),
+    
+    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para.sd = sd(para.m, na.rm = T),
+    para.se = para.sd/sqrt(n),
+    
+    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp.sd = sd(consp.m, na.rm = T),
+    consp.se = consp.sd/sqrt(n)
+    
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+  )
+ctry.scales <- merge(x = ctry.scales, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+
+global.scales <- shiny_prep %>%
+  filter(!is.na(coded_country)) %>%
+  dplyr::summarize(
+    coded_country = "global",
+    n = n()+sample(-5:5, 1, replace=TRUE),
+    
+    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    
+    #ext = mean(ext.m, na.rm = T),
+    
+    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov.sd = sd(extC19Msg, na.rm = T),
+    gov.se = gov.sd/sqrt(n),
+    
+    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule.se = comRule.sd/sqrt(n),
+    
+    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish.se = comPunish.sd/sqrt(n),
+    
+    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg.se = comOrg.sd/sqrt(n),
+    
+    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone.sd = sd(lone.m, na.rm = T),
+    lone.se = lone.sd/sqrt(n),
+    
+    #bor = mean(bor.m, na.rm = T),
+    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers.sd = sd(isoPers.m, na.rm = T),
+    isoPers.se = isoPers.sd/sqrt(n),
+    
+    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl.sd = sd(isoOnl.m, na.rm = T),
+    isoOnl.se = isoOnl.sd/sqrt(n),
+    
+    #beh = mean(beh.m, na.rm = T),
+    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash.sd = sd(c19perBeh01, na.rm = T),
+    behWash.se = behWash.sd/sqrt(n),
+    
+    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid.sd = sd(c19perBeh02, na.rm = T),
+    behAvoid.se = behAvoid.sd/sqrt(n),
+    
+    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope.sd = sd(c19Hope, na.rm = T),
+    covidHope.se = covidHope.sd/sqrt(n),
+    
+    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff.sd = sd(c19Eff, na.rm = T),
+    covidEff.se = covidEff.sd/sqrt(n),
+    
+    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para.sd = sd(para.m, na.rm = T),
+    para.se = para.sd/sqrt(n),
+    
+    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp.sd = sd(consp.m, na.rm = T),
+    consp.se = consp.sd/sqrt(n),
+    
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+    iso_a2 = NA,
+    flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg"
+  )
+ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
+
+languages <- shiny_prep %>% 
+  dplyr::select(coded_country, language) %>%
+  group_by(language, coded_country) %>%
+  tally() %>%
+  tidyr::spread(language, n)
+languages.glob <- shiny_prep %>%
+  dplyr::select(language) %>%
+  mutate(coded_country = "global") %>%
+  group_by(language, coded_country) %>%
+  tally() %>%
+  tidyr::spread(language, n)
+languages <- rbind(languages.glob, languages); rm(languages.glob)
+names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
+
+gender <- data.frame(coded_country = shiny_prep$coded_country, 
+                     gender = as_factor(shiny_prep$gender)) %>%
+  group_by(gender, coded_country) %>%
+  tally() %>%
+  tidyr::spread(gender, n)
+gender.glob <- data.frame(coded_country = "global", 
+                             gender = as_factor(shiny_prep$gender)) %>%
+  group_by(gender, coded_country) %>%
+  tally() %>%
+  tidyr::spread(gender, n)
+gender <- rbind(gender.glob, gender); rm(gender.glob)
+names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
+
+age <- data.frame(coded_country = shiny_prep$coded_country, 
+                  age = as_factor(shiny_prep$age)) %>%
+  group_by(age, coded_country) %>%
+  tally() %>%
+  tidyr::spread(age, n)
+age.glob <- data.frame(coded_country = "global",
+                       age = as_factor(shiny_prep$age)) %>%
+  group_by(age, coded_country) %>%
+  tally() %>%
+  tidyr::spread(age, n)
+age <- rbind(age.glob, age); rm(age.glob)
+names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
+
+edu <- data.frame(coded_country = shiny_prep$coded_country, 
+                  edu = as_factor(shiny_prep$edu)) %>%
+  group_by(edu, coded_country) %>%
+  tally() %>%
+  tidyr::spread(edu, n)
+edu.glob <- data.frame(coded_country = "global", 
+                       edu = as_factor(shiny_prep$edu)) %>%
+  group_by(edu, coded_country) %>%
+  tally() %>%
+  tidyr::spread(edu, n)
+edu <- rbind(edu.glob, edu); rm(edu.glob)
+names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
+
+pol <- shiny_prep %>%
+  dplyr::select(coded_country, PolOrCat) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
+  group_by(PolOrCat, coded_country) %>%
+  tally() %>%
+  tidyr::spread(PolOrCat, n)
+pol.glob <- shiny_prep %>%
+  dplyr::select(PolOrCat) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
+  mutate(coded_country = "global") %>%
+  group_by(PolOrCat, coded_country) %>%
+  tally() %>%
+  tidyr::spread(PolOrCat, n)
+pol <- rbind(pol.glob, pol); rm(pol.glob)
+names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
+
+#ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
+ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=gender, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=age, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=edu, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=pol, by="coded_country")
+rm(languages, gender, age, edu, pol)
+
+# sample size per country (including NA)
+world.n <- shiny_prep %>% 
+  dplyr::select(coded_country, iso_a2, flag) %>%
+  dplyr::group_by(coded_country, iso_a2, flag) %>%
+  dplyr::summarize(
+    n = n()+sample(-5:5, 1, replace=TRUE)
+  )
+
+ctry.red <- ctry.scales %>%
+  dplyr::select(coded_country, iso_a2, flag, n) %>%
+  filter(n >= 20) #, coded_country != "global"
+ctry.only.red <- ctry.scales %>%
+  dplyr::select(coded_country, iso_a2, flag, n) %>%
+  filter(n >= 20, coded_country != "global")
 ```
 
 ## **Descriptives for Representativeness**
@@ -1568,7 +1792,7 @@ save(dt6Reduced, file = namR)
 save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-saveRDS(shiny_data, file = "../PsyCorona-WebApp/data/reducedData.rds")
+save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
 #write.csv(ContactList, file = namCL)
