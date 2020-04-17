@@ -1,0 +1,121 @@
+---
+title: "Psycorona - Data Sharinh"
+subtitle: "Step by step description" 
+author: "PsyCorona Gang"
+date: "3/30/2020"
+output:
+  html_document: 
+    code_folding: hide
+    mathjax: default
+    theme: yeti
+    toc: yes
+    toc_float: yes
+editor_options:
+  chunk_output_type: console
+---
+
+
+<style type="text/css">
+.main-container {
+  max-width: 1300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.table {
+  margin-left:auto; 
+  margin-right:auto;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+# R Studio Clean-Up
+  cat("\014") # clear console
+  rm(list=ls()) # clear workspace
+  gc # garbage collector
+  
+# Install and Load Packages
+  #if(!require(pacman)) install.packages("pacman")
+  # require(pacman)
+  # pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
+  #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
+  #                Scale)
+lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+
+invisible(lapply(lib, library, character.only = TRUE))  
+lapply(lib, library, character.only = TRUE)
+rm(lib)  
+
+# Load Custom Packages  
+  source("./scripts/functions/fun.panel.R")
+  source("./scripts/functions/themes.R")
+  source("./scripts/functions/dictionary_functions.R")
+  
+# Markdown Options
+  knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set working directory
+  knitr::opts_knit$get("root.dir") # check working directory
+  options(scipen = 999, digits = 4, width = 400) #removes scientific quotation
+  #knitr::opts_chunk$set(echo = TRUE, cache = F, cache.path = rprojroot::find_rstudio_root_file('cache/')) # cache settings
+  knitr::knit_hooks$set(
+   error = function(x, options) {
+     paste('\n\n<div class="alert alert-danger">',
+           gsub('##', '\n', gsub('^##\ Error', '**Error**', x)),
+           '</div>', sep = '\n')
+   },
+   warning = function(x, options) {
+     paste('\n\n<div class="alert alert-warning">',
+           gsub('##', '\n', gsub('^##\ Warning:', '**Warning**', x)),
+           '</div>', sep = '\n')
+   },
+   message = function(x, options) {
+     paste('\n\n<div class="alert alert-info">',
+           gsub('##', '\n', x),
+           '</div>', sep = '\n')
+   }
+  )
+  htmltools::tagList(rmarkdown::html_dependency_font_awesome())
+
+# Global Chunk Options
+  knitr::opts_chunk$set(echo = TRUE)
+```
+
+Note. Boxplots display the interquartile range (IQR, center box), and the whiskers extend 1.5*IQR from the lower and upper hinge. The white point indicates the mean and the white center line indicates the median.   
+
+<br/>
+
+## **Import Data**
+In a first step we import the raw Qualtrics data, which was downloaded as an SPSS file.   
+### Baseline
+```{r LoadRawBase, echo=T, warning=F, message=F}
+# Reset working directory to folder current file is saved in
+#setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
+# Import Qualtrics Survey Data
+  dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned with page timer 2020-04-17 18-16 CEST.sav")
+```
+
+The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
+
+## **Create Datasets**
+### Load in the new IDs from Excel Sheet
+```{r LoadRawBase, echo=T, warning=F, message=F}
+# load excell sheet
+# LOAD EXCEL SHEET THAT HAS UNIQUE IDENTIFIERS (Maybe one sheet per project? How do we update new Response IDs?)  
+```
+
+### RMS Paper Number: 3 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
+```{r LoadRawBase, echo=T, warning=F, message=F}
+# prepare dataframe
+  dt <- dtClean %>%
+  select()
+  
+
+# Export Dataframes
+# Naming
+  namSPSS <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+```
