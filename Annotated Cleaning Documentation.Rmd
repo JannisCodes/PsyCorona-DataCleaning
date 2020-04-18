@@ -95,7 +95,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 17, 2020_01.30.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 18, 2020_05.37.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -1465,7 +1465,7 @@ ContactList2 <- dt5newVars %>%
   filter(FilterPreview == 0,
          ICRec_1_TEXT!="",
          ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
-         ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% e
+         ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -1477,14 +1477,19 @@ table(ContactList2$Language)
 # 
 # # check how many have an @ (not really worth the effort to discard those)
 #   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
-# 
-# n_occur <- data.frame(table(ContactList1$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
-# n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
-# ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
-# 
-# write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
-# 
-# #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+# Check whether there is overlap in IDs
+  ContactListAll <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+n_occur <- data.frame(table(ContactListAll$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
+n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
+ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
 ```
 
 ## **Data for Shiny App**
@@ -1840,7 +1845,8 @@ namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.ti
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -1854,7 +1860,8 @@ save(dt6ReducedTimer, file = namTR)
 save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
-#write.csv(ContactList, file = namCL)
+  write.csv(ContactList1, file = namCL)
+  write.csv(ContactList2, file = namCL2)
 
 # export Language List
 #write.csv(LanguageList, file = namLL)
