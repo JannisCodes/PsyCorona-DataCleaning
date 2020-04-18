@@ -95,7 +95,8 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 17, 2020_01.30.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 18, 2020_05.37.sav")
+
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -176,9 +177,13 @@ rm(dt0w1)
 Filter the Preview responses.
 ```{r preview, echo=T, warning=F, message=F}
 # flag Preview Responses
-dt1Preview <- dt0Raw %>%
-  mutate(FilterPreview = labelled(ifelse(Status == 0,0,1),
-                                  labels = c(preview = 1), label="Filter: survey preview response"))
+# labelled slow
+  # dt1Preview <- dt0Raw %>%
+  #   mutate(FilterPreview = labelled(ifelse(Status == 0,0,1),
+  #                                   labels = c(preview = 1), label="Filter: survey preview response"))
+# not labelled fast
+  dt1Preview <- dt0Raw %>%
+    mutate(FilterPreview = ifelse(Status == 0,0,1))
 ```
 
 
@@ -254,9 +259,13 @@ ggplot(data=progressFilter, aes(x=Progress, fill=out)) +
   theme(legend.position = "none")
 
 # flag anyone with less than 5 minutes survey duration
-dt2Progress <- dt1Preview %>%
-  mutate(FilterProgress = labelled(ifelse(Progress < progressCutOff,1,0),
-                               labels = c(`consent` = 1), label="Filter: Did not see debriefing"))
+# labelled slow
+  # dt2Progress <- dt1Preview %>%
+  #   mutate(FilterProgress = labelled(ifelse(Progress < progressCutOff,1,0),
+  #                                labels = c(`consent` = 1), label="Filter: Did not see debriefing"))
+# not labelled fast
+  dt2Progress <- dt1Preview %>%
+    mutate(FilterProgress = ifelse(Progress < progressCutOff,1,0))
 
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
@@ -304,16 +313,24 @@ ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
   theme(legend.position = "none")
 
 # flag anyone with less than 5 minutes survey duration
-dt3Time <- dt2Progress %>%
-  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > tCutOff*60,0,1),
-                               labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# labelled slow
+  # dt3Time <- dt2Progress %>%
+  #   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > tCutOff*60,0,1),
+  #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# not labelled fast
+  dt3Time <- dt2Progress %>%
+    mutate(FilterTime = ifelse(Duration__in_seconds_ > tCutOff*60,0,1))
 
 
 rm(tOutlierHigh, tCutOff, tCutOffPerc)
 # flag anyone with less than 5 minutes survey duration
-dt2Time <- dt1Preview %>%
-  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
-                               labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# labelled slow
+  # dt2Time <- dt1Preview %>%
+  #   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
+  #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# not labelled fast
+  dt2Time <- dt1Preview %>%
+    mutate(ifelse(Duration__in_seconds_ > 300,0,1))
 ```
 
 
@@ -336,9 +353,14 @@ jobinsecRed <- dt3Time %>%
   filter(sd == 0, mean != 0)
 
 # flag anyone who straightlined on job insecurity
-dt4Straightliner <- dt3Time %>%
-  mutate(FilterStraightliner = labelled(ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1),
-                                        labels = c(straightliner = 1), label="Filter: straightliner on Job Insecurity"))
+# labelled slow
+  # dt4Straightliner <- dt3Time %>%
+  #   mutate(FilterStraightliner = labelled(ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1),
+  #                                         labels = c(straightliner = 1), label="Filter: straightliner on Job Insecurity"))
+# not labelled fast
+  dt4Straightliner <- dt3Time %>%
+    mutate(FilterStraightliner = ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1))
+
 rm(jobinsecRed)
 ```
 
@@ -445,7 +467,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'El Salvador' = c('salvador', '(?i)elsalvado', 'El salvado', 'El Salvaodr', 'El Salvador'),
                      'Estonia' = c('(?i)estonia', '(?i)эстония', 'Estonia'),
                      'Finland' = c('(?i)finland', '(?i)финляндия', '(?i)Finnland', 'Finland'),
-                     'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'Frankreich', 'França',  'Frankrijk', '^fr$', 'La Réunion', 'laréunion', 'La réunion', '(?i)Francia', '(?i)France', 'FRANCE', 'francia',  'frankrijk'),
+                     'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'frankreich', '^fr$', 'La Réunion', 'laréunion', 'La réunion', 'fran.e', 'francia',  'frankrijk'),
                      'Gabon' = c('Gabon'),
                      'Georgia' = c('(?i)грузия', 'georgien'),
                      'Germany' = c('Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'allemagne', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....'),
@@ -564,7 +586,7 @@ ggplot(tmp, aes(x=Date, y = Count))+
    theme_bw()+
    # scale_y_continuous(limits = c(0, 158),
    #                    breaks = seq(0,160,20))+
-   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8))
+   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp)
 ```
 
 
@@ -1438,11 +1460,13 @@ ContactList1 <- dt5newVars %>%
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
+table(ContactList1$Language)
 
 ContactList2 <- dt5newVars %>%
   filter(FilterPreview == 0,
          ICRec_1_TEXT!="",
-         ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+         ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -1450,19 +1474,23 @@ ContactList2 <- dt5newVars %>%
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 
-table(ContactList1$Language)
 table(ContactList2$Language)
 # 
 # # check how many have an @ (not really worth the effort to discard those)
 #   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
-# 
-# n_occur <- data.frame(table(ContactList1$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
-# n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
-# ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
-# 
-# write.csv(ContactList1,'data/cleaned data/2020_04_10_ContactList.csv')
-# 
-# #LanguageList <- as.data.frame(sort(table(dt6ReducedCases$language), decreasing = T))
+# Check whether there is overlap in IDs
+  ContactListAll <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+n_occur <- data.frame(table(ContactListAll$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
+n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
+ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
 ```
 
 ## **Data for Shiny App**
@@ -1826,7 +1854,8 @@ namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.ti
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-namCL <- paste0("data/cleaned data/Contact List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -1840,7 +1869,8 @@ save(dt6ReducedTimer, file = namTR)
 save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
-#write.csv(ContactList, file = namCL)
+  write.csv(ContactList1, file = namCL)
+  write.csv(ContactList2, file = namCL2)
 
 # export Language List
 #write.csv(LanguageList, file = namLL)
