@@ -96,6 +96,7 @@ dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Basel
 dt0RawRUG$source <- "RUG"
 
 dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 18, 2020_05.37.sav")
+
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -440,6 +441,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', '(?i)Azerbaijan'),
                      'Bahrain' = c('bahrain', 'Bahrain'),
                      'Bangladesh' = c('bangladesh', 'Bangladesh'),
+                     'Belarus' = c('(?i)Belarus', '(?i)беларусь'),
                      'Belgium' = c('βελγιο', 'belgien', 'Бельгия', 'b.lgica', 'belgi.', 'belg', 'belgique', 'бельгия', 'belgium'),
                      'Benin' = c('(?i)bénin'),
                      'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosniaandherzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina', "bih"),
@@ -450,6 +452,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Cambodia' = c('(?i)Cambodia'),
                      'Cameroon' = c('camer', 'Cameroun'),
                      'Canada' = c('canad', 'کانادا', '(?i)Windsor', '(?i)Québec', 'Ontario', 'Vancouver', 'vancouver', 'КАНАДА', 'CANADA', 'Canadá', '(?i)Канада',  'канада', 'Canada', '^ca$'),
+                     'Chad' = c('(?i)Tchad'),
                      'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
                      'China' = c('^china','Macao', 'kina',  'macau',  'hui', 'chine', '山东泰安东平县', '中华人民共和国', 'china','(?i)китай','^中国', '中國',   '中華民國', '中国大陆'),
                      'Colombia' = c('(?i)colombia', 'Colombia', 'COLOMBIA'),
@@ -485,6 +488,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
                      'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', '(?i)Qazaqstan', '(?i)Kazahstan', '(?i)Kazakhstan', 'kazakhstan', 'Казахстан', 'қазақстан'),
                      'Kenya' = c('kenia', 'Kenia'),
+                     'Kosovo' = c('(?i)Kosovo'),
                      'Kuwait' = c('الكويت'),
                      'Kyrgyzstan' = c('(?i)кыргызстан'),
                      'Laos' = c('(?i)laos', 'Laos'),
@@ -521,9 +525,6 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Qatar' = c('qatar', 'Qatar', 'Katar'),
                      'Romania' = c('(?i)rom.ni.', 'rom.n.', 'suceava', 'romanis', 'piatrasoimuluijudețuneamț', '(?i)Roumanie'),
                      'Russia' = c('россия', 'rusia', '(?i)Россия', '^рф$',  'Rusia', 'российскаяфедерация'),
-                     'Republic of Belarus' = c('(?i)Belarus', '(?i)беларусь'),
-                     'Republic of Kosovo' = c('(?i)Kosovo'),
-                     'Republic of Chad' = c('(?i)Tchad'),
                      'Republic of Serbia' = c('(?i)srbija', 'svrbija', 'srbijs', 'sebia',  '(?i)Serbis', '(?i)Servië', 'SEBIA', 'У Србији',  'у Србији',  '(?i)Србијс', '(?i)усрбији', 'Szerbia', '(?i)Srpski', '(?i)Srbiji', 'SRBIJA',  'serbia',  'србија', 'Serbia','srbiji', 'Србија', 's.erbia', 'Srbija'),
                      'Rwanda' = c('Rwanda'),
                      'Saudi Arabia' = c('اريا',  'المدينة المنورة', 'المملكة', 'جازان',  'جده',  '(?i)SaudiArabia', 'جدة',  'Riyadh',  'Sa',    'سعوديه',  '(?i)Riyad', '(?i)Saudi', 'K.S.A',  '(?i)Arabia Saudita', 'Arabie saoudite', 'Saidi Arabia', '	Saudi arbia', 'Ksa', 'Saudi Arabia', 'SA', 'riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia', '(?i)arabiasaudita', '(?i)arabiesaoudite',   'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab', 'رياض',  'خرخير',  'حفر الباطن',  'القويعيه',   'المدينه المنورة', 'مدينة ضرماء',      'عنيزة',    'سكاكا الجوف',     'ضرماء',      '	سكاكا الجوف',  'سعودية',   'الدمام', 'الرباض', 'السعرديه', 'السعوديّه'),
@@ -1688,6 +1689,7 @@ languages.glob <- shiny_prep %>%
   tidyr::spread(language, n)
 languages <- rbind(languages.glob, languages); rm(languages.glob)
 names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
+languages[languages<20] <- NA
 
 gender <- data.frame(coded_country = shiny_prep$coded_country, 
                      gender = as_factor(shiny_prep$gender)) %>%
@@ -1701,6 +1703,7 @@ gender.glob <- data.frame(coded_country = "global",
   tidyr::spread(gender, n)
 gender <- rbind(gender.glob, gender); rm(gender.glob)
 names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
+gender[gender<20] <- NA
 
 age <- data.frame(coded_country = shiny_prep$coded_country, 
                   age = as_factor(shiny_prep$age)) %>%
@@ -1714,6 +1717,7 @@ age.glob <- data.frame(coded_country = "global",
   tidyr::spread(age, n)
 age <- rbind(age.glob, age); rm(age.glob)
 names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
+age[age<20] <- NA
 
 edu <- data.frame(coded_country = shiny_prep$coded_country, 
                   edu = as_factor(shiny_prep$edu)) %>%
@@ -1727,6 +1731,7 @@ edu.glob <- data.frame(coded_country = "global",
   tidyr::spread(edu, n)
 edu <- rbind(edu.glob, edu); rm(edu.glob)
 names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
+edu[edu<20] <- NA
 
 pol <- shiny_prep %>%
   dplyr::select(coded_country, PolOrCat) %>%
@@ -1745,6 +1750,7 @@ pol.glob <- shiny_prep %>%
   tidyr::spread(PolOrCat, n)
 pol <- rbind(pol.glob, pol); rm(pol.glob)
 names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
+pol[pol<50] <- NA
 
 #ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
 ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
@@ -1768,6 +1774,9 @@ ctry.red <- ctry.scales %>%
 ctry.only.red <- ctry.scales %>%
   dplyr::select(coded_country, iso_a2, flag, n) %>%
   filter(n >= 20, coded_country != "global")
+
+ctry.scales <- ctry.scales %>%
+  filter(n>=20)
 ```
 
 ## **Descriptives for Representativeness**
