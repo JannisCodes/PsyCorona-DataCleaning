@@ -95,7 +95,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 18, 2020_05.37.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 19, 2020_01.45.sav")
 
 dt0RawNYUAD$source <- "NYU-AD"
 
@@ -1429,19 +1429,6 @@ dt6ReducedTimer <- dt5newVars %>%
 dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
 
-# # remove filtered cases (with and without page timers)
-# dt6ReducedTimerCases <- dt6ReducedTimer %>%
-#   filter(FilterPreview == 0,
-#          FilterProgress == 0,
-#          FilterTime == 0,
-#          FilterStraightliner == 0) %>%
-#   dplyr::select(-starts_with("Filter"))
-# dt6ReducedCases <- dt6Reduced %>%
-#   filter(FilterPreview == 0,
-#          FilterProgress == 0,
-#          FilterTime == 0,
-#          FilterStraightliner == 0) %>%
-#   dplyr::select(-starts_with("Filter"))
 ```
 
 ## **Recontact**
@@ -1852,6 +1839,8 @@ Export main dataframe as RData and SPSS sav files. We export versions with and w
 ```{r export, echo=T, warning=F, message=F}
 namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All",  ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
@@ -1859,11 +1848,17 @@ namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format 
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
-write_sav(dt6Reduced, namSPSS)
-write_sav(dt6ReducedTimer, namTSPSS)
+# save reduced dataset
+  write_sav(dt6Reduced, namSPSS)
+  save(dt6Reduced, file = namR)
 
-save(dt6Reduced, file = namR)
-save(dt6ReducedTimer, file = namTR)
+# save full dataset
+  write_sav(dt5newVars, namASPSS)
+  write_sav(dt5newVars, namAR)
+
+# save data
+  write_sav(dt6ReducedTimer, namTSPSS)
+  save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
 save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
@@ -1881,5 +1876,5 @@ save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/
   write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
   write.csv(lang.repFull,'data/cleaned data/Language.csv')
 
-rm(list=ls(pattern="nam"))
+rm(#list=ls(pattern="nam"))
 ```
