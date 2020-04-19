@@ -36,11 +36,17 @@ editor_options:
   
 # Install and Load Packages
   #if(!require(pacman)) install.packages("pacman")
-  require(pacman)
-  pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
-                 knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
-                 Scale)
-  
+  # require(pacman)
+  # pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
+  #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
+  #                Scale)
+lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+
+invisible(lapply(lib, library, character.only = TRUE))  
+lapply(lib, library, character.only = TRUE)
+rm(lib)  
+
 # Load Custom Packages  
   source("./scripts/functions/fun.panel.R")
   source("./scripts/functions/themes.R")
@@ -80,28 +86,115 @@ Note. Boxplots display the interquartile range (IQR, center box), and the whiske
 
 ## **Import Data**
 In a first step we import the raw Qualtrics data, which was downloaded as an SPSS file.   
-
-```{r LoadRaw, echo=T, warning=F, message=F}
+### Baseline
+```{r LoadRawBase, echo=T, warning=F, message=F}
 # Reset working directory to folder current file is saved in
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-dt0Raw <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_March+30,+2020_00.32.sav")
+dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
+dt0RawRUG$source <- "RUG"
+
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 19, 2020_01.45.sav")
+
+dt0RawNYUAD$source <- "NYU-AD"
+
+# prepare dfs before merge (basically naming variables correct)
+notRug <- dt0RawRUG %>%
+  dplyr::select_if(!(names(dt0RawRUG) %in% names(dt0RawNYUAD)))
+notNyu <- dt0RawNYUAD %>%
+  dplyr::select_if(!(names(dt0RawNYUAD) %in% names(dt0RawRUG)))
+names(notRug)
+names(notNyu)
+cat("Looks good as non-overlapping variables pertain to the political items"); rm(notRug, notNyu)
+
+# merge adn fill missing
+dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD)
+
+rm(dt0RawRUG, dt0RawNYUAD)
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
 
+### Recontacts
+```{r LoadRawRec, echo=T, warning=F, message=F}
+# Import Wave 1
+  dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2+April+3th_April+14,+2020_17.22.sav")
+  dt0w3 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+3+April+11th_April+14,+2020_15.04.sav")
+
+# prepare dfs before merge (basically naming variables correct)
+notBaseW2 <- dt0w2 %>%
+  dplyr::select_if(!(names(dt0w2) %in% names(dt0Raw)))
+notBaseW3 <- dt0w3 %>%
+  dplyr::select_if(!(names(dt0w3) %in% names(dt0Raw)))
+
+cat("Missmatch between wave 2 and baseline:")
+names(notBaseW2) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBaseW2)
+
+cat("Missmatch between wave 3 and baseline:")
+names(notBaseW3) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBaseW3)
+
+# change column names for waves
+  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
+  colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
+
+# create correct ID for merge across waves
+  dt0Raw$mergeID <- as.character(dt0Raw$ResponseId)
+  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
+  dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
+  
+# merge (can also be dt0Raw but for now seperate)
+  dt0All <- list(dt0Raw, dt0w2, dt0w3) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .)
+
+# find mistakes if not the same length
+cat("How many people did we loose in wave 2:")
+  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
+  cat("We lost them because an independent link was sent around")
+  
+cat("How many people did we loose in wave 3:")
+  nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
+  cat("We lost them because an independent link was sent around")
+
+rm(dt0w1)
+```
 
 ## **Data Quality**   
 
-### Missing Data  
+### Filter: Preview Responses
+Filter the Preview responses.
+```{r preview, echo=T, warning=F, message=F}
+# flag Preview Responses
+# labelled slow
+  # dt1Preview <- dt0Raw %>%
+  #   mutate(FilterPreview = labelled(ifelse(Status == 0,0,1),
+  #                                   labels = c(preview = 1), label="Filter: survey preview response"))
+# not labelled fast
+  dt1Preview <- dt0Raw %>%
+    mutate(FilterPreview = ifelse(Status == 0,0,1))
+```
+
+
+### Filter: Survey Progress (drop out)  
 <!-- https://cran.r-project.org/web/packages/naniar/vignettes/naniar-visualisation.html -->
 
 Inspecting missing data in the items.
 
 ```{r Missing, echo=T, warning=F, message=F}
 # Table: Missing Data per item
-dt0Raw %>%
+dt1Preview %>%
   dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
   dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::miss_var_summary(.) %>% # by variable summary of missingness proportion
@@ -117,13 +210,13 @@ dt0Raw %>%
   DT::formatRound('pct_miss', digits = 2)
   
 # Plot: Missing Data per item
-dt0Raw %>%
+dt1Preview %>%
   dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
   dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::gg_miss_var(.) # visualize by variable summary of missingness proportion
 
 # Plot: Missing Data cumulative
-dt0Raw %>%
+dt1Preview %>%
   dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
   dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
   naniar::gg_miss_var_cumsum(.) # missingness development over survey
@@ -133,32 +226,65 @@ dt0Raw %>%
 #  dplyr::select(-starts_with("t_"), -starts_with("Pol")) %>% #drop timers and Political orientation (because of translation missingness)
 #  dplyr::select_if(~sum(is.na(.)) > 0) %>% # remove all variables that have no missingess
 #  naniar::gg_miss_upset(., nsets = n_var_miss(.)) # visualize missingess co-occurences
-```
 
-### Filter: Preview Responses
-Filter the Preview responses.
-```{r preview, echo=T, warning=F, message=F}
-# flag Preview Responses
-dt1Preview <- dt0Raw %>%
-  mutate(FilterPreview = labelled(ifelse(Status == 0,0,1),
-                                  labels = c(preview = 1), label="Filter: survey preview response"))
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt1Preview %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+
+progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2) # percent of missing data with current cut-off criterion
+
+# plot histogram and missing
+ggplot(data=progressFilter, aes(x=Progress, fill=out)) +
+  geom_histogram(bins=50,
+                 alpha=.6) +
+  geom_vline(xintercept = progressCutOff, 
+             color = "darkred",
+             linetype = "longdash") +
+  geom_text(aes(x=progressCutOff, label=paste0("Progress cut-off: ",progressCutOff,"%\n"), y=Inf), 
+            hjust = 1,
+            colour="darkred", 
+            angle=90) +
+  geom_text(aes(x=progressCutOff, label=paste0("\ndata loss: ",progressCutOffPerc,"%"), y=Inf), 
+            hjust = 1,
+            colour="darkred", 
+            angle=90) +
+  #scale_x_continuous(breaks = seq(0, 100,3)) +
+  scale_fill_manual(values=c("darkgrey","darkred")) +
+  labs(title = "Histogram: Survey Progress", 
+       x = "Survey Progress [Percent completed]",
+       y = "Frequency Count") +
+  theme_Publication() +
+  theme(legend.position = "none")
+
+# flag anyone with less than 5 minutes survey duration
+# labelled slow
+  # dt2Progress <- dt1Preview %>%
+  #   mutate(FilterProgress = labelled(ifelse(Progress < progressCutOff,1,0),
+  #                                labels = c(`consent` = 1), label="Filter: Did not see debriefing"))
+# not labelled fast
+  dt2Progress <- dt1Preview %>%
+    mutate(FilterProgress = ifelse(Progress < progressCutOff,1,0))
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
 
 ### Filter: Short Duration on Survey   
-Filter survey responses that were shorter than 10 minutes.   
+Filter survey responses that were shorter than 5 minutes.   
 ```{r Duration, echo=T, warning=F, message=F}
 # truncate data:
-tOutlierHigh <- dt1Preview %>%
+tOutlierHigh <- dt2Progress %>%
   dplyr::select(Duration__in_seconds_) %>%
   filter(Duration__in_seconds_<=stats::median(Duration__in_seconds_)+stats::mad(Duration__in_seconds_)*3.5) %>%
   mutate(Minutes = Duration__in_seconds_/60)
 
 # set time cut-off criterion:
-tCutOff <- 10 #cut-off criterion in minutes
+tCutOff <- 5 #cut-off criterion in minutes
 # CJ: This might be a bit strict, I suspect that I completed it in <10 minutes. 
-tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt1Preview)*100,2) # percent of missing data with current cut-off criterion
-tOutlierHigh$out <- tOutlierHigh$Minutes < 10
+tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt2Progress)*100,2) # percent of missing data with current cut-off criterion
+tOutlierHigh$out <- tOutlierHigh$Minutes < tCutOff
 
 # plot histogram and missing
 ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
@@ -186,12 +312,25 @@ ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
   theme_Publication() +
   theme(legend.position = "none")
 
-rm(tOutlierHigh, tCutOff, tCutOffPerc)
+# flag anyone with less than 5 minutes survey duration
+# labelled slow
+  # dt3Time <- dt2Progress %>%
+  #   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > tCutOff*60,0,1),
+  #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# not labelled fast
+  dt3Time <- dt2Progress %>%
+    mutate(FilterTime = ifelse(Duration__in_seconds_ > tCutOff*60,0,1))
 
-# flag anyone with less than 10 minutes survey duration
-dt2Time <- dt1Preview %>%
-  mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 600,0,1),
-                               labels = c(`extremely quick` = 1), label="Filter: Took less than 10 minutes on survey"))
+
+rm(tOutlierHigh, tCutOff, tCutOffPerc)
+# flag anyone with less than 5 minutes survey duration
+# labelled slow
+  # dt2Time <- dt1Preview %>%
+  #   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
+  #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
+# not labelled fast
+  dt2Time <- dt1Preview %>%
+    mutate(ifelse(Duration__in_seconds_ > 300,0,1))
 ```
 
 
@@ -199,13 +338,13 @@ dt2Time <- dt1Preview %>%
 Filter participants, who have straightlined on the job insecurity scale, which includes a reverse coded item. We only flag people who straightlined outside the median categories because all "neither agree nor disagree" might be meaningful response.   
 ```{r Straightliner, echo=T, warning=F, message=F}
 # CheckMissingness pattern
-naniar::gg_miss_upset(dt2Time %>%
+naniar::gg_miss_upset(dt3Time %>%
   dplyr::select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
   na_if(., -99) # all -99 into <NA>
 )
 
 # isolate respondents who have straightlined outside a the median categories (b/c all "neither agree nor disagree" might be meaningful response) 
-jobinsecRed <- dt2Time %>%
+jobinsecRed <- dt3Time %>%
   dplyr::select(ResponseId, jbInsec01, jbInsec02, jbInsec03) %>%
   na_if(., -99) %>% # all -99 into <NA>
   na.omit() %>% # remove people who have missing data on one of the three items
@@ -214,227 +353,242 @@ jobinsecRed <- dt2Time %>%
   filter(sd == 0, mean != 0)
 
 # flag anyone who straightlined on job insecurity
-dt3Straightliner <- dt2Time %>%
-  mutate(FilterStraightliner = labelled(ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1),
-                                        labels = c(straightliner = 1), label="Filter: straightliner on Job Insecurity"))
+# labelled slow
+  # dt4Straightliner <- dt3Time %>%
+  #   mutate(FilterStraightliner = labelled(ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1),
+  #                                         labels = c(straightliner = 1), label="Filter: straightliner on Job Insecurity"))
+# not labelled fast
+  dt4Straightliner <- dt3Time %>%
+    mutate(FilterStraightliner = ifelse(!ResponseId %in% jobinsecRed$ResponseId,0,1))
+
 rm(jobinsecRed)
 ```
 
 
 ## **Data Preparation**   
-Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet.  
+Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet. For centering and standardizing to be accurate, we first filter the relevant criteria.
 
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
 # Recoded Items
-dt4newVars <- dt3Straightliner %>%
+dt5newVars <- dt4Straightliner %>%
   mutate(jbInsec02_R = labelled(recode(as.numeric(jbInsec02), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2, `-99` = -99),
                                 labels = NULL, label="Job Insecurity 02 (re-coded)"),
+         disc03_R = labelled(recode(as.numeric(disc03), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2),
+                            labels = NULL, label="Discontent 03 (re-coded)"),
          bor03_R = labelled(recode(as.numeric(bor03), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2),
                             labels = NULL, label="Boredom 03 (re-coded)"))
 # Language
 # Import Qualtrics Language Codes
 qualtricsLanguage <- read_excel("data/raw data/qualtricsLanguageCodes.xlsx")
-dt4newVars <- merge(x=dt4newVars, y=qualtricsLanguage, by="Q_Language", all.x=TRUE)
+dt5newVars <- merge(x=dt5newVars, y=qualtricsLanguage, by="Q_Language", all.x=TRUE)
 rm(qualtricsLanguage)
 ```
 
+### Filter Participants
+```{r filtBefCalc, echo=T, warning=F, message=F}
+dt5newVars <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0)
+
+# prepare country before checking for test
+  dt5newVars$countryAdj <- dt5newVars$country %>%
+    tolower() %>% #make them lower case
+    gsub(" ", "", ., fixed = TRUE) %>% # remove white space
+    as.character() #make sure everything is characters
+
+# remove test sessions
+  strings <- c("^test", "test$", "^yasin", '^check') # add strings that need removing
+  tmp <- dt5newVars %>%
+    dplyr::select(countryAdj, ICRec_1_TEXT, deb, ResponseId)%>%
+    dplyr::filter_all(any_vars(stringr::str_detect(., paste(strings, collapse = "|")))) #loop over cols
+  dt5newVars <- dt5newVars[!(dt5newVars$ResponseId %in% tmp$ResponseId), ]; rm(tmp) # remove test Response IDs 
+```
+
 ### Country
-We currently have `r length(table(dt4newVars$country))` different free text country responses. Here we aim to consolidate them into one variable.
+We currently have `r length(table(dt5newVars$country))` different free text country responses. Here we aim to consolidate them into one variable.
 ```{r Country, echo=T, warning=F, message=F}
 # CJ: Just as a benchmark, geolocate IP address. Can always use this if a free 
-# CJ: text country response does not resolve.
-library(rgeolocate)
-file <- system.file("extdata","GeoLite2-Country.mmdb", package = "rgeolocate")
-geolocations <- maxmind(dt4newVars$IPAddress, file, c("continent_name", "country_code", "country_name"))
-dt4newVars$coded_country_ip <- geolocations$country_name
+# CJ: text country response does not resolve 
+# MA: should only be used for those that agree; also VPNs are problematic
+# library(rgeolocate)
+# file <- system.file("extdata","GeoLite2-Country.mmdb", package = "rgeolocate")
+# geolocations <- maxmind(dt5newVars$IPAddress, file, c("continent_name", "country_code", "country_name"))
+# dt5newVars$coded_country_ip <- geolocations$country_name
+# rm(geolocations)
 
 # CJ: This is a slightly cleaner, faster, and more informative regex based approach.
 # CJ: The function and dictionary (based on the code below, some errors corrected) 
-# CJ: is in source("./scripts/functions/dictionary_functions.R")
-country_matches <- cat_words(tolower(dt4newVars$country), country_dict)
-# Check duplicates, and which regular expressions triggered them
-country_matches$dup
+# CJ: is in
+
+#saveRDS(dt5newVars$country, file = "country.RDS")
+
+source("./scripts/functions/dictionary_functions.R")
+
+# sourcing seems to destroy everything
+country_dict <- list('Afghanistan' = c('Afghanistan'),
+                     'Albania' = c('albania', '(?i)Albania'),
+                     'Algeria' = c('(?i)Algrie', 'الجزاء و', 'ALGERIE',  'جزائر',   'Alger',  'الجزاء و ', 'الجزاير',  '🇩🇿', 'ALGÉRIE',  'البليدة',  'algeri', 'الجزاىر',  'الجوائر',    'Algeria', 'الحزائر',  'الجزائر', 'algérie', 'الجزاءر', 'Algérie', 'Algerie'),
+                     'Algeria' = c('الجزاير (حمادي بومرداس)', 'الحزاءر'),
+                     'Andorra' = c('(?i)andorra'),
+                     'Argentina' = c('Αργεντινή', '(?i)αργεντινή', 'argentina', 'Argentine', 'ARGENTINA', 'Argentina', 'arge'),
+                     'Armenia' = c('(?i)армения'),
+                     'Australia' = c('(?i)australia', 'austrlaia',  'austrija', '(?i)Australia'),
+                     'Austria' = c('(?i)Австрія', '(?i)autriche', 'Asturies', '(?i)austria', 'Austrija', 'Austria', 'sterreich'),
+                     'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', '(?i)Azerbaijan'),
+                     'Bahrain' = c('bahrain', 'Bahrain'),
+                     'Bangladesh' = c('bangladesh', 'Bangladesh'),
+                     'Belarus' = c('(?i)Belarus', '(?i)беларусь'),
+                     'Belgium' = c('βελγιο', 'belgien', 'Бельгия', 'b.lgica', 'belgi.', 'belg', 'belgique', 'бельгия', 'belgium'),
+                     'Benin' = c('(?i)bénin'),
+                     'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosniaandherzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina', "bih"),
+                     'Botswana' = c('(?i)botswana'),
+                     'Brazil' = c('brazil', 'riodejaneiro', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
+                     'Brunei' = c('bruneidarussalam'),
+                     'Bulgaria' = c('(?i)bulgaria', 'Bulgaria', 'българия'),
+                     'Cambodia' = c('(?i)Cambodia'),
+                     'Cameroon' = c('camer', 'Cameroun'),
+                     'Canada' = c('canad', 'کانادا', '(?i)Windsor', '(?i)Québec', 'Ontario', 'Vancouver', 'vancouver', 'КАНАДА', 'CANADA', 'Canadá', '(?i)Канада',  'канада', 'Canada', '^ca$'),
+                     'Chad' = c('(?i)Tchad'),
+                     'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
+                     'China' = c('^china','Macao', 'kina',  'macau',  'hui', 'chine', '山东泰安东平县', '中华人民共和国', 'china','(?i)китай','^中国', '中國',   '中華民國', '中国大陆'),
+                     'Colombia' = c('(?i)colombia', 'Colombia', 'COLOMBIA'),
+                     'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
+                     'Croatia' = c('croa', '(?i)Kroatien', '(?i)Horvátország',  '(?i)Croácia', '(?i)Croazia',  '(?i)HRVATSKA', 'Hrvatskoj', '(?i)Hrv', 	'(?i)Hrvarska', '(?i)Hrvatska', "hrvatsk", '(?i)Croatia'),
+                     'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
+                     'Czech Republic' = c('czech',  'tschechien', 'Τσεχία', '(?i)Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  '(?i)Czechia',  '(?i)Czech Republic', 'checa'),
+                     'Denmark' = c('mark', 'danemarca'), 
+                     'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
+                     'Ecuador' = c('(?i)ecuador', 'Quito', 'Ecuador'),
+                     'Egypt' = c('مصر', '(?i)Egypt'),
+                     'El Salvador' = c('salvador', '(?i)elsalvado', 'El salvado', 'El Salvaodr', 'El Salvador'),
+                     'Estonia' = c('(?i)estonia', '(?i)эстония', 'Estonia'),
+                     'Finland' = c('(?i)finland', '(?i)финляндия', '(?i)Finnland', 'Finland'),
+                     'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'frankreich', '^fr$', 'La Réunion', 'laréunion', 'La réunion', 'fran.e', 'francia',  'frankrijk'),
+                     'Gabon' = c('Gabon'),
+                     'Georgia' = c('(?i)грузия', 'georgien'),
+                     'Germany' = c('Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'allemagne', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....'),
+                     'Greece' = c('ΕΛΛΑΣΑ', '(?i)athens', 'αθήνα', 'θεσσαλονίκη', 'ιωάννινα', '(?i)Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', '(?i)Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  '(?i)Ellada', '希腊', '(?i)GRECE', '(?i)ellada', 'Grecia', 'grèce', 'greee', 'griechenland', 'griekenland', '(?i)GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', 	'.λλ...', '.λλ..', 'ελλάδα'),
+                     'Guatemala' = c('guat', 'Guatemala'),
+                     'Hong Kong S.A.R.' = c('Hongkong', '^hk$', 'hong.{0,}kong', '香港'),
+                     'Hungary' = c('(?i)hungary', 'ungheria', 'magxarország', 'Ungheria', 'Ungarn', 'mađarska', '(?i)Magyar', '(?i)Magyarorszag', 'magyarosz.g', '^magyarorsz', '(?i)magyar', 'ungarn'),
+                     'Iceland' = c('iceland'),
+                     'India' = c('i.dia', 'هند', 'Infis'),
+                     'Indonesia' = c('Jakarta', 'bali,indonesia', 'denpasar,bali,indonesia', 'Indomesia', 'indobesia', 'indonesia.', 'indonesia,bali', 'indonesia-kotatarakan', 'indonesià', 'Insonesia', 'republikindonesia', 'Indònesia', 'Yogyakarta, indonesia', 'Indonesià', 'Indonedia', 'Indomesia	', 'Indoesia', 'Indobesia', 'Imdonesia', 'Indoasia', '^indo$', 'i.d.nesi.', 'i.d.nesi..',  'kota, tarakan',  'jakarta'),
+                     'Iran' = c('iran', 'abd',  'ایران', 'Iran'),
+                     'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
+                     'Ireland' = c('Ιρλανδία', 'irska', '^nireland$', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
+                     'Israel' = c('كفرقاسم', '(?i)израиль',  'عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  '(?i)Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
+                     'Italy' = c('(?i)İtalya', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия',   'İtalya', 'Mareno di Piave', 'Frosinone', '(?i)Italia', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  '(?i)Italie', '(?i)Italië', '(?i)Itali', '(?i)Italien', 'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', 'ITALIA', 'ital', 'Roma', '(?i)Italy', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
+                     'Jamaica' = c('jamaica', 'Jamaica'),
+                     'Japan' = c('(?i)japan', 'japao', '(?i)Japão', '(?i)Japonya', 'にほん', '(?i)japon', 'Giappone',  'giappone', 'Japan', 'japonya', '日本', '일본', '愛知県'),
+                     'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
+                     'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', '(?i)Qazaqstan', '(?i)Kazahstan', '(?i)Kazakhstan', 'kazakhstan', 'Казахстан', 'қазақстан'),
+                     'Kenya' = c('kenia', 'Kenia'),
+                     'Kosovo' = c('(?i)Kosovo'),
+                     'Kuwait' = c('الكويت'),
+                     'Kyrgyzstan' = c('(?i)кыргызстан'),
+                     'Laos' = c('(?i)laos', 'Laos'),
+                     'Latvia' = c('latvia', 'Latvia'),
+                     'Lebanon' = c('(?i)lebanon', 'LIBAN', '(?i)Ливан',  'لبنان',  'Lebanon', '(?i)liban'),
+                     'Libya' = c('ليبيا'),
+                     'Lithuania' = c('(?i)lithuania', 'lituania'),
+                     'Luxembourg' = c('lux','(?i)Luksemburg',  '(?i)Luxembourg', '(?i)Luxemburg'),
+                     'Malaysia' = c('malay', 'Malaysia', 'ماليزيا', '马来西亚', '馬來西亞'),
+                     'Mali' = c('(?i)Mali'),
+                     'Malta' = c('(?i)malta', 'Malta'),
+                     'Mauritius' = c('maurice', 'İle Maurice', 'Mauritius'),
+                     'Mexico' = c('mexico', 'Μεξικό', 'MÉXICO', 'México', 'méxico', 'Mexico'),
+                     'Moldova' = c('(?i)Moldova', 're..........dova', 'модова', 'moldova'),
+                     'Mongolia' = c('(?i)Mongolia'),
+                     'Montenegro' = c('crnagora', '(?i)Montenegro', 'Crna Gora'),
+                     'Morocco' = c('المغرب',  'rabat', 'النغرب',  'MAROC', 'مغرب', 'morocco', '(?i)Morocco', 'Morroco', 'Maroko', 'Marruecos', 'maroc', 'Maroc'),
+                     'Myanmar' = c('(?i)myanmar'),
+                     'Namibia' = c('(?i)Namibia'),
+                     'Nepal' = c('nepal', 'Nepal'),
+                     'Netherlands' = c('(?i)Netherland', 'holandija',  'țăriledejos', '(?i)Nizozemska',  'Holandija',  'Gelderland', '荷兰', '(?i)Нидерланды',  '(?i)Голандія', '(?i)Paises Bajos', '(?i)Curacao',  '(?i)Hollanda', 'Países Bajos', 'Paesi Bassi', '(?i)netherland', 'Nl', 'Belanda', 'Olanda', 'New Zealand', 'NL', 'Niederlande', 'The Netherlands', 'Netherlands', 'Nederland',  'nederland',  'niederlande',  'belanda',  '^nl$',  'olanda',  'paesi, bassi',  'paesi bassi',  'bajos',  'gelderland',  '(?i)hollanda', 'paes.+bass.', 'nerderland', 'aruba'),
+                     'New Zealand' = c('new.+zeal',  'newzealand',  'neuseeland'),
+                     'Nigeria' = c('nigeria', 'Nigeria'),
+                     'North Macedonia' = c('North Macedonia'),
+                     'Norway' = c('norway', '(?i)Norway', '(?i)Norvège', '(?i)Norvége', '(?i)Norwegen'),
+                     'Oman' = c('^oman$', 'Oman'),
+                     'Pakistan' = c('^pakistan', 'pakistan$', 'پاکستان', 'Peshawar',  'Abbottabad', 'Pak',	'Pakistan',  'abbottabad',  'peshawar'),
+                     'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
+                     'Panama' = c('panam'), 
+                     'Peru' = c('PERÚ', '(?i)Peru', '(?i)Perú', '(?i)peru', 'perú'),
+                     'Philippines' = c('(?i)Phillipines', 'phils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES'),
+                     'Poland' = c('(?i)poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', '(?i)Польша', '(?i)поль.а', '(?i)polska'),
+                     'Portugal' = c('(?i)portugal', '葡萄牙', 'portogallo', 'Portugal'), 
+                     'Qatar' = c('qatar', 'Qatar', 'Katar'),
+                     'Romania' = c('(?i)rom.ni.', 'rom.n.', 'suceava', 'romanis', 'piatrasoimuluijudețuneamț', '(?i)Roumanie'),
+                     'Russia' = c('россия', 'rusia', '(?i)Россия', '^рф$',  'Rusia', 'российскаяфедерация'),
+                     'Republic of Serbia' = c('(?i)srbija', 'svrbija', 'srbijs', 'sebia',  '(?i)Serbis', '(?i)Servië', 'SEBIA', 'У Србији',  'у Србији',  '(?i)Србијс', '(?i)усрбији', 'Szerbia', '(?i)Srpski', '(?i)Srbiji', 'SRBIJA',  'serbia',  'србија', 'Serbia','srbiji', 'Србија', 's.erbia', 'Srbija'),
+                     'Rwanda' = c('Rwanda'),
+                     'Saudi Arabia' = c('اريا',  'المدينة المنورة', 'المملكة', 'جازان',  'جده',  '(?i)SaudiArabia', 'جدة',  'Riyadh',  'Sa',    'سعوديه',  '(?i)Riyad', '(?i)Saudi', 'K.S.A',  '(?i)Arabia Saudita', 'Arabie saoudite', 'Saidi Arabia', '	Saudi arbia', 'Ksa', 'Saudi Arabia', 'SA', 'riyad',  'saud.+arab',  'arabia, saudita',  '^saudi$',  'kingdom, of, saudia, arabia', '(?i)arabiasaudita', '(?i)arabiesaoudite',   'ksa',  'k\\.s\\.a',  'arabie, saoudite',  'الرياض',  'السعودية',  'السعوديه', 'emira+arab', 'رياض',  'خرخير',  'حفر الباطن',  'القويعيه',   'المدينه المنورة', 'مدينة ضرماء',      'عنيزة',    'سكاكا الجوف',     'ضرماء',      '	سكاكا الجوف',  'سعودية',   'الدمام', 'الرباض', 'السعرديه', 'السعوديّه'),
+                     'Singapore' = c('(?i)singapore', 'SINGAPORE', '(?i)Singapur', '(?i)Singapore', '新加坡'),
+                     'Slovakia' = c('slova', '(?i)Словаччина',   '(?i)Szlovákia',  'Slovakia', 'Slovak Republic'),
+                     'Slovenia' = c('(?i)Slovenia', 'Slovenija'),
+                     'South Africa' = c('جنوب أفريقيا', 'Garankuwa','Western Cape',  'Limpopo', 'Western cape', 'Eastern Cape', 'Cape Town', 'Gauteng', 'limpopo', 'SOUTH AFRICA', 'southafrica🇿���america', 'South aftica', 'South Afica', 'South AFRICA', 'South Africa', 'africa',  '^sa$',  'sudáfrica',  'western, cape', '(?i)westerncape', 'southaf...', 'afriquedusud'),
+                     'South Korea' = c('korea', 'güneykore', '한국', '대한민국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore'),
+                     'Spain' = c('(?i).спан.я', 'saipan', 'espanya',  '^es$', 'euskadi', 'espagne', 'espsña', 'ισπανία', 'spania', 'Ισπανία', 'Pais vasco', 'Montalbán de Córdoba', 'Madrid', 'Málaga', '(?i)Fuerteventura', 'Espña', '^Es$', '(?i)Esapaña', 'El Rocío', 'Eapaña', 'Cataluña', 'Andalucia', 'Catalunya', 'Espsña', 'Euskal Herria', 'Іспанія', '(?i)Spanyolország', 'SPAIN', 'Estado Español', 'estadoespañol', 'españs', 'español', 'españ', 'espana', 'Españistan', 'ESpaña', 'Espanha', 'paisvasco', 'Espana', 'montalbándecórdoba', 'Spanje', 'Españs', 'Españ', 'Espagne', 'Spanien', 'Español', 'Espanya', 'spain', 'Spagna', '(?i)Spain', '^esp$', '(?i)ESPAÑA', 'España', 'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje', 'euskalherria'),
+                     'Sweden' = c('weden', 'Svezia', 'σουηδια', '(?i)SWEDEN',  'Isvec', '(?i)Suède'),
+                     'Switzerland' = c('(?i)Ελβετία', 'İsviçre',  'switzerl', 'Zwitserland', 'Switzerlannd', 'Svizzera','İsviçre',  'Швейцарія', 'Suiza', 'SUIZA', 'schweiz', 'Ελβετία', 'Schweiz', 'Switzerland', 'suiza', 'Suisse', 'svizzera',  'zwitserland',  'switzerland', 'suisse'),
+                     'Taiwan' = c('taiwan', 'Tayvan', 'Taiwan', '.灣'),
+                     'Thailand' = c('^thailand$', 'Thailand', 'ไทย'),
+                     "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
+                     'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
+                     'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', '^Tr$', '^TR$', 'tr$', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye", 'турция'), #"'\u00fcrkiye'"
+                     'Ukraine' = c('(?i)ukraine', '(?i)Ураїна', 'укра.н.', 'Киев', '(?i)Укрїна', '(?i)Ук...на', 'Українська', 'Украине', 'УКРАЇНА', 'Украіна', 'у.ра..а', 'україна', '(?i)украина', 'Україна', 'Украина'),
+                     'United Arab Emirates' = c('u\\.a\\.\\.', 'emiradosarabesunidos', 'emiratelearabeunite', 'emiratosarabesunidos', 'emiratsarabesunis', '(?i)abudhabi',    'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'(?i)Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
+                     'United Kingdom' = c('.γγλ..', 'regatulunit', '(?i)ecosse',  	'ηνωμένοβασίλειο', 'ηνωμένοβασίλειο(αγγλία)', 'theuk', '(?i)regnounito', 'mareabritanie',  '(?i)Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', '^GB$', 'Anglia', 'Ecosse', '(?i)Angleterre', '(?i)Великобритания', 'Αγγλια', 'U.K','SCOTLAN', '(?i)Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', '(?i)London', 'Verenigd Koninkrijk', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', '^Northern ireland$', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales','verenigdkoninkrijk', 'Reino Unido', '^Uk$', 'Scotland', 'United Kingdom', 'england', '^UK$',  '^uk$',  '(?i)reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk', 'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland', 'grandcayman,caymanislands', 'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
+                     'United Republic of Tanzania' = c('tanzania', 'Tanzania'),
+                     'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   '(?i)Αμερική' , 'ηπα',   'U.s.a.', 'Tempe' , 'alameda',  'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'puertorico', 'idaho', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'concord,ca', 'Amerika Serikat', 'amerikaserikat', '(?i)AMERICA', '(?i)ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', '(?i)Pennsylvania', '(?i)Pennssylvania', 'united sta.e.', 'Estados unidos', 'mcdonaughcounty', 'southcarolina', 'minnesota', 'NEWYORK', 'Arizona',  '(?i)New York', 'new york', 'New york', 'NEW YORK', 'США', 'newjersey', 'newyark', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'United statea', 'United Sates', 'Estados Unidos', 'northcarolina', '^ny$',  'Estados unidos', 'munford', 'wisconsin', 'ESTADOS UNIDOS', 'Untied statest', '\\d{0,30}merica$', 'United State', 'U.S', 'unite. sta//w{1,3}es', 'America', 'america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$', 'unitedststes', 'unitedstaes', '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona', '^\\w{1,3}us$', 'merica$', 'theu.s.', 'امریکا', '美國'), 
+                     'Uruguay' = c('urug', 'Uruguay'),
+                     'Uzbekistan' = c('u.{2,5}istan', 'u\\w{2,6}istan', '(?i)Uzbekistan', '(?i)узбекистан'),
+                     'Venezuela' = c('venezuela'),
+                     'Vietnam' = c('vi.tnam'),
+                     'Yemen' = c('العند')
+)
+
+country_matches <- cat_words(dt5newVars$countryAdj, country_dict) 
+#country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-head(country_matches$unmatched)
-dt4newVars$coded_country_cj <- country_matches$words
+View(country_matches$unmatched)
+# Check duplicates, and which regular expressions triggered them
+View(country_matches$dup)
+dt5newVars$coded_country <- country_matches$words
+dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
 
-#code originally provided by Courtney Soderberg
 
-dt4newVars <- dt4newVars %>%
-  mutate(coded_country = case_when(grepl('^usa$', country, ignore.case = T) | grepl('unites state', country, ignore.case = T) | 
-                                     grepl('united state', country, ignore.case = T) | grepl('^america$', country, ignore.case = T) |
-                                     grepl('U\\.S\\.', country, ignore.case = T) | grepl('Estados Unidos', country, ignore.case = T) |
-                                     grepl('colorado', country, ignore.case = T) | grepl('^us$', country, ignore.case = T) |
-                                     grepl('xas', country, ignore.case = T) | grepl('sates', country, ignore.case = T) |
-                                     grepl('Amerika Serikat', country, ignore.case = T) | grepl('california', country, ignore.case = T) |
-                                     grepl('corlifornia', country, ignore.case = T) | grepl('états-unis', country, ignore.case = T) |
-                                     grepl('york', country, ignore.case = T) | grepl('yark', country, ignore.case = T) |
-                                     grepl('puerto rico', country, ignore.case = T) | grepl('^tx$', country, ignore.case = T) |
-                                     grepl('^tn$', country, ignore.case = T) | grepl('U S', country, ignore.case = T) ~ 'United States of America',
-                                   grepl('canad', country, ignore.case = T) | grepl('vancouver', country, ignore.case = T) ~ 'Canada',
-                                   grepl('mexico', country, ignore.case = T) | grepl('México', country, ignore.case = T) ~ 'Mexico',
-                                   grepl('spain', country, ignore.case = T) | grepl('esp', country, ignore.case = T) |
-                                     grepl('Spagna', country, ignore.case = T) | grepl('Spanien', country, ignore.case = T) |
-                                     grepl('Catal', country, ignore.case = T) | grepl('Euskal Herria', country, ignore.case = T) |
-                                     grepl('basque', country, ignore.case = T) | grepl('Eapaña', country, ignore.case = T) |
-                                     grepl('Esapaña', country, ignore.case = T) | grepl('madrid', country, ignore.case = T) |
-                                     grepl('Montalbán de Córdoba', country, ignore.case = T) | grepl('Pais vasco', country, ignore.case = T) |
-                                     grepl('Spanje', country, ignore.case = T) ~ 'Spain',
-                                   grepl('france', country, ignore.case = T) | grepl('Francia', country, ignore.case = T) |
-                                     grepl('Frankrijk', country, ignore.case = T) ~ 'France',
-                                   grepl('germany', country, ignore.case = T) | grepl('deutschland', country, ignore.case = T) | 
-                                     grepl('Alemania', country, ignore.case = T) | grepl('germania', country, ignore.case = T) |
-                                     grepl('^Almanya$', country, ignore.case = T) | grepl('berlin', country, ignore.case = T) |
-                                     grepl('Duitsland', country, ignore.case = T) ~ 'Germany',
-                                   grepl('portugal', country, ignore.case = T) ~ 'Portugal',
-                                   grepl('weden', country, ignore.case = T) ~ 'Sweden',
-                                   grepl('netherland', country, ignore.case = T) | grepl('nederland', country, ignore.case = T) | 
-                                     grepl('Niederlande', country, ignore.case = T) | grepl('Belanda', country, ignore.case = T) |
-                                     grepl('^NL$', country, ignore.case = T) | grepl('Olanda', country, ignore.case = T) |
-                                     grepl('Paesi Bassi', country, ignore.case = T) | grepl('bajos', country, ignore.case = T) |
-                                     grepl('Gelderland', country, ignore.case = T) | grepl('Hollanda', country, ignore.case = T) ~ 'Netherlands',
-                                   grepl('^indonesia$', country, ignore.case = T) | grepl('indonesian', country, ignore.case = T) | 
-                                     grepl('kota Tarakan', country, ignore.case = T) | grepl('Imdonesia', country, ignore.case = T) |
-                                     grepl('Indònesia', country, ignore.case = T) | grepl('jakarta', country, ignore.case = T) ~ 'Indonesia',
-                                   grepl('ital', country, ignore.case = T) | grepl('Sardegna', country, ignore.case = T) | 
-                                     grepl('Bisceglie', country, ignore.case = T) | grepl('Ladispoli', country, ignore.case = T) |
-                                     grepl('Castelforte', country, ignore.case = T) | grepl('milano', country, ignore.case = T) |
-                                     (grepl('roma', country, ignore.case = T) & !grepl('romania', country, ignore.case = T)) |
-                                     grepl('Dorgali', country, ignore.case = T) | grepl('bari', country, ignore.case = T) |
-                                     grepl('bologna', country, ignore.case = T) | grepl('Brescia', country, ignore.case = T) |
-                                     grepl('Cala gonone', country, ignore.case = T) | grepl('Chieti', country, ignore.case = T) |
-                                     grepl('Ferentino', country, ignore.case = T) | grepl('Frosinone', country, ignore.case = T) |
-                                     grepl('Gragnano lucca	', country, ignore.case = T) | grepl('Guidonia', country, ignore.case = T) |
-                                     grepl('Itaia', country, ignore.case = T) | grepl('İtalya', country, ignore.case = T) |
-                                     grepl('Mareno di Piave', country, ignore.case = T) | grepl('modena', country, ignore.case = T) |
-                                     grepl('Pellizzano', country, ignore.case = T) | grepl('Predazzo', country, ignore.case = T) |
-                                     grepl('Refrontolo', country, ignore.case = T) | grepl('Cosma e Damiano', country, ignore.case = T) |
-                                     grepl('Scalea', country, ignore.case = T) | grepl('Scauri', country, ignore.case = T) |
-                                     grepl('Segni', country, ignore.case = T) | grepl('SETTIMO VITTONE', country, ignore.case = T) |
-                                     grepl('Susegana', country, ignore.case = T) | grepl('Terralba', country, ignore.case = T) |
-                                     grepl('trento', country, ignore.case = T) | grepl('treviso', country, ignore.case = T) |
-                                     grepl('Tezze di Piave', country, ignore.case = T) | grepl('Valmontone', country, ignore.case = T) |
-                                     grepl('Vergato', country, ignore.case = T) | grepl('veneto', country, ignore.case = T) |
-                                     grepl('Gragnano lucca', country, ignore.case = T) ~ 'Italy',
-                                   grepl('hong kong', country, ignore.case = T) ~ 'Hong Kong S.A.R.',
-                                   grepl('phil', country, ignore.case = T) | grepl('Filipinas', country, ignore.case = T) ~ 'Philippines',
-                                   grepl('argentina', country, ignore.case = T) | grepl('arge', country, ignore.case = T) ~ 'Argentina',
-                                   grepl('pakistan', country, ignore.case = T) | grepl('Abbottabad', country, ignore.case = T) |
-                                     grepl('Peshawar', country, ignore.case = T) ~ 'Pakistan',
-                                   grepl('united kingdo', country, ignore.case = T) | grepl('^uk$', country, ignore.case = T) |
-                                     grepl('Reino Unido', country, ignore.case = T) | grepl('britain', country, ignore.case = T) |
-                                     grepl('Regno Unito', country, ignore.case = T) | grepl('u\\.k\\.', country, ignore.case = T) |
-                                     grepl('بريطانيا', country, ignore.case = T) | grepl('the uk', country, ignore.case = T) |
-                                     grepl('U K', country, ignore.case = T) | grepl('Verenigd Koninkrijk', country, ignore.case = T) |
-                                     grepl('Windsor', country, ignore.case = T) | grepl('scotland', country, ignore.case = T) |
-                                     grepl('england', country, ignore.case = T) | grepl('wales', country, ignore.case = T) |
-                                     grepl('İngiltere', country, ignore.case = T) | grepl('Northern Ireland', country, ignore.case = T) |
-                                     grepl('Egland', country, ignore.case = T) | grepl('^gb$', country, ignore.case = T) |
-                                     grepl('N Ireland', country, ignore.case = T) | grepl('Schotland', country, ignore.case = T) |
-                                     grepl('Scozia', country, ignore.case = T) ~ 'United Kingdom',
-                                   grepl('africa', country, ignore.case = T) | grepl('^SA$', country, ignore.case = T) |
-                                     grepl('Sudáfrica', country, ignore.case = T) | grepl('western cape', country, ignore.case = T) ~ 'South Africa',
-                                   grepl('^chile$', country, ignore.case = T) ~ 'Chile',
-                                   grepl('australia', country, ignore.case = T) | grepl('Austrija', country, ignore.case = T) ~ 'Australia',
-                                   grepl('colombia', country, ignore.case = T) ~ 'Colombia',
-                                   grepl('turkey', country, ignore.case = T) | grepl('tür', country, ignore.case = T) ~ 'Turkey',
-                                   grepl('taiwan', country, ignore.case = T) ~ 'Taiwan',
-                                   grepl('^Venezuela$', country, ignore.case = T) ~ 'Venezuela',
-                                   grepl('israel', country, ignore.case = T) | grepl('اللد', country, ignore.case = T) |
-                                     grepl('اسرائيل', country, ignore.case = T) | grepl('كفر قاسم', country, ignore.case = T) |
-                                     grepl('Isreal', country, ignore.case = T) | grepl('רמלה', country, ignore.case = T) ~ 'Israel',
-                                   grepl('greece', country, ignore.case = T) | grepl('Grecia', country, ignore.case = T) ~ 'Greece',
-                                   grepl('austria', country, ignore.case = T) | grepl('sterreich', country, ignore.case = T) ~ 'Austria',
-                                   grepl('new zealand', country, ignore.case = T) | grepl('Neuseeland', country, ignore.case = T) ~ 'New Zealand',
-                                   grepl('Tuni', country, ignore.case = T) | grepl('تونس', country, ignore.case = T) ~ 'Tunisia',
-                                   grepl('Belg', country, ignore.case = T) | grepl('Bélgica', country, ignore.case = T) ~ 'Belgium',
-                                   grepl('China', country, ignore.case = T) ~ 'China',
-                                   grepl('cyp', country, ignore.case = T) ~ 'Cyprus',
-                                   grepl('Schweiz', country, ignore.case = T) | grepl('Suiza', country, ignore.case = T) |
-                                     grepl('Svizzera', country, ignore.case = T) | grepl('Zwitserland', country, ignore.case = T) |
-                                     grepl('switzerland', country, ignore.case = T) ~ 'Switzerland',
-                                   grepl('United Arab Emirates', country, ignore.case = T) | grepl('uae', country, ignore.case = T) ~ 'United Arab Emirates',
-                                   grepl('Croa', country, ignore.case = T) ~ 'Croatia',
-                                   grepl('india', country, ignore.case = T) ~ 'India',
-                                   grepl('algeri', country, ignore.case = T) | grepl('الجزائر', country, ignore.case = T) |
-                                     grepl('Algérie', country, ignore.case = T) ~ 'Algeria',
-                                   grepl('bulgaria', country, ignore.case = T) ~ 'Bulgaria',
-                                   grepl('Poland', country, ignore.case = T) | grepl('POLONIA', country, ignore.case = T) ~ 'Poland',
-                                   grepl('romania', country, ignore.case = T) ~ 'Romania',
-                                   grepl('singapore', country, ignore.case = T) ~ 'Singapore',
-                                   grepl('Srbija', country, ignore.case = T) | grepl('serbia', country, ignore.case = T) |
-                                     grepl('Србија', country, ignore.case = T) ~ 'Republic of Serbia',
-                                   grepl('czech', country, ignore.case = T) | grepl('checa', country, ignore.case = T) ~ 'Czech Republic',
-                                   grepl('lux', country, ignore.case = T) ~ 'Luxembourg',
-                                   grepl('slova', country, ignore.case = T) ~ 'Slovakia',
-                                   grepl('brazil', country, ignore.case = T) | grepl('brasil', country, ignore.case = T)~ 'Brazil',
-                                   grepl('^ireland$', country, ignore.case = T) | grepl('Irlanda', country, ignore.case = T) ~ 'Ireland',
-                                   grepl('japan', country, ignore.case = T) | grepl('Giappone', country, ignore.case = T) |
-                                     grepl('Japonya', country, ignore.case = T) ~ 'Japan',
-                                   grepl('Malay', country, ignore.case = T) ~ 'Malaysia',
-                                   grepl('nigeria', country, ignore.case = T) ~ 'Nigeria',
-                                   grepl('Riyad', country, ignore.case = T) | grepl('^Saudi arabia$', country, ignore.case = T) |
-                                     grepl('Arabia Saudita', country, ignore.case = T) | grepl('^saudi$', country, ignore.case = T) |
-                                     grepl('Kingdom of Saudia arabia', country, ignore.case = T) | grepl('KSA', country, ignore.case = T) |
-                                     grepl('k\\.s\\.a', country, ignore.case = T) | grepl('Arabie saoudite', country, ignore.case = T) | 
-                                     grepl('الرياض', country, ignore.case = T) | grepl('السعودية', country, ignore.case = T) |
-                                     grepl('السعوديه', country, ignore.case = T) ~ 'Saudi Arabia',
-                                   grepl('^thailand$', country, ignore.case = T) ~ 'Thailand',
-                                   grepl('urug', country, ignore.case = T) ~ 'Uruguay',
-                                   grepl('costa', country, ignore.case = T) ~ 'Costa Rica', 
-                                   grepl('ecuador', country, ignore.case = T) ~ 'Ecuador',
-                                   grepl('finland', country, ignore.case = T) ~ 'Finland', 
-                                   grepl('guat', country, ignore.case = T) ~ 'Guatemala',
-                                   grepl('iceland', country, ignore.case = T) ~ 'Iceland',
-                                   grepl('iraq', country, ignore.case = T) | grepl('العراق', country, ignore.case = T) ~ 'Iraq',
-                                   grepl('iran', country, ignore.case = T) ~ 'Iran',
-                                   grepl('lebanon', country, ignore.case = T) | grepl('liban', country, ignore.case = T) ~ 'Lebanon',
-                                   grepl('norway', country, ignore.case = T) ~ 'Norway',
-                                   grepl('palestine', country, ignore.case = T) | grepl('فلسطين	', country, ignore.case = T) |
-                                     grepl('^فلسطين$', country, ignore.case = T) | grepl('الرملة', country, ignore.case = T) ~ 'Palestine',
-                                   grepl('peru', country, ignore.case = T) ~ 'Peru',
-                                   grepl('domin', country, ignore.case = T) ~ 'Dominican Republic',
-                                   grepl('albania', country, ignore.case = T) ~ 'Albania',
-                                   grepl('andorra', country, ignore.case = T) ~ 'Andorra',
-                                   grepl('bahrain', country, ignore.case = T) ~ 'Bahrain',
-                                   grepl('bangladesh', country, ignore.case = T) ~ 'Bangladesh',
-                                   grepl('botswana', country, ignore.case = T) ~ 'Botswana',
-                                   grepl('camer', country, ignore.case = T) ~ 'Cameroon',
-                                   grepl('المغرب', country, ignore.case = T) | grepl('Maroc', country, ignore.case = T) ~ 'Morocco',
-                                   grepl('jordan', country, ignore.case = T) ~ 'Jordan',
-                                   grepl('ليبيا', country, ignore.case = T) ~ 'Libya',
-                                   grepl('مصر', country, ignore.case = T) ~ 'Egypt',
-                                   grepl('mark', country, ignore.case = T) ~ 'Denmark',
-                                   grepl('salvador', country, ignore.case = T) ~ 'El Salvador',
-                                   grepl('estonia', country, ignore.case = T) ~ 'Estonia',
-                                   grepl('korea', country, ignore.case = T) | grepl('Güney Kore', country, ignore.case = T) ~ 'South Korea',
-                                   grepl('hungary', country, ignore.case = T) ~ 'Hungary',
-                                   grepl('maurice', country, ignore.case = T) ~ 'Mauritius',
-                                   grepl('jamaica', country, ignore.case = T) ~ 'Jamaica',
-                                   grepl('kenia', country, ignore.case = T) ~ 'Kenya',
-                                   grepl('laos', country, ignore.case = T) ~ 'Laos',
-                                   grepl('latvia', country, ignore.case = T) ~ 'Latvia',
-                                   grepl('malta', country, ignore.case = T) ~ 'Malta',
-                                   grepl('myanmar', country, ignore.case = T) ~ 'Myanmar',
-                                   grepl('nepal', country, ignore.case = T) ~ 'Nepal',
-                                   grepl('^oman$', country, ignore.case = T) ~ 'Oman',
-                                   grepl('qatar', country, ignore.case = T) ~ 'Qatar',
-                                   grepl('panam', country, ignore.case = T) ~ 'Panama',
-                                   grepl('tanzania', country, ignore.case = T) ~ 'United Republic of Tanzania',
-                                   grepl('vietnam', country, ignore.case = T) ~ 'Vietnam'))
-# tallying un-recoded countries to see missing ones
-country_counts <- dt4newVars %>%
-  filter(is.na(coded_country)) %>%
-  group_by(country) %>%
-  tally()
+# CODE FOR EXPORT:
+country_entry <- dt5newVars$country
+country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
+# namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+# save(country_entry, country_names, file = namTR)
+
+rm(country_dict, country_matches)
 ```
 <br>
 <div class="alert alert-warning">
 <strong><i class="fa fa-exclamation-triangle"></i> Action needed:</strong> <br> 
-We currently have `r length(unique(dt4newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
+We currently have `r length(unique(dt5newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
 </div>
+
+### Visualize Response Rates (maybe moved somewhere else?)
+We visualize how many responses we have per day.
+```{r RespVis, echo=T, warning=F, message=F}
+tmp <- setNames(data.frame(table(lubridate::round_date(dt5newVars$EndDate, unit = "12 hours"))),c("Date","Count"))
+ggplot(tmp, aes(x=Date, y = Count))+
+   geom_line(group = 1)+
+   theme_bw()+
+   # scale_y_continuous(limits = c(0, 158),
+   #                    breaks = seq(0,160,20))+
+   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp)
+```
+
 
 ### Political Orientation   
 Political orientation was measured per language. We merge these variables here.    
@@ -443,7 +597,7 @@ Political orientation was measured per language. We merge these variables here.
 rm(country_counts)
 
 # political orientation
-dt4newVars <- dt4newVars %>%
+dt5newVars <- dt5newVars %>%
   mutate(PolOrX = labelled(rowSums(dplyr::select(., ends_with("_x")), na.rm = T), 
                            labels = NULL, label="Political Compass X-Coordinate"),
          PolOrY = labelled(rowSums(dplyr::select(., ends_with("_y")), na.rm = T), 
@@ -468,7 +622,7 @@ dt4newVars <- dt4newVars %>%
          PolOrX,
          PolOrY,
          PolOrCat)
-attr(dt4newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
+attr(dt5newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
 ```
 
 ### Affect    
@@ -479,26 +633,26 @@ attr(dt4newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
 ```{r affHighNeg, echo=T, results='asis', warning=F, message=F}
 # High Arousal Negative
 ## Anger not measured in wave 1
-pairs.panels.new(dt4newVars %>% dplyr::select(affAnx, affNerv))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affAnx, affNerv))
 
 cat("<br>")
 
-dt4newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
+dt5newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt4newVars$affHighNeg.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$affHighNeg.m, skew=F)) %>%
   mutate(vars = "High Arousal Negative Affect") %>%
   kable(., caption = "High Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$affHighNeg.c <- scale(dt4newVars$affHighNeg.m, scale = F, center = T)
-dt4newVars$affHighNeg.z <- scale(dt4newVars$affHighNeg.m, scale = T)
-dt4newVars$affHighNeg.fa <- fa(dt4newVars %>% dplyr::select(affAnx, affNerv))$scores
+dt5newVars$affHighNeg.c <- scale(dt5newVars$affHighNeg.m, scale = F, center = T)
+dt5newVars$affHighNeg.z <- scale(dt5newVars$affHighNeg.m, scale = T)
+dt5newVars$affHighNeg.fa <- fa(dt5newVars %>% dplyr::select(affAnx, affNerv))$scores
 ```
 
 #### Low Arousal Negative Affect  
 ```{r affLowNeg, echo=T, results='asis', warning=F, message=F}
 # Low Arousal Negative Affect
-ia.affLowNeg <- dt4newVars %>%
+ia.affLowNeg <- dt5newVars %>%
     dplyr::select(affBor, affExh, affDepr) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -510,33 +664,33 @@ as.data.frame(Scale::ReportTable(ia.affLowNeg)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Low Arousal Negative Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))
 
 cat("<br>")
 
-dt4newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
+dt5newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt4newVars$affLowNeg.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$affLowNeg.m, skew=F)) %>%
   mutate(vars = "Low Arousal Negative Affect") %>%
   kable(., caption = "Low Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$affLowNeg.c <- scale(dt4newVars$affLowNeg.m, scale = F, center = T)
-dt4newVars$affLowNeg.z <- scale(dt4newVars$affLowNeg.m, scale = T)
-dt4newVars$affLowNeg.fa <- fa(dt4newVars %>% dplyr::select(affBor, affExh, affDepr))$scores
+dt5newVars$affLowNeg.c <- scale(dt5newVars$affLowNeg.m, scale = F, center = T)
+dt5newVars$affLowNeg.z <- scale(dt5newVars$affLowNeg.m, scale = T)
+dt5newVars$affLowNeg.fa <- fa(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))$scores
 ```
 
 #### Low Arousal Positive Affect  
 ```{r affLowPos, echo=T, results='asis', warning=F, message=F}
 # Low Arousal Positive Affect
-ia.affLowPos <- dt4newVars %>%
+ia.affLowPos <- dt5newVars %>%
     dplyr::select(affCalm, affContent, affRel) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -548,33 +702,33 @@ as.data.frame(Scale::ReportTable(ia.affLowPos)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Low Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))
 
 cat("<br>")
 
-dt4newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
+dt5newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt4newVars$affLowPos.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$affLowPos.m, skew=F)) %>%
   mutate(vars = "Low Arousal Positive Affect") %>%
   kable(., caption = "Low Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$affLowPos.c <- scale(dt4newVars$affLowPos.m, scale = F, center = T)
-dt4newVars$affLowPos.z <- scale(dt4newVars$affLowPos.m, scale = T)
-dt4newVars$affLowPos.fa <- fa(dt4newVars %>% dplyr::select(affCalm, affContent, affRel))$scores
+dt5newVars$affLowPos.c <- scale(dt5newVars$affLowPos.m, scale = F, center = T)
+dt5newVars$affLowPos.z <- scale(dt5newVars$affLowPos.m, scale = T)
+dt5newVars$affLowPos.fa <- fa(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))$scores
 ```
 
 #### High Arousal Positive Affect  
 ```{r affHighPos, echo=T, results='asis', warning=F, message=F}
 # High Arousal Positive Affect
-ia.affHighPos <- dt4newVars %>%
+ia.affHighPos <- dt5newVars %>%
     dplyr::select(affEnerg, affExc, affInsp) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -586,32 +740,32 @@ as.data.frame(Scale::ReportTable(ia.affHighPos)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "High Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))
+#pairs.panels.new(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))
 
 cat("<br>")
 
-dt4newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
+dt5newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt4newVars$affHighPos.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$affHighPos.m, skew=F)) %>%
   mutate(vars = "High Arousal Positive Affect") %>%
   kable(., caption = "High Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$affHighPos.c <- scale(dt4newVars$affHighPos.m, scale = F, center = T)
-dt4newVars$affHighPos.z <- scale(dt4newVars$affHighPos.m, scale = T)
-dt4newVars$affHighPos.fa <- fa(dt4newVars %>% dplyr::select(affEnerg, affExc, affInsp))$scores
+dt5newVars$affHighPos.c <- scale(dt5newVars$affHighPos.m, scale = F, center = T)
+dt5newVars$affHighPos.z <- scale(dt5newVars$affHighPos.m, scale = T)
+dt5newVars$affHighPos.fa <- fa(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))$scores
 ```
 
 ### Loneliness
 ```{r lone, echo=T, results='asis', warning=F, message=F}
-ia.lone<- dt4newVars %>%
+ia.lone<- dt5newVars %>%
     dplyr::select(starts_with("lone")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -623,32 +777,32 @@ as.data.frame(Scale::ReportTable(ia.lone)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("lone")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("lone")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Loneliness: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("lone")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("lone")))
 
 cat("<br>")
 
-dt4newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("lone")), min = 1, max = 5)$scores
+dt5newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("lone")), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt4newVars$lone.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$lone.m, skew=F)) %>%
   mutate(vars = "Loneliness") %>%
   kable(., caption = "Loneliness: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$lone.c <- scale(dt4newVars$lone.m, scale = F, center = T)
-dt4newVars$lone.z <- scale(dt4newVars$lone.m, scale = T)
-dt4newVars$lone.fa <- fa(dt4newVars %>% dplyr::select(starts_with("lone")))$scores
+dt5newVars$lone.c <- scale(dt5newVars$lone.m, scale = F, center = T)
+dt5newVars$lone.z <- scale(dt5newVars$lone.m, scale = T)
+dt5newVars$lone.fa <- fa(dt5newVars %>% dplyr::select(starts_with("lone")))$scores
 ```  
 
 ### Boredom
 ```{r bore, echo=T, results='asis', warning=F, message=F}
-ia.bor<- dt4newVars %>%
+ia.bor<- dt5newVars %>%
     dplyr::select(starts_with("bor0"), -bor03) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -658,7 +812,7 @@ as.data.frame(Scale::ReportTable(ia.bor)) %>%
   kable(., row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03))
 ```
 <div class="alert alert-info">
 <strong><i class="fa fa-exclamation-triangle"></i> Item dropped:</strong> <br> 
@@ -667,27 +821,27 @@ Item three was not well behaved. It seems to measure something else. We dropped 
 
 ```{r bore.red, echo=T, results='asis', warning=F, message=F}
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
 
 cat("<br>")
 
-dt4newVars$bor.m <- scoreItems(keys=c(1,1), items = dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
+dt5newVars$bor.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
 
-as.data.frame(psych::describe(dt4newVars$bor.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$bor.m, skew=F)) %>%
   mutate(vars = "Boredom") %>%
   kable(., caption = "Boredom: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$bor.c <- scale(dt4newVars$bor.m, scale = F, center = T)
-dt4newVars$bor.z <- scale(dt4newVars$bor.m, scale = T)
-dt4newVars$bor.fa <- fa(dt4newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))$scores
+dt5newVars$bor.c <- scale(dt5newVars$bor.m, scale = F, center = T)
+dt5newVars$bor.z <- scale(dt5newVars$bor.m, scale = T)
+dt5newVars$bor.fa <- fa(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))$scores
 ```
   
 ### Isolation
 ```{r iso, echo=T, results='asis', warning=F, message=F}
 cat(crayon::bold("Offline Isolation"))
-ia.isoPers <- dt4newVars %>%
-    dplyr::select(ends_with("inPerson")) %>%
+ia.isoPers <- dt5newVars %>%
+    dplyr::select(ends_with("inPerson"), -starts_with("w1_")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoPers$rely   
@@ -698,31 +852,31 @@ as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(ends_with("inPerson")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))
 
 cat("<br>")
 
-dt4newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(ends_with("inPerson")), min = 0, max = 7)$scores
+dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")), min = 0, max = 7)$scores
 
-as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation offline") %>%
   kable(., caption = "Isolation offline: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$isoPers.c <- scale(dt4newVars$isoPers.m, scale = F, center = T)
-dt4newVars$isoPers.z <- scale(dt4newVars$isoPers.m, scale = T)
-dt4newVars$isoPers.fa <- fa(dt4newVars %>% dplyr::select(ends_with("inPerson")))$scores
+dt5newVars$isoPers.c <- scale(dt5newVars$isoPers.m, scale = F, center = T)
+dt5newVars$isoPers.z <- scale(dt5newVars$isoPers.m, scale = T)
+dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))$scores
 
 cat(crayon::bold("Online Isolation"))
-ia.isoOnl <- dt4newVars %>%
-    dplyr::select(ends_with("online")) %>%
+ia.isoOnl <- dt5newVars %>%
+    dplyr::select(ends_with("online"), -starts_with("w1_")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoOnl$rely   
@@ -733,44 +887,53 @@ as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(ends_with("inPerson")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(ends_with("online")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))
 
 cat("<br>")
 
-dt4newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(ends_with("online")), min = 0, max = 7)$scores
+dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")), min = 0, max = 7)$scores
 
-as.data.frame(psych::describe(dt4newVars$isoPers.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation online") %>%
   kable(., caption = "Isolation online: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$isoOnl.c <- scale(dt4newVars$isoOnl.m, scale = F, center = T)
-dt4newVars$isoOnl.z <- scale(dt4newVars$isoOnl.m, scale = T)
-dt4newVars$isoOnl.fa <- fa(dt4newVars %>% dplyr::select(ends_with("online")))$scores
+dt5newVars$isoOnl.c <- scale(dt5newVars$isoOnl.m, scale = F, center = T)
+dt5newVars$isoOnl.z <- scale(dt5newVars$isoOnl.m, scale = T)
+dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))$scores
 
 # Leave House
-as.data.frame(psych::describe(dt4newVars$houseLeave, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
   mutate(vars = "Leaving House") %>%
   kable(., caption = "Leaving House: Item Descriptive", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 ```
 
-### Government Response
-No responses yet
+### Government Clarity
 ```{r gov, echo=T, results='asis', warning=F, message=F}
-# extC19Msg
+as.data.frame(psych::describe(dt5newVars$extC19Msg)) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Government Response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = extC19Msg)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Government Response distribution",x="Government Response", y = "Frequency") +
+  theme_Publication()
 ```
 
-### Community Response
+### Coronavirus Responses
+#### Community Response
 ```{r community, echo=T, results='asis', warning=F, message=F}
-ia.ext <- dt4newVars %>%
+ia.ext <- dt5newVars %>%
     dplyr::select(starts_with("extC19"), -extC19Msg) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -782,33 +945,33 @@ as.data.frame(Scale::ReportTable(ia.ext)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
 
 cat("<br>")
 
-dt4newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg), 
+dt5newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg), 
                              min = 1, max = 6)$scores
 
-as.data.frame(psych::describe(dt4newVars$ext.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$ext.m, skew=F)) %>%
   mutate(vars = "Community response") %>%
   kable(., caption = "Community response: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$ext.c <- scale(dt4newVars$ext.m, scale = F, center = T)
-dt4newVars$ext.z <- scale(dt4newVars$ext.m, scale = T)
-dt4newVars$ext.fa <- fa(dt4newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))$scores
+dt5newVars$ext.c <- scale(dt5newVars$ext.m, scale = F, center = T)
+dt5newVars$ext.z <- scale(dt5newVars$ext.m, scale = T)
+dt5newVars$ext.fa <- fa(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))$scores
 ```
 
-### Behavioral Response
+#### Behavioral Response
 ```{r beh, echo=T, results='asis', warning=F, message=F}
-ia.beh <- dt4newVars %>%
+ia.beh <- dt5newVars %>%
     dplyr::select(starts_with("c19per")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -820,49 +983,112 @@ as.data.frame(Scale::ReportTable(ia.beh)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("c19per")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19per")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Behavioral response: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("c19per")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19per")))
 
 cat("<br>")
 
-dt4newVars$beh.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("c19per")), 
+dt5newVars$beh.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19per")), 
                              min = -3, max = 3)$scores
 
-as.data.frame(psych::describe(dt4newVars$beh.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$beh.m, skew=F)) %>%
   mutate(vars = "Behavioral response") %>%
   kable(., caption = "Behavioral response: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$beh.c <- scale(dt4newVars$beh.m, scale = F, center = T)
-dt4newVars$beh.z <- scale(dt4newVars$beh.m, scale = T)
-dt4newVars$beh.fa <- fa(dt4newVars %>% dplyr::select(starts_with("c19per")))$scores
+dt5newVars$beh.c <- scale(dt5newVars$beh.m, scale = F, center = T)
+dt5newVars$beh.z <- scale(dt5newVars$beh.m, scale = T)
+dt5newVars$beh.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19per")))$scores
+```
+
+#### Pro-Social Response
+```{r beh, echo=T, results='asis', warning=F, message=F}
+ia.proSo <- dt5newVars %>%
+    dplyr::select(starts_with("c19ProSo")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.proSo$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.proSo)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Pro-Social response: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
+
+cat("<br>")
+
+dt5newVars$proSo.m <- scoreItems(keys=c(1,1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19ProSo")), 
+                             min = -3, max = 3)$scores
+
+as.data.frame(psych::describe(dt5newVars$proSo.m, skew=F)) %>%
+  mutate(vars = "Pro-Social response") %>%
+  kable(., caption = "Pro-Social response: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$proSo.c <- scale(dt5newVars$proSo.m, scale = F, center = T)
+dt5newVars$proSo.z <- scale(dt5newVars$proSo.m, scale = T)
+dt5newVars$proSo.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))$scores
+```
+
+### Likelihood Threat
+```{r likelihood, echo=T, results='asis', warning=F, message=F}
+as.data.frame(psych::describe(dt5newVars$PLRAC19)) %>%
+  mutate(vars = "Likelihood c19") %>%
+  kable(., caption = "Likelihood c19: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = PLRAC19)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Likelihood c19 distribution",x="Likelihood c19", y = "Frequency") +
+  theme_Publication()
+  
+as.data.frame(psych::describe(dt5newVars$PLRAEco)) %>%
+  mutate(vars = "Likelihood Eco") %>%
+  kable(., caption = "Likelihood Eco: Item Descriptive", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+ggplot(dt5newVars, aes(x = PLRAEco)) +
+  geom_histogram(binwidth=1, alpha=0.5) +
+  #geom_density(alpha=0.6)+
+  labs(title="Likelihood Eco distribution",x="Likelihood Eco", y = "Frequency") +
+  theme_Publication()
 ```
 
 ### Hope and Efficacy
 ```{r hopeEff, echo=T, results='asis', warning=F, message=F}
-as.data.frame(psych::describe(dt4newVars$c19Hope)) %>%
+as.data.frame(psych::describe(dt5newVars$c19Hope)) %>%
   mutate(vars = "Hope") %>%
   kable(., caption = "Hope: Item Descriptive", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-ggplot(dt4newVars, aes(x = c19Hope)) +
+ggplot(dt5newVars, aes(x = c19Hope)) +
   geom_histogram(binwidth=1, alpha=0.5) +
   #geom_density(alpha=0.6)+
   labs(title="Hope distribution",x="Corona Virus Hope", y = "Frequency") +
   theme_Publication()
   
-as.data.frame(psych::describe(dt4newVars$c19Eff)) %>%
+as.data.frame(psych::describe(dt5newVars$c19Eff)) %>%
   mutate(vars = "Efficacy") %>%
   kable(., caption = "Efficacy: Item Descriptive", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-ggplot(dt4newVars, aes(x = c19Eff)) +
+ggplot(dt5newVars, aes(x = c19Eff)) +
   geom_histogram(binwidth=1, alpha=0.5) +
   #geom_density(alpha=0.6)+
   labs(title="Efficacy distribution",x="Corona Virus Efficacy", y = "Frequency") +
@@ -871,7 +1097,7 @@ ggplot(dt4newVars, aes(x = c19Eff)) +
 
 ### State Paranoia
 ```{r para, echo=T, results='asis', warning=F, message=F}
-ia.para <- dt4newVars %>%
+ia.para <- dt5newVars %>%
     dplyr::select(starts_with("para")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -883,33 +1109,33 @@ as.data.frame(Scale::ReportTable(ia.para)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("para")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("para")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "State Paranoia: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("para")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("para")))
 
 cat("<br>")
 
-dt4newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("para")), 
+dt5newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("para")), 
                              min = 0, max = 10)$scores
 
-as.data.frame(psych::describe(dt4newVars$para.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$para.m, skew=F)) %>%
   mutate(vars = "State Paranoia") %>%
   kable(., caption = "State Paranoia: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$para.c <- scale(dt4newVars$para.m, scale = F, center = T)
-dt4newVars$para.z <- scale(dt4newVars$para.m, scale = T)
-dt4newVars$para.fa <- fa(dt4newVars %>% dplyr::select(starts_with("para")))$scores
+dt5newVars$para.c <- scale(dt5newVars$para.m, scale = F, center = T)
+dt5newVars$para.z <- scale(dt5newVars$para.m, scale = T)
+dt5newVars$para.fa <- fa(dt5newVars %>% dplyr::select(starts_with("para")))$scores
 ```
 
 ### Conspiracy Theory
 ```{r consp, echo=T, results='asis', warning=F, message=F}
-ia.consp <- dt4newVars %>%
+ia.consp <- dt5newVars %>%
     dplyr::select(starts_with("consp")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -921,33 +1147,113 @@ as.data.frame(Scale::ReportTable(ia.consp)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("consp")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("consp")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Conspiracy Theory: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("consp")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("consp")))
 
 cat("<br>")
 
-dt4newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt4newVars %>% dplyr::select(starts_with("consp")), 
+dt5newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("consp")), 
                              min = 0, max = 10)$scores
 
-as.data.frame(psych::describe(dt4newVars$consp.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$consp.m, skew=F)) %>%
   mutate(vars = "Conspiracy Theory") %>%
   kable(., caption = "Conspiracy Theory: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$para.c <- scale(dt4newVars$consp.m, scale = F, center = T)
-dt4newVars$para.z <- scale(dt4newVars$consp.m, scale = T)
-dt4newVars$para.fa <- fa(dt4newVars %>% dplyr::select(starts_with("consp")))$scores
+dt5newVars$para.c <- scale(dt5newVars$consp.m, scale = F, center = T)
+dt5newVars$para.z <- scale(dt5newVars$consp.m, scale = T)
+dt5newVars$para.fa <- fa(dt5newVars %>% dplyr::select(starts_with("consp")))$scores
+```
+
+### Disempowerment
+```{r disemp, echo=T, results='asis', warning=F, message=F}
+ia.disemp<- dt5newVars %>%
+    dplyr::select(starts_with("fail"), -contains("DO")) %>%
+    na_if(., -99) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.disemp$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.disemp)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Disempowerment: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))
+
+cat("<br>")
+
+dt5newVars$disemp.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$disemp.m, skew=F)) %>%
+  mutate(vars = "Disempowerment") %>%
+  kable(., caption = "Disempowerment: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$disemp.c <- scale(dt5newVars$disemp.m, scale = F, center = T)
+dt5newVars$disemp.z <- scale(dt5newVars$disemp.m, scale = T)
+dt5newVars$disemp.fa <- fa(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")))$scores
+```
+
+### Societal Discontent
+```{r socDis, echo=T, results='asis', warning=F, message=F}
+ia.socdisc<- dt5newVars %>%
+    dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>%
+    na_if(., -99) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.socdisc$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.socdisc)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Societal Discontent: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))
+
+cat("<br>")
+
+dt5newVars$socdisc.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$socdisc.m, skew=F)) %>%
+  mutate(vars = "Societal Discontent") %>%
+  kable(., caption = "Societal Discontent: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$socdisc.c <- scale(dt5newVars$socdisc.m, scale = F, center = T)
+dt5newVars$socdisc.z <- scale(dt5newVars$socdisc.m, scale = T)
+dt5newVars$socdisc.fa <- fa(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")))$scores
 ```
 
 ### Job Insecurity
 ```{r jbinsc, echo=T, results='asis', warning=F, message=F}
-ia.jobinsec<- dt4newVars %>%
+ia.jobinsec<- dt5newVars %>%
     dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>%
     na_if(., -99) %>%
     Scale::Scale() %>%
@@ -960,34 +1266,34 @@ as.data.frame(Scale::ReportTable(ia.jobinsec)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Job insecurity: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
 
 cat("<br>")
 
-dt4newVars$jobinsec.m <- scoreItems(keys=c(1,1,1), 
-                                  items = dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
+dt5newVars$jobinsec.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt4newVars$jobinsec.m, skew=F)) %>%
+as.data.frame(psych::describe(dt5newVars$jobinsec.m, skew=F)) %>%
   mutate(vars = "Job insecurity") %>%
   kable(., caption = "Job insecurity: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$jobinsec.c <- scale(dt4newVars$jobinsec.m, scale = F, center = T)
-dt4newVars$jobinsec.z <- scale(dt4newVars$jobinsec.m, scale = T)
-dt4newVars$jobinsec.fa <- fa(dt4newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04))$scores
+dt5newVars$jobinsec.c <- scale(dt5newVars$jobinsec.m, scale = F, center = T)
+dt5newVars$jobinsec.z <- scale(dt5newVars$jobinsec.m, scale = T)
+dt5newVars$jobinsec.fa <- fa(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04))$scores
 ```
 
 ### Financial Strain
 ```{r finance, echo=T, results='asis', warning=F, message=F}
-ia.pfs<- dt4newVars %>%
+ia.pfs<- dt5newVars %>%
     dplyr::select(starts_with("PFS0")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
@@ -999,31 +1305,109 @@ as.data.frame(Scale::ReportTable(ia.pfs)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt4newVars %>% dplyr::select(starts_with("PFS0")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("PFS0")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Financial Strain: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-pairs.panels.new(dt4newVars %>% dplyr::select(starts_with("PFS0")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("PFS0")))
 
 cat("<br>")
 
-dt4newVars$pfs.m <- scoreItems(keys=c(1,1,1), 
-                                  items = dt4newVars %>% dplyr::select(starts_with("PFS0")),
+dt5newVars$pfs.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("PFS0")),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt4newVars$pfs.m, skew=F)) %>%
-  mutate(vars = "inancial Strain") %>%
-  kable(., caption = "inancial Strain: Scale Descriptives", row.names = FALSE) %>% 
+as.data.frame(psych::describe(dt5newVars$pfs.m, skew=F)) %>%
+  mutate(vars = "Financial Strain") %>%
+  kable(., caption = "Financial Strain: Scale Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
-dt4newVars$pfs.c <- scale(dt4newVars$pfs.m, scale = F, center = T)
-dt4newVars$pfs.z <- scale(dt4newVars$pfs.m, scale = T)
-dt4newVars$pfs.fa <- fa(dt4newVars %>% dplyr::select(starts_with("PFS0")))$scores
+dt5newVars$pfs.c <- scale(dt5newVars$pfs.m, scale = F, center = T)
+dt5newVars$pfs.z <- scale(dt5newVars$pfs.m, scale = T)
+dt5newVars$pfs.fa <- fa(dt5newVars %>% dplyr::select(starts_with("PFS0")))$scores
 ```
 
+### Coping
+#### Problem Solving
+```{r probSolv, echo=T, results='asis', warning=F, message=F}
+ia.probSolv<- dt5newVars %>%
+    dplyr::select(starts_with("probSolving"), -contains("DO")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.probSolv$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.probSolv)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Problem Solving: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))
+
+cat("<br>")
+
+dt5newVars$probSolv.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$probSolv.m, skew=F)) %>%
+  mutate(vars = "Problem Solving") %>%
+  kable(., caption = "Problem Solving: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$probSolv.c <- scale(dt5newVars$probSolv.m, scale = F, center = T)
+dt5newVars$probSolv.z <- scale(dt5newVars$probSolv.m, scale = T)
+dt5newVars$probSolv.fa <- fa(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))$scores
+```
+
+#### Distraction
+```{r distract, echo=T, results='asis', warning=F, message=F}
+ia.distract<- dt5newVars %>%
+    dplyr::select(starts_with("posrefocus"), -contains("DO")) %>%
+    Scale::Scale() %>%
+    Scale::ItemAnalysis()
+ia.distract$rely   
+cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+as.data.frame(Scale::ReportTable(ia.distract)) %>%
+  kable(., row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))) %>%
+  mutate(vars = rownames(.)) %>%
+  kable(., caption = "Distraction: Item Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+cat("<br>")
+
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))
+
+cat("<br>")
+
+dt5newVars$distract.m <- scoreItems(keys=c(1,1,1), 
+                                  items = dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")),
+                                  min = -2, max = 2)$scores
+
+as.data.frame(psych::describe(dt5newVars$distract.m, skew=F)) %>%
+  mutate(vars = "Distraction") %>%
+  kable(., caption = "Distraction: Scale Descriptives", row.names = FALSE) %>% 
+  kable_styling("hover", full_width = F, latex_options = "hold_position")
+
+dt5newVars$distract.c <- scale(dt5newVars$distract.m, scale = F, center = T)
+dt5newVars$distract.z <- scale(dt5newVars$distract.m, scale = T)
+dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))$scores
+```
 
 ## **Reduce to Relevant Variales**   
 ```{r keyVars, echo=T, warning=F, message=F}
@@ -1031,30 +1415,423 @@ dt4newVars$pfs.fa <- fa(dt4newVars %>% dplyr::select(starts_with("PFS0")))$score
 rm(list=ls(pattern="ia"))
 
 # remove directly identifiable data (with and without page timers)
-dt5ReducedTimer <- dt4newVars %>%
-  dplyr::select(-c(IPAddress, 
-            RecipientLastName, 
-            RecipientFirstName, 
-            RecipientEmail, 
-            ExternalReference, 
-            LocationLatitude, 
-            LocationLongitude,
-            DistributionChannel,
-            ICRec_1_TEXT))
-dt5Reduced <- dt5ReducedTimer %>%
+dt6ReducedTimer <- dt5newVars %>%
+  dplyr::select(-c(contains("IPAddress"),
+                   contains("RecipientLastName"), 
+                   contains("RecipientFirstName"), 
+                   contains("Email"),
+                   contains("ExternalReference"), 
+                   contains("LocationLatitude"), 
+                   contains("LocationLongitude"),
+                   contains("DistributionChannel"),
+                   contains("ICRec_0_TEXT"),
+                   contains("ICRec_1_TEXT")))
+dt6Reduced <- dt6ReducedTimer %>%
   dplyr::select(-starts_with("t_"))
 
-# remove filtered cases (with and without page timers)
-dt5ReducedTimerCases <- dt5ReducedTimer %>%
+```
+
+## **Recontact**
+```{r recontact, echo=T, warning=F, message=F}
+# COMMENT IF NEEDED
+as.Date(dt5newVars$EndDate)
+
+library("lubridate")
+ContactList1 <- dt5newVars %>%
   filter(FilterPreview == 0,
-         FilterTime == 0,
-         FilterStraightliner == 0) %>%
-  dplyr::select(-starts_with("Filter"))
-dt5ReducedCases <- dt5Reduced %>%
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+table(ContactList1$Language)
+
+ContactList2 <- dt5newVars %>%
   filter(FilterPreview == 0,
-         FilterTime == 0,
-         FilterStraightliner == 0) %>%
-  dplyr::select(-starts_with("Filter"))
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+
+table(ContactList2$Language)
+# 
+# # check how many have an @ (not really worth the effort to discard those)
+#   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
+# Check whether there is overlap in IDs
+  ContactListAll <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="") %>% #change in larger next wave
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+n_occur <- data.frame(table(ContactListAll$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
+n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
+ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
+```
+
+## **Data for Shiny App**
+```{r shinyApp, echo=T, warning=F, message=F}
+# Dataframe for Shiny App
+# load geo spatial data
+library(rnaturalearth)
+library(rnaturalearthdata)
+world.data <- ne_countries(scale = "medium", returnclass = "sf")
+unique(dt5newVars$coded_country)[!unique(dt5newVars$coded_country) %in% world.data$admin] # check whether all country names are spelled correctly
+
+# all ISO-2 country code to dataframe and flags
+shiny_prep <- merge(x = dt5newVars, y = world.data %>% dplyr::select(admin, iso_a2), by.x = "coded_country", by.y = "admin", all.x = T)
+shiny_prep$flag <- sprintf("https://cdn.rawgit.com/lipis/flag-icon-css/master/flags/4x3/%s.svg", tolower(shiny_prep$iso_a2))
+
+ctry.scales <- shiny_prep %>%
+  filter(!is.na(coded_country)) %>%
+  dplyr::group_by(coded_country) %>%
+  dplyr::summarize(
+    n = n()+sample(-5:5, 1, replace=TRUE),
+    
+    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    
+    #ext = mean(ext.m, na.rm = T),
+    
+    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov.sd = sd(extC19Msg, na.rm = T),
+    gov.se = gov.sd/sqrt(n),
+    
+    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule.se = comRule.sd/sqrt(n),
+    
+    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish.se = comPunish.sd/sqrt(n),
+    
+    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg.se = comOrg.sd/sqrt(n),
+    
+    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone.sd = sd(lone.m, na.rm = T),
+    lone.se = lone.sd/sqrt(n),
+    
+    #bor = mean(bor.m, na.rm = T),
+    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers.sd = sd(isoPers.m, na.rm = T),
+    isoPers.se = isoPers.sd/sqrt(n),
+    
+    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl.sd = sd(isoOnl.m, na.rm = T),
+    isoOnl.se = isoOnl.sd/sqrt(n),
+    
+    #beh = mean(beh.m, na.rm = T),
+    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash.sd = sd(c19perBeh01, na.rm = T),
+    behWash.se = behWash.sd/sqrt(n),
+    
+    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid.sd = sd(c19perBeh02, na.rm = T),
+    behAvoid.se = behAvoid.sd/sqrt(n),
+    
+    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope.sd = sd(c19Hope, na.rm = T),
+    covidHope.se = covidHope.sd/sqrt(n),
+    
+    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff.sd = sd(c19Eff, na.rm = T),
+    covidEff.se = covidEff.sd/sqrt(n),
+    
+    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para.sd = sd(para.m, na.rm = T),
+    para.se = para.sd/sqrt(n),
+    
+    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp.sd = sd(consp.m, na.rm = T),
+    consp.se = consp.sd/sqrt(n)
+    
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+  )
+ctry.scales <- merge(x = ctry.scales, y = unique(shiny_prep %>% dplyr::select(coded_country, iso_a2, flag)), all.x = T) # add flags and ISO
+
+global.scales <- shiny_prep %>%
+  filter(!is.na(coded_country)) %>%
+  dplyr::summarize(
+    coded_country = "global",
+    n = n()+sample(-5:5, 1, replace=TRUE),
+    
+    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    
+    #ext = mean(ext.m, na.rm = T),
+    
+    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov.sd = sd(extC19Msg, na.rm = T),
+    gov.se = gov.sd/sqrt(n),
+    
+    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule.se = comRule.sd/sqrt(n),
+    
+    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish.se = comPunish.sd/sqrt(n),
+    
+    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg.se = comOrg.sd/sqrt(n),
+    
+    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone.sd = sd(lone.m, na.rm = T),
+    lone.se = lone.sd/sqrt(n),
+    
+    #bor = mean(bor.m, na.rm = T),
+    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers.sd = sd(isoPers.m, na.rm = T),
+    isoPers.se = isoPers.sd/sqrt(n),
+    
+    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl.sd = sd(isoOnl.m, na.rm = T),
+    isoOnl.se = isoOnl.sd/sqrt(n),
+    
+    #beh = mean(beh.m, na.rm = T),
+    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash.sd = sd(c19perBeh01, na.rm = T),
+    behWash.se = behWash.sd/sqrt(n),
+    
+    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid.sd = sd(c19perBeh02, na.rm = T),
+    behAvoid.se = behAvoid.sd/sqrt(n),
+    
+    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope.sd = sd(c19Hope, na.rm = T),
+    covidHope.se = covidHope.sd/sqrt(n),
+    
+    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff.sd = sd(c19Eff, na.rm = T),
+    covidEff.se = covidEff.sd/sqrt(n),
+    
+    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para.sd = sd(para.m, na.rm = T),
+    para.se = para.sd/sqrt(n),
+    
+    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp.sd = sd(consp.m, na.rm = T),
+    consp.se = consp.sd/sqrt(n),
+    
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+    #jobinsec = mean(jobinsec.m, na.rm = T),
+    #pfs = mean(pfs.m, na.rm = T),
+    iso_a2 = NA,
+    flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg"
+  )
+ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
+
+languages <- shiny_prep %>% 
+  dplyr::select(coded_country, language) %>%
+  group_by(language, coded_country) %>%
+  tally() %>%
+  tidyr::spread(language, n)
+languages.glob <- shiny_prep %>%
+  dplyr::select(language) %>%
+  mutate(coded_country = "global") %>%
+  group_by(language, coded_country) %>%
+  tally() %>%
+  tidyr::spread(language, n)
+languages <- rbind(languages.glob, languages); rm(languages.glob)
+names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
+languages[languages<20] <- NA
+
+gender <- data.frame(coded_country = shiny_prep$coded_country, 
+                     gender = as_factor(shiny_prep$gender)) %>%
+  group_by(gender, coded_country) %>%
+  tally() %>%
+  tidyr::spread(gender, n)
+gender.glob <- data.frame(coded_country = "global", 
+                             gender = as_factor(shiny_prep$gender)) %>%
+  group_by(gender, coded_country) %>%
+  tally() %>%
+  tidyr::spread(gender, n)
+gender <- rbind(gender.glob, gender); rm(gender.glob)
+names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
+gender[gender<20] <- NA
+
+age <- data.frame(coded_country = shiny_prep$coded_country, 
+                  age = as_factor(shiny_prep$age)) %>%
+  group_by(age, coded_country) %>%
+  tally() %>%
+  tidyr::spread(age, n)
+age.glob <- data.frame(coded_country = "global",
+                       age = as_factor(shiny_prep$age)) %>%
+  group_by(age, coded_country) %>%
+  tally() %>%
+  tidyr::spread(age, n)
+age <- rbind(age.glob, age); rm(age.glob)
+names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
+age[age<20] <- NA
+
+edu <- data.frame(coded_country = shiny_prep$coded_country, 
+                  edu = as_factor(shiny_prep$edu)) %>%
+  group_by(edu, coded_country) %>%
+  tally() %>%
+  tidyr::spread(edu, n)
+edu.glob <- data.frame(coded_country = "global", 
+                       edu = as_factor(shiny_prep$edu)) %>%
+  group_by(edu, coded_country) %>%
+  tally() %>%
+  tidyr::spread(edu, n)
+edu <- rbind(edu.glob, edu); rm(edu.glob)
+names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
+edu[edu<20] <- NA
+
+pol <- shiny_prep %>%
+  dplyr::select(coded_country, PolOrCat) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
+  group_by(PolOrCat, coded_country) %>%
+  tally() %>%
+  tidyr::spread(PolOrCat, n)
+pol.glob <- shiny_prep %>%
+  dplyr::select(PolOrCat) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Libertarian LeftLibertarian Right")) %>%
+  mutate(PolOrCat = na_if(PolOrCat, "Authoritarian RightLibertarian Right")) %>%
+  mutate(coded_country = "global") %>%
+  group_by(PolOrCat, coded_country) %>%
+  tally() %>%
+  tidyr::spread(PolOrCat, n)
+pol <- rbind(pol.glob, pol); rm(pol.glob)
+names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
+pol[pol<50] <- NA
+
+#ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
+ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=gender, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=age, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=edu, by="coded_country")
+ctry.scales <- plyr::join(x=ctry.scales, y=pol, by="coded_country")
+rm(languages, gender, age, edu, pol)
+
+# sample size per country (including NA)
+world.n <- shiny_prep %>% 
+  dplyr::select(coded_country, iso_a2, flag) %>%
+  dplyr::group_by(coded_country, iso_a2, flag) %>%
+  dplyr::summarize(
+    n = n()+sample(-5:5, 1, replace=TRUE)
+  )
+
+ctry.red <- ctry.scales %>%
+  dplyr::select(coded_country, iso_a2, flag, n) %>%
+  filter(n >= 20) #, coded_country != "global"
+ctry.only.red <- ctry.scales %>%
+  dplyr::select(coded_country, iso_a2, flag, n) %>%
+  filter(n >= 20, coded_country != "global")
+
+ctry.scales <- ctry.scales %>%
+  filter(n>=20)
+```
+
+## **Descriptives for Representativeness**
+```{r rep, echo=T, warning=F, message=F}
+# missing filter per item
+  ctry.repMiss <- dt5newVars %>%
+    #filter(!is.na(coded_country)) %>%
+    filter(!is.na(PLRAC19),
+           !is.na(extC19Msg),
+           !is.na(pfs.m),
+           !is.na(consp.m),
+           !is.na(lone.m)
+           ) %>%
+    filter_at(vars(jbInsec01,jbInsec02, jbInsec03, jbInsec04, PLRAEco),all_vars(!is.na(.))) %>%
+    filter_at(vars(disc01,disc02, disc03),all_vars(!is.na(.))) %>%
+    filter_at(vars(isoFriends_inPerson, isoOthPpl_inPerson, isoFriends_online, isoOthPpl_online),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19Hope, c19Eff, ecoHope, ecoEff),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19RCA01, c19RCA02, c19RCA03, ecoPerBeh01, ecoPerBeh02, ecoPerBeh03),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19NormShould, c19ProSo01, c19ProSo02, c19ProSo03),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19NormDo, extC19Rules, extC19Punish, extC19Org),all_vars(!is.na(.))) %>%
+    filter_at(vars(c19ProSo01, c19ProSo02, c19ProSo03, c19ProSo04, ecoProSo01, ecoProSo02, ecoProSo03, ecoProSo04),all_vars(!is.na(.))) %>%
+    group_by(coded_country) %>%
+    dplyr::summarize(
+      n = n(),
+      gender_women = sum(gender == 1, na.rm = T),
+      gender_men = sum(gender == 2, na.rm = T),
+      gender_other = sum(gender == 3, na.rm = T),
+      gender_na = sum(is.na(gender), na.rm = T),
+      age_18to24 = sum(age == 1, na.rm = T),
+      age_25to34 = sum(age == 2, na.rm = T),
+      age_35to44 = sum(age == 3, na.rm = T),
+      age_45to54 = sum(age == 4, na.rm = T),
+      age_55to64 = sum(age == 5, na.rm = T),
+      age_65to75 = sum(age == 6, na.rm = T),
+      age_75to85 = sum(age == 7, na.rm = T),
+      age_85plus = sum(age == 8, na.rm = T),
+      age_na = sum(is.na(age), na.rm = T)
+    )
+# no missing filter per item
+  ctry.repFull <- dt5newVars %>%
+    group_by(coded_country) %>%
+    dplyr::summarize(
+      n = n(),
+      gender_women = sum(gender == 1, na.rm = T),
+      gender_men = sum(gender == 2, na.rm = T),
+      gender_other = sum(gender == 3, na.rm = T),
+      gender_na = sum(is.na(gender), na.rm = T),
+      age_18to24 = sum(age == 1, na.rm = T),
+      age_25to34 = sum(age == 2, na.rm = T),
+      age_35to44 = sum(age == 3, na.rm = T),
+      age_45to54 = sum(age == 4, na.rm = T),
+      age_55to64 = sum(age == 5, na.rm = T),
+      age_65to75 = sum(age == 6, na.rm = T),
+      age_75to85 = sum(age == 7, na.rm = T),
+      age_85plus = sum(age == 8, na.rm = T),
+      age_na = sum(is.na(age), na.rm = T)
+    )
+  ctry.repFull <- ctry.repFull %>%
+    filter(n > 20)%>%
+    transmute(coded_country = coded_country,
+           n = n)
+# language
+  lang.repFull <- dt5newVars %>%
+    group_by(language) %>%
+    dplyr::summarize(
+      n = n())
+  lang.repFull <- lang.repFull %>%
+    filter(n > 20)
 ```
 
 ## **Export**   
@@ -1062,14 +1839,42 @@ Export main dataframe as RData and SPSS sav files. We export versions with and w
 ```{r export, echo=T, warning=F, message=F}
 namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All",  ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-write_sav(dt5Reduced, namSPSS)
-write_sav(dt5ReducedTimer, namTSPSS)
-save(dt5Reduced, file = namR)
-save(dt5ReducedTimer, file = namTR)
-rm(list=ls(pattern="nam"))
+namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+
+# save reduced dataset
+  write_sav(dt6Reduced, namSPSS)
+  save(dt6Reduced, file = namR)
+
+# save full dataset
+  write_sav(dt5newVars, namASPSS)
+  write_sav(dt5newVars, namAR)
+
+# save data
+  write_sav(dt6ReducedTimer, namTSPSS)
+  save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-saveRDS(dt5ReducedCases, file = "../PsyCorona-WebApp/data/reducedData.rds")
+save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
+
+# export Contact List
+  write.csv(ContactList1, file = namCL)
+  write.csv(ContactList2, file = namCL2)
+
+# export Language List
+#write.csv(LanguageList, file = namLL)
+
+# export Country Demographics
+
+  #write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
+  write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
+  write.csv(lang.repFull,'data/cleaned data/Language.csv')
+
+rm(#list=ls(pattern="nam"))
 ```

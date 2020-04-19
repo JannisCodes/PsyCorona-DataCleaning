@@ -2,9 +2,12 @@
 .Rhistory
 .RData
 .Ruserdata
+.DS_Store
+*.html
 *.sav
 *.Rdata
 *.csv
 *.zip
+*.png
 #data/
-Icon[]
+Icon?
