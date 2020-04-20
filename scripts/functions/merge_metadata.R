@@ -7,12 +7,17 @@ which_files <- function(metadata_location){
   gsub("^.+\\/(.+)\\.csv$", "\\1", list_data(metadata_location))
 }
 
+this_file <- function(which_file, metadata_location){
+  f <- list_data(metadata_location)
+  grep(paste0("\\b", tolower(which_file), ".csv"), tolower(f), value = TRUE)
+}
+
+
 merge_files <- function(df, which_file, metadata_location){
   if(is.null(df[["countryiso3"]])){
     df$countryiso3 <- countrycode::countrycode(df$coded_country, origin = "country.name", destination = "iso3c")
   }
   f <- list_data(metadata_location)
-  which_file = "CSSE"
   f <- grep(paste0("\\b", tolower(which_file), ".csv"), tolower(f), value = TRUE)
   if(length(f) > 1) stop("No unique match with filenames.")
   df_dat <- read.csv(f, stringsAsFactors = FALSE)
