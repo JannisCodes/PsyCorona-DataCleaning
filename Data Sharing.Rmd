@@ -92,8 +92,8 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-  dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-19 10-04 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-19 10-25 CEST.sav")
+  dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-20 11-42 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All2020-04-20 11-42 CEST.sav")
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
@@ -105,27 +105,23 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 # LOAD EXCEL SHEET THAT HAS UNIQUE IDENTIFIERS (Maybe one sheet per project? How do we update new Response IDs?)  
 ```
 
-### RMS Paper Number: 3 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
+### RMS Paper Number: 2 (Ben Guetzkow): \n Decision-Making during the COVID-19 Pandemic: Predicting Safe and Unsafe behaviors with the Corona Reflection Test
 ```{r RMS3, echo=T, warning=F, message=F}
 # prepare dataframe
   dt <- dtAll %>%
-  filter(ZIP == 1) %>% # take out people that did not give consent
-  transmute(ResponseId = c(1:nrow(.)), # for now response IDs are just rows (is also kind of random)
-            LocationLatitude = LocationLatitude,
-            LocationLongitude = LocationLongitude,
-            IPAddress = IPAddress,
-            ZIPYes = ZIP,
-            ZIP = ZIP_1_TEXT,
-            country = as.character(country),
-            countryAdj = as.character(countryAdj),
-            coded_country = coded_country) %>%
-  mutate_all(na_if,"")
+  dplyr::select(coded_country,
+            starts_with("c19ProSo"), 
+            starts_with("c19perBeh"),
+            starts_with("c19RCA"),
+            starts_with("houseLeave"),
+            -houseLeaveWhy_6_TEXT,
+            -contains("_DO_"),
+            -contains(".c"),
+            -contains(".m"),
+            -contains(".z"),
+            -contains(".fa"))%>%
+  dplyr::mutate_all(na_if,"")
 
-# remove entries with "@"
-  dt <- as.data.frame(lapply(dt, function(x) replace(x, grep("@", x), NA)))
-  # lapply makes factors...  
-    dt$country <- as.character(dt$country)
-    dt$countryAdj <- as.character(dt$countryAdj)
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -135,7 +131,36 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   write_sav(dt, namSPSS)
   save(dt, file = namR)
   write.csv(dt, file = namCSV)
-rm(dt)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMS Paper Number: 3 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
+```{r RMS3, echo=T, warning=F, message=F}
+# prepare dataframe
+  dt <- dtAll %>%
+  dplyr::select(coded_country,
+            starts_with("c19ProSo"), 
+            starts_with("c19perBeh"),
+            starts_with("c19RCA"),
+            starts_with("houseLeave"),
+            -houseLeaveWhy_6_TEXT,
+            -contains("_DO_"),
+            -contains(".c"),
+            -contains(".m"),
+            -contains(".z"),
+            -contains(".fa"))%>%
+  dplyr::mutate_all(na_if,"")
+
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
 ```
 
 ### RMS Paper Number: 4 (Qing Han): \n Trust in government and its influence on health behaviour and prosocial behaviour during the COVID-19 pandemic
@@ -194,5 +219,5 @@ rm(dt)
   write_sav(dt, namSPSS)
   save(dt, file = namR)
   write.csv(dt, file = namCSV)
-rm(dt)
+rm(dt, namSPSS, namR, namCSV)
 ```
