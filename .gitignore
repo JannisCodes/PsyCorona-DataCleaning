@@ -6,6 +6,8 @@
 *.html
 *.sav
 *.Rdata
+data/metadata
+.DS_Store
 *.csv
 *.zip
 *.png
