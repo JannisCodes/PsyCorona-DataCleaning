@@ -95,8 +95,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+2,+2020_08.59.sav")
 dt0RawRUG$source <- "RUG"
 
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 19, 2020_01.45.sav")
-
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 20, 2020_02.26.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -184,6 +183,7 @@ Filter the Preview responses.
 # not labelled fast
   dt1Preview <- dt0Raw %>%
     mutate(FilterPreview = ifelse(Status == 0,0,1))
+# dt0Raw$FilterPreview <- as.numeric(!dt0Raw$Status == 0)
 ```
 
 
@@ -440,7 +440,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Austria' = c('(?i)Австрія', '(?i)autriche', 'Asturies', '(?i)austria', 'Austrija', 'Austria', 'sterreich'),
                      'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', '(?i)Azerbaijan'),
                      'Bahrain' = c('bahrain', 'Bahrain'),
-                     'Bangladesh' = c('bangladesh', 'Bangladesh'),
+                     'Bangladesh' = c('bangladesh', 'Bangladesh', 'বাংলাদেশ'),
                      'Belarus' = c('(?i)Belarus', '(?i)беларусь'),
                      'Belgium' = c('βελγιο', 'belgien', 'Бельгия', 'b.lgica', 'belgi.', 'belg', 'belgique', 'бельгия', 'belgium'),
                      'Benin' = c('(?i)bénin'),
@@ -482,10 +482,10 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
                      'Ireland' = c('Ιρλανδία', 'irska', '^nireland$', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
                      'Israel' = c('كفرقاسم', '(?i)израиль',  'عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  '(?i)Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
-                     'Italy' = c('(?i)İtalya', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия',   'İtalya', 'Mareno di Piave', 'Frosinone', '(?i)Italia', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  '(?i)Italie', '(?i)Italië', '(?i)Itali', '(?i)Italien', 'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', 'ITALIA', 'ital', 'Roma', '(?i)Italy', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'itaia',  'italya',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca'),
+                     'Italy' = c('itali.', 'ital.', 'itali..', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия', 'Mareno di Piave', 'Frosinone', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', '^ital', 'Roma', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca', 'arezzo'),
                      'Jamaica' = c('jamaica', 'Jamaica'),
-                     'Japan' = c('(?i)japan', 'japao', '(?i)Japão', '(?i)Japonya', 'にほん', '(?i)japon', 'Giappone',  'giappone', 'Japan', 'japonya', '日本', '일본', '愛知県'),
-                     'Jordan' = c(  'الاردن', 'Jordan',   'Jordanie',  'jordan', 'الأردن'),
+                     'Japan' = c('(?i)jap.n', 'japao', '(?i)Japão', '(?i)Japonya', 'にほん', 'Giappone',  'giappone', 'japonya', '日本', '일본', '愛知県'),
+                     'Jordan' = c(  'الاردن', 'Jordanie',  'jordan', 'الأردن'),
                      'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', '(?i)Qazaqstan', '(?i)Kazahstan', '(?i)Kazakhstan', 'kazakhstan', 'Казахстан', 'қазақстан'),
                      'Kenya' = c('kenia', 'Kenia'),
                      'Kosovo' = c('(?i)Kosovo'),
@@ -1409,6 +1409,73 @@ dt5newVars$distract.z <- scale(dt5newVars$distract.m, scale = T)
 dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))$scores
 ```
 
+## Local Virus Spread
+### Check with Geolocation (not crucial for now)
+```{r geoloc, echo=T, warning=F, message=F}
+# library(readr)
+# library(renv)
+# library(countrycode)
+# library(revgeo)
+# 
+# # Set to NULL to get all GPS locations; takes a long time
+# only_missing_gps <- TRUE
+# number_of_gps <- 100
+# 
+# # df_loc <- read.csv("data/raw data/RMS3_vanLissa_Cooperation 2020-04-19 12-42 CEST.csv", stringsAsFactors = F)
+# df_loc <- dt5newVars %>%
+#   dplyr::select(ResponseId = ResponseId,
+#                 LocationLatitude = LocationLatitude,
+#                 LocationLongitude = LocationLongitude,
+#                 IPAddress = IPAddress,
+#                 ZIP = ZIP_1_TEXT,
+#                 coded_country = coded_country) %>%
+#   mutate_all(na_if,"")
+# 
+# df_loc$countryiso3 <- countrycode::countrycode(df_loc$coded_country, origin = "country.name", destination = "iso3c")
+# 
+# df_loc$id <- paste0(formatC(df_loc$LocationLongitude, digits = 7, format = "f"), 
+#                     formatC(df_loc$LocationLatitude, digits = 7, format = "f"))
+# 
+# if(!file.exists(file.path("data", "cleaned data", "geolocate.csv", "id"))){
+#   gps <- df_loc[, c("LocationLongitude", "LocationLatitude")]
+#   if(only_missing_gps) gps <- gps[is.na(df_loc$countryiso3), ]
+#   gps$id <- paste0(formatC(gps$LocationLongitude, digits = 2, format = "f"), 
+#                    formatC(gps$LocationLatitude, digits = 2, format = "f"))
+#   gps <- gps[!duplicated(gps$id), ]
+#   if(is.null(number_of_gps)) number_of_gps <- nrow(gps)
+#   
+#   geolocs <- data.frame(revgeo(longitude=gps$LocationLongitude[1:number_of_gps], latitude=gps$LocationLatitude[1:number_of_gps], provider = 'photon', output="frame"), id = gps$id[1:number_of_gps], stringsAsFactors = FALSE)
+#   names(geolocs)[1:6] <- paste0("gps_", names(geolocs)[1:6])
+#   geolocs$gps_countryiso3 <- countrycode::countrycode(geolocs$gps_country, origin = "country.name", destination = "iso3c")
+#   if(only_missing_gps) write.csv(geolocs, file.path("data", "cleaned data", "geolocate_missing_iso3.csv"), row.names = FALSE)
+#   write.csv(geolocs, file.path("data", "cleaned data", "geolocate.csv"), row.names = FALSE)
+# } else {
+#   geolocs <- read.csv(file.path("data", "cleaned data", "geolocate.csv"), stringsAsFactors = FALSE)
+# }
+# 
+# tmp <- merge(df_loc, geolocs, all.x = TRUE, by = "id")
+# 
+# # Check which locations are mismatched
+# head(df_loc[which(df_loc$countryiso3 != df_loc$gps_countryiso3), ])
+# rm(tmp, df_loc, only_missing_gps, number_of_gps, gps)
+```
+
+### Merge with Metadata
+```{r geoloc, echo=T, warning=F, message=F}
+library(gert)
+library(countrycode)
+source(file.path("scripts", "functions", "merge_metadata.R"))
+
+metadata_location <- file.path("data", "metadata")
+get_metadata(metadata_location, overwrite = FALSE)
+# See which metadata files are available
+which_files(metadata_location)
+
+dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
+
+dt5newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
+```
+
 ## **Reduce to Relevant Variales**   
 ```{r keyVars, echo=T, warning=F, message=F}
 # clean-up Item Analyses
@@ -1839,8 +1906,8 @@ Export main dataframe as RData and SPSS sav files. We export versions with and w
 ```{r export, echo=T, warning=F, message=F}
 namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All",  ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ",  format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
@@ -1876,5 +1943,5 @@ save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/
   write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
   write.csv(lang.repFull,'data/cleaned data/Language.csv')
 
-rm(#list=ls(pattern="nam"))
+#rm(list=ls(pattern="nam"))
 ```
