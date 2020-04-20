@@ -45,7 +45,6 @@ merge_files <- function(df, which_file, metadata_location){
       #df_dat <- df_dat[!duplicated(df_dat$countryiso3), ]
     }
   }
-}  
 merge(df, df_dat, all.x = TRUE, by = "countryiso3")
 }
 
