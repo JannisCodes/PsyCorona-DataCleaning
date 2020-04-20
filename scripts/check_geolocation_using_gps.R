@@ -2,18 +2,21 @@ library(readr)
 library(renv)
 library(countrycode)
 library(revgeo)
+
 # Set to NULL to get all GPS locations; takes a long time
-number_of_gps <- 10
+only_missing_gps <- TRUE
+number_of_gps <- 100
 
 df_loc <- read.csv("data/raw data/RMS3_vanLissa_Cooperation 2020-04-19 12-42 CEST.csv", stringsAsFactors = F)
 
 df_loc$countryiso3 <- countrycode::countrycode(df_loc$coded_country, origin = "country.name", destination = "iso3c")
 
-df_loc$id <- paste0(formatC(df_loc$LocationLongitude, digits = 2, format = "f"), 
-                    formatC(df_loc$LocationLatitude, digits = 2, format = "f"))
+df_loc$id <- paste0(formatC(df_loc$LocationLongitude, digits = 7, format = "f"), 
+                    formatC(df_loc$LocationLatitude, digits = 7, format = "f"))
 
 if(!file.exists(file.path("data", "cleaned data", "geolocate.csv", "id"))){
   gps <- df_loc[, c("LocationLongitude", "LocationLatitude")]
+  if(only_missing_gps) gps <- gps[is.na(df_loc$countryiso3), ]
   gps$id <- paste0(formatC(gps$LocationLongitude, digits = 2, format = "f"), 
                    formatC(gps$LocationLatitude, digits = 2, format = "f"))
   gps <- gps[!duplicated(gps$id), ]
@@ -22,6 +25,7 @@ if(!file.exists(file.path("data", "cleaned data", "geolocate.csv", "id"))){
   geolocs <- data.frame(revgeo(longitude=gps$LocationLongitude[1:number_of_gps], latitude=gps$LocationLatitude[1:number_of_gps], provider = 'photon', output="frame"), id = gps$id[1:number_of_gps], stringsAsFactors = FALSE)
   names(geolocs)[1:6] <- paste0("gps_", names(geolocs)[1:6])
   geolocs$gps_countryiso3 <- countrycode::countrycode(geolocs$gps_country, origin = "country.name", destination = "iso3c")
+  if(only_missing_gps) write.csv(geolocs, file.path("data", "cleaned data", "geolocate_missing_iso3.csv"), row.names = FALSE)
   write.csv(geolocs, file.path("data", "cleaned data", "geolocate.csv"), row.names = FALSE)
 } else {
   geolocs <- read.csv(file.path("data", "cleaned data", "geolocate.csv"), stringsAsFactors = FALSE)
