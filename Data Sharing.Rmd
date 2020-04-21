@@ -146,35 +146,34 @@ return(stringOut)
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
 
-## **Create Datasets**
-### Load in the new IDs from Excel Sheet
-```{r LoadRawBase, echo=T, warning=F, message=F}
-# load excell sheet
-# LOAD EXCEL SHEET THAT HAS UNIQUE IDENTIFIERS (Maybe one sheet per project? How do we update new Response IDs?)  
-```
-
-### RMS 2 (Ben Guetzkow): \n Decision-Making during the COVID-19 Pandemic: Predicting Safe and Unsafe behaviors with the Corona Reflection Test
-```{r RMS3, echo=T, warning=F, message=F}
+### RMD 2 (Ben Guetzkow): \n Decision-Making during the COVID-19 Pandemic: Predicting Safe and Unsafe behaviors with the Corona Reflection Test
+```{r RMD2, echo=T, warning=F, message=F}
 # prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD2_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
   dt <- dtAll %>%
-  dplyr::select(coded_country,
-            starts_with("c19ProSo"), 
-            starts_with("c19perBeh"),
-            starts_with("c19RCA"),
-            starts_with("houseLeave"),
-            -houseLeaveWhy_6_TEXT,
-            -contains("_DO_"),
-            -contains(".c"),
-            -contains(".m"),
-            -contains(".z"),
-            -contains(".fa"))%>%
-  dplyr::mutate_all(na_if,"")
-
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/RMD2_Guetzkow ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD2_Guetzkow ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD2_Guetzkow ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   save(dt, file = namR)
@@ -182,28 +181,34 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMS 3 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
-```{r RMS3, echo=T, warning=F, message=F}
+### RMD 3 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
+```{r RMD3, echo=T, warning=F, message=F}
 # prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD3_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
   dt <- dtAll %>%
-  dplyr::select(coded_country,
-            starts_with("c19ProSo"), 
-            starts_with("c19perBeh"),
-            starts_with("c19RCA"),
-            starts_with("houseLeave"),
-            -houseLeaveWhy_6_TEXT,
-            -contains("_DO_"),
-            -contains(".c"),
-            -contains(".m"),
-            -contains(".z"),
-            -contains(".fa"))%>%
-  dplyr::mutate_all(na_if,"")
-
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/RMS3_vanLissa_Cooperation ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/RMD3_vanLissa ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD3_vanLissa ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD3_vanLissa ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   save(dt, file = namR)
@@ -211,58 +216,34 @@ rm(dt, namSPSS, namR, namCSV)
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMS 4 (Qing Han): \n Trust in government and its influence on health behaviour and prosocial behaviour during the COVID-19 pandemic
-```{r RMS4, echo=T, warning=F, message=F}
+### RMD 4 (Qing Han): \n Trust in government and its influence on health behaviour and prosocial behaviour during the COVID-19 pandemic
+```{r RMD4, echo=T, warning=F, message=F}
 # prepare dataframe
-  dt <- dtClean %>%
-             dplyr::select(starts_with("aff"),
-                           starts_with("employstatus"),
-                           starts_with("jbInsec"),
-                           starts_with("PFS"), #financial strain
-                           starts_with("fail"), #disempowerment
-                           ends_with("inPerson"), #isolation in person
-                           starts_with("lone"),
-                           happy,
-                           lifeSat,
-                           C19Know,
-                           c19Hope,
-                           starts_with("c19ProSo"),
-                           starts_with("c19perBeh"),
-                           starts_with("c19Norm"),
-                           starts_with("trust"),
-                           extC19Msg,
-                           extC19Org,
-                           ecoHope,
-                           starts_with("ecoProSo"),
-                           starts_with("ecoProSo"),
-                           starts_with("houseLeave"),
-                           relYesNo,
-                           whatRel,
-                           coded_country,
-                           countryCitizen,
-                           countryCitizenIfNo,
-                           Immigrant,
-                           gender,
-                           age,
-                           edu,
-                           - houseLeaveWhy_6_TEXT,
-                           -contains("_DO_"),
-                           -contains(".c"),
-                           -contains(".m"),
-                           -contains(".z"),
-                           -contains(".fa"),
-                           )%>%
-  mutate_all(na_if,"")%>%
-  mutate_all(na_if, -99)
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD4_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
 
-# remove entries with "@"
-  dt <- as.data.frame(lapply(dt, function(x) replace(x, grep("@", x), NA)))
-
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/RMS4_Han_Trust ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/RMS4_Han_Trust ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/RMS4_Han_Trust ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/RMD4_Han ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD4_Han ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD4_Han ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   save(dt, file = namR)
@@ -270,8 +251,8 @@ rm(dt, namSPSS, namR, namCSV)
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMS 5 (Anne Margit): \n Predictors of consistently high well-being during COVID-19
-```{r RMS5, echo=T, warning=F, message=F}
+### RMD 5 (Anne Margit): \n Predictors of consistently high well-being during COVID-19
+```{r RMD5, echo=T, warning=F, message=F}
 # prepare dataframe
   tmp <- data.frame(name = as.character(dtReq$var),
                     request = as.character(dtReq$RMD5_vars))
@@ -284,7 +265,6 @@ rm(dt, namSPSS, namR, namCSV)
 # make dataframe
   dt <- dtAll %>%
     dplyr::select(one_of(varNames),
-                 -houseLeaveWhy_6_TEXT,
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -296,9 +276,254 @@ rm(dt, namSPSS, namR, namCSV)
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/RMS5_Margit_Well-Being ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/RMS5_Margit_Well-Being ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/RMS5_Margit_Well-Being ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/RMD5_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD5_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD5_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 6 (Anne Margit): \n Emotional experiences across nations during COVID-19: age, gender, and cultural differences
+```{r RMD6, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD6_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD6_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD6_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD6_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 7 (Anne Margit): \n The association of emotional experiences during the height of COVID-19 with well-being across nations
+```{r RMD7, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD7_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD7_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD7_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD7_Margit ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 8 (Lemay): \n Hope During the COVID-19 Pandemic: Implications for Individual and National Prevention Behaviors, Infection, and Well-Being
+```{r RMD8, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD8_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD8_Lemay ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD8_Lemay ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD8_Lemay ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 9 (Abakoumkin): \n Prediction of health protective behavior in the context of COVID-19 pandemic drawing from protection motivation theory
+```{r RMD9, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD9_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD9_Abakoumkin ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD9_Abakoumkin ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD9_Abakoumkin ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 10 (Schumpe): \n Adoption of recommended behaviors to fight COVID-19
+```{r RMD10, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD10_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD10_Schumpe ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD10_Schumpe ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD10_Schumpe ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 11 (Jin): \n Intergenerational Conflict of Interest and Prosocial Behavior During COVID-19 Pandemic
+```{r RMD11, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD11_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD11_Jin ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD11_Jin ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD11_Jin ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD 12 (Zuniga): \n Emotions, prosocial behaviour, wellbeing and disempowerment in response to the pandemic
+```{r RMD12, echo=T, warning=F, message=F}
+# prepare dataframe
+  tmp <- data.frame(name = as.character(dtReq$var),
+                    request = as.character(dtReq$RMD12_vars))
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/RMD12_Zuniga ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/RMD12_Zuniga ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/RMD12_Zuniga ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   save(dt, file = namR)
