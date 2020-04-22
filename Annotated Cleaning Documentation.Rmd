@@ -991,7 +991,7 @@ ggplot(dt5newVars, aes(x = extC19Msg)) +
 #### Community Response
 ```{r community, echo=T, results='asis', warning=F, message=F}
 ia.ext <- dt5newVars %>%
-    dplyr::select(starts_with("extC19"), -extC19Msg) %>%
+  dplyr::select(starts_with("c19Is")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.ext$rely   
@@ -1002,18 +1002,18 @@ as.data.frame(Scale::ReportTable(ia.ext)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19Is")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))
+#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19Is")))
 
 cat("<br>")
 
-dt5newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg), 
+dt5newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19Is")), 
                              min = 1, max = 6)$scores
 
 as.data.frame(psych::describe(dt5newVars$ext.m, skew=F)) %>%
@@ -1023,7 +1023,7 @@ as.data.frame(psych::describe(dt5newVars$ext.m, skew=F)) %>%
 
 dt5newVars$ext.c <- scale(dt5newVars$ext.m, scale = F, center = T)
 dt5newVars$ext.z <- scale(dt5newVars$ext.m, scale = T)
-dt5newVars$ext.fa <- fa(dt5newVars %>% dplyr::select(starts_with("extC19"), -extC19Msg))$scores
+dt5newVars$ext.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19Is")))$scores
 ```
 
 #### Behavioral Response
@@ -1645,16 +1645,16 @@ ctry.scales <- shiny_prep %>%
     gov.sd = sd(extC19Msg, na.rm = T),
     gov.se = gov.sd/sqrt(n),
     
-    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule = mean(c19IsStrict, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(c19IsStrict, na.rm = T),
     comRule.se = comRule.sd/sqrt(n),
     
-    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish = mean(c19IsPunish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(c19IsPunish, na.rm = T),
     comPunish.se = comPunish.sd/sqrt(n),
     
-    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg = mean(c19IsOrg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(c19IsOrg, na.rm = T),
     comOrg.se = comOrg.sd/sqrt(n),
     
     lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
@@ -1728,16 +1728,16 @@ global.scales <- shiny_prep %>%
     gov.sd = sd(extC19Msg, na.rm = T),
     gov.se = gov.sd/sqrt(n),
     
-    comRule = mean(extC19Rules, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comRule.sd = sd(extC19Rules, na.rm = T),
+    comRule = mean(c19IsStrict, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule.sd = sd(c19IsStrict, na.rm = T),
     comRule.se = comRule.sd/sqrt(n),
     
-    comPunish = mean(extC19Punish, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comPunish.sd = sd(extC19Punish, na.rm = T),
+    comPunish = mean(c19IsPunish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish.sd = sd(c19IsPunish, na.rm = T),
     comPunish.se = comPunish.sd/sqrt(n),
     
-    comOrg = mean(extC19Org, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    comOrg.sd = sd(extC19Org, na.rm = T),
+    comOrg = mean(c19IsOrg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg.sd = sd(c19IsOrg, na.rm = T),
     comOrg.se = comOrg.sd/sqrt(n),
     
     lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
