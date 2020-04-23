@@ -99,10 +99,10 @@ dt0RawRepRUG <- read_spss("data/raw data/Snowball_Corona_Long-Term_Coverage_Base
 dt0RawRepRUG$source <- "Rep RUG"
 dt0RawRepRUG$country <- dt0RawRepRUG$country_new #fixed here but later in MTurk
 # NYU Snowball
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 21, 2020_02.24.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 23, 2020_05.54.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 # NYU representative
-dt0RawRepNYUAD <- read_spss("data/raw data/Snowball Corona - Baseline - Qualtrics REPRESENTATIVE_April 21, 2020_03.12.sav")
+dt0RawRepNYUAD <- read_spss("data/raw data/Snowball Corona - Baseline - Qualtrics REPRESENTATIVE_April 23, 2020_07.29.sav")
 dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -333,7 +333,8 @@ ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
   #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
 # not labelled fast
   dt3Time <- dt2Progress %>%
-    mutate(FilterTime = ifelse(Duration__in_seconds_ > tCutOff*60,0,1))
+    mutate(FilterTime = ifelse(Duration__in_seconds_ > tCutOff*60,0,1),
+           FilterTimeQualtrics = ifelse(Duration__in_seconds_ > 365,0,1))
 
 
 rm(tOutlierHigh, tCutOff, tCutOffPerc)
@@ -343,8 +344,8 @@ rm(tOutlierHigh, tCutOff, tCutOffPerc)
   #   mutate(FilterTime = labelled(ifelse(Duration__in_seconds_ > 300,0,1),
   #                                labels = c(`extremely quick` = 1), label="Filter: Took less than 5 minutes on survey"))
 # not labelled fast
-  dt2Time <- dt1Preview %>%
-    mutate(ifelse(Duration__in_seconds_ > 300,0,1))
+  # dt2Time <- dt1Preview %>%
+  #   mutate(ifelse(Duration__in_seconds_ > 300,0,1))
 ```
 
 
@@ -421,7 +422,7 @@ rm(qualtricsLanguage)
 # excluded (only straightliners)
   tmp <- dt5newVars %>%
     filter(FilterPreview == 0,
-           FilterProgress == 0,
+           Finished == 1,
            FilterTime == 0,
            source == "Rep NYU-AD")
   tmp2 <- tmp %>%
@@ -599,7 +600,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Yemen' = c('العند')
 )
 
-country_matches <- cat_words(dt5newVars$countryAdj, country_dict) 
+country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
 View(country_matches$unmatched)
@@ -1586,6 +1587,20 @@ ContactList2 <- dt5newVars %>%
                 EndDateBaseline = EndDate)
 
 table(ContactList2$Language)
+
+ContactList3 <- dt5newVars %>%
+  filter(FilterPreview == 0,
+         ICRec_1_TEXT!="",
+         ymd_hms(dt5newVars$EndDate) > "2020-04-14 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-04-21 12:00:00 UTC",) %>% 
+  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+  dplyr::select(ExternalDataReference = ResponseId,
+                Language = Q_Language,
+                Email = ICRec_1_TEXT,
+                StartDateBaseline = StartDate,
+                EndDateBaseline = EndDate)
+
+table(ContactList3$Language)
 # 
 # # check how many have an @ (not really worth the effort to discard those)
 #   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
@@ -2034,8 +2049,8 @@ save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/
   #write.csv(ctry.repMiss,'data/cleaned data/Country Demographics Joce.csv')
   write.csv(ctry.repFull,'data/cleaned data/Country Size Full.csv')
   write.csv(lang.repFull,'data/cleaned data/Language.csv')
-  write.csv(ctry.repFullSnow,'data/cleaned data/Country Size Full - Only Snowball.csv')
-  write.csv(lang.repFullSnow,'data/cleaned data/Language - Only Snowball.csv')
+  write.csv(ctry.repFullSnow,'data/cleaned data/Country Size Full - Snowball.csv')
+  write.csv(lang.repFullSnow,'data/cleaned data/Language - Snowball.csv')
 
 #rm(list=ls(pattern="nam"))
 ```
