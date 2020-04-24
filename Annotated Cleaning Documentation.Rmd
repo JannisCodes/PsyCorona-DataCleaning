@@ -1833,8 +1833,6 @@ names(languages)[names(languages) != "coded_country"] = paste0("languages_", nam
 languages[] <- lapply(languages, scramble20)
 # languages[] <- lapply(languages, function(x) ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x))
 
-
-
 gender <- data.frame(coded_country = shiny_prep$coded_country, 
                      gender = as_factor(shiny_prep$gender)) %>%
   group_by(gender, coded_country) %>%
@@ -2055,7 +2053,7 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
+  save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
   write.csv(ContactList1, file = namCL)
