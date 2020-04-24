@@ -1830,7 +1830,8 @@ languages.glob <- shiny_prep %>%
   tidyr::spread(language, n)
 languages <- rbind(languages.glob, languages); rm(languages.glob)
 names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
-languages[] <- lapply(languages, scramble20)
+languages[,-1] <- lapply(languages[,-1], scramble20)
+#languages[names(languages) != "coded_country"] <- lapply(languages[names(languages) != "coded_country"], scramble20)
 # languages[] <- lapply(languages, function(x) ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x))
 
 gender <- data.frame(coded_country = shiny_prep$coded_country, 
@@ -1845,7 +1846,7 @@ gender.glob <- data.frame(coded_country = "global",
   tidyr::spread(gender, n)
 gender <- rbind(gender.glob, gender); rm(gender.glob)
 names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
-gender[] <- lapply(gender, scramble20)
+gender[,-1] <- lapply(gender[,-1], scramble20)
 
 age <- data.frame(coded_country = shiny_prep$coded_country, 
                   age = as_factor(shiny_prep$age)) %>%
@@ -1859,7 +1860,7 @@ age.glob <- data.frame(coded_country = "global",
   tidyr::spread(age, n)
 age <- rbind(age.glob, age); rm(age.glob)
 names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
-age[] <- lapply(age, scramble20)
+age[,-1] <- lapply(age[,-1], scramble20)
 
 edu <- data.frame(coded_country = shiny_prep$coded_country, 
                   edu = as_factor(shiny_prep$edu)) %>%
@@ -1873,7 +1874,7 @@ edu.glob <- data.frame(coded_country = "global",
   tidyr::spread(edu, n)
 edu <- rbind(edu.glob, edu); rm(edu.glob)
 names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
-edu[] <- lapply(edu, scramble20)
+edu[,-1] <- lapply(edu[,-1], scramble20)
 
 pol <- shiny_prep %>%
   dplyr::select(coded_country, PolOrCat) %>%
@@ -1892,7 +1893,7 @@ pol.glob <- shiny_prep %>%
   tidyr::spread(PolOrCat, n)
 pol <- rbind(pol.glob, pol); rm(pol.glob)
 names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
-pol[] <- lapply(pol, scramble50)
+pol[,-1] <- lapply(pol[,-1], scramble50)
 
 #ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
 ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
