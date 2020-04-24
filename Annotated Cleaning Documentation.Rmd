@@ -99,7 +99,7 @@ dt0RawRepRUG <- read_spss("data/raw data/Snowball_Corona_Long-Term_Coverage_Base
 dt0RawRepRUG$source <- "Rep RUG"
 dt0RawRepRUG$country <- dt0RawRepRUG$country_new #fixed here but later in MTurk
 # NYU Snowball
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 23, 2020_05.54.sav")
+dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 24, 2020_03.08.sav")
 dt0RawNYUAD$source <- "NYU-AD"
 # NYU representative
 dt0RawRepNYUAD <- read_spss("data/raw data/Snowball Corona - Baseline - Qualtrics REPRESENTATIVE_April 23, 2020_07.29.sav")
@@ -494,7 +494,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosniaandherzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina', "bih"),
                      'Botswana' = c('(?i)botswana'),
                      'Brazil' = c('brazil', 'riodejaneiro', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
-                     'Brunei' = c('bruneidarussalam'),
+                     'Brunei' = c('bruneidarussalam', 'br^unei'),
                      'Bulgaria' = c('(?i)bulgaria', 'Bulgaria', 'българия'),
                      'Cambodia' = c('(?i)Cambodia'),
                      'Cameroon' = c('camer', 'Cameroun'),
@@ -506,7 +506,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
                      'Croatia' = c('croa', '(?i)Kroatien', '(?i)Horvátország',  '(?i)Croácia', '(?i)Croazia',  '(?i)HRVATSKA', 'Hrvatskoj', '(?i)Hrv', 	'(?i)Hrvarska', '(?i)Hrvatska', "hrvatsk", '(?i)Croatia'),
                      'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
-                     'Czech Republic' = c('czech',  'tschechien', 'Τσεχία', '(?i)Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  '(?i)Czechia',  '(?i)Czech Republic', 'checa'),
+                     'Czech Republic' = c('czech',  'tschechien', 'Τσεχία', '(?i)Republica Checa', 'češka republika', 'Tschechien',  'República Checa',  '(?i)Czechia',  '(?i)Czech Republic', 'checa', 'чехия'),
                      'Denmark' = c('mark', 'danemarca'), 
                      'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
                      'Ecuador' = c('(?i)ecuador', 'Quito', 'Ecuador'),
@@ -549,7 +549,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Malta' = c('(?i)malta', 'Malta'),
                      'Mauritius' = c('maurice', 'İle Maurice', 'Mauritius'),
                      'Mexico' = c('mexico', 'Μεξικό', 'MÉXICO', 'México', 'méxico', 'Mexico'),
-                     'Moldova' = c('(?i)Moldova', 're..........dova', 'модова', 'moldova'),
+                     'Moldova' = c('re..........dova', 'модова', 'moldova', 'мо..ова'),
                      'Mongolia' = c('(?i)Mongolia'),
                      'Montenegro' = c('crnagora', '(?i)Montenegro', 'Crna Gora'),
                      'Morocco' = c('المغرب',  'rabat', 'النغرب',  'MAROC', 'مغرب', 'morocco', '(?i)Morocco', 'Morroco', 'Maroko', 'Marruecos', 'maroc', 'Maroc'),
@@ -579,12 +579,12 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Slovakia' = c('slova', '(?i)Словаччина',   '(?i)Szlovákia',  'Slovakia', 'Slovak Republic'),
                      'Slovenia' = c('(?i)Slovenia', 'Slovenija'),
                      'South Africa' = c('جنوب أفريقيا', 'Garankuwa','Western Cape',  'Limpopo', 'Western cape', 'Eastern Cape', 'Cape Town', 'Gauteng', 'limpopo', 'SOUTH AFRICA', 'southafrica🇿���america', 'South aftica', 'South Afica', 'South AFRICA', 'South Africa', 'africa',  '^sa$',  'sudáfrica',  'western, cape', '(?i)westerncape', 'southaf...', 'afriquedusud'),
-                     'South Korea' = c('korea', 'güneykore', '한국', '대한민국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore', '203'),
+                     'South Korea' = c('韩国', 'korea', 'güneykore', '한국', '대한민국', 'Korea, Republic of', 'Güney Kore', 'Korea Selatan, Busan',  'South Korea', 'güney, kore', '203'),
                      'Spain' = c('(?i).спан.я', 'saipan', 'espanya',  '^es$', 'euskadi', 'espagne', 'espsña', 'ισπανία', 'spania', 'Ισπανία', 'Pais vasco', 'Montalbán de Córdoba', 'Madrid', 'Málaga', '(?i)Fuerteventura', 'Espña', '^Es$', '(?i)Esapaña', 'El Rocío', 'Eapaña', 'Cataluña', 'Andalucia', 'Catalunya', 'Espsña', 'Euskal Herria', 'Іспанія', '(?i)Spanyolország', 'SPAIN', 'Estado Español', 'estadoespañol', 'españs', 'español', 'españ', 'espana', 'Españistan', 'ESpaña', 'Espanha', 'paisvasco', 'Espana', 'montalbándecórdoba', 'Spanje', 'Españs', 'Españ', 'Espagne', 'Spanien', 'Español', 'Espanya', 'spain', 'Spagna', '(?i)Spain', '^esp$', '(?i)ESPAÑA', 'España', 'spagna',  'spanien',  'catal',  'euskal, herria',  'basque',  'eapaña',  'esapaña',  'madrid',  'montalbán, de, córdoba',  'pais, vasco',  'spanje', 'euskalherria'),
                      'Sweden' = c('weden', 'Svezia', 'σουηδια', '(?i)SWEDEN',  'Isvec', '(?i)Suède'),
                      'Switzerland' = c('(?i)Ελβετία', 'İsviçre',  'switzerl', 'Zwitserland', 'Switzerlannd', 'Svizzera','İsviçre',  'Швейцарія', 'Suiza', 'SUIZA', 'schweiz', 'Ελβετία', 'Schweiz', 'Switzerland', 'suiza', 'Suisse', 'svizzera',  'zwitserland',  'switzerland', 'suisse'),
                      'Taiwan' = c('taiwan', 'Tayvan', 'Taiwan', '.灣'),
-                     'Thailand' = c('^thailand$', 'Thailand', 'ไทย'),
+                     'Thailand' = c('^thailand$', 'Thailand', 'ไทย', '^thai'),
                      "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
                      'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
                      'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', '^Tr$', '^TR$', 'tr$', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye", 'турция'), #"'\u00fcrkiye'"
@@ -1562,51 +1562,39 @@ dt6Reduced <- dt6ReducedTimer %>%
 as.Date(dt5newVars$EndDate)
 
 library("lubridate")
-ContactList1 <- dt5newVars %>%
-  filter(FilterPreview == 0,
-         ICRec_1_TEXT!="",
-         ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
-  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-  dplyr::select(ExternalDataReference = ResponseId,
-                Language = Q_Language,
-                Email = ICRec_1_TEXT,
-                StartDateBaseline = StartDate,
-                EndDateBaseline = EndDate)
-table(ContactList1$Language)
-
-ContactList2 <- dt5newVars %>%
-  filter(FilterPreview == 0,
-         ICRec_1_TEXT!="",
-         ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
-         ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
-  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-  dplyr::select(ExternalDataReference = ResponseId,
-                Language = Q_Language,
-                Email = ICRec_1_TEXT,
-                StartDateBaseline = StartDate,
-                EndDateBaseline = EndDate)
-
-table(ContactList2$Language)
-
-ContactList3 <- dt5newVars %>%
-  filter(FilterPreview == 0,
-         ICRec_1_TEXT!="",
-         ymd_hms(dt5newVars$EndDate) > "2020-04-14 12:00:00 UTC",
-         ymd_hms(dt5newVars$EndDate) < "2020-04-21 12:00:00 UTC",) %>% 
-  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-  dplyr::select(ExternalDataReference = ResponseId,
-                Language = Q_Language,
-                Email = ICRec_1_TEXT,
-                StartDateBaseline = StartDate,
-                EndDateBaseline = EndDate)
-
-table(ContactList3$Language)
+# NOT NEEDED ANYMORE (HISTORICAL REASONS; WILL BE DELETED IF RECONTACT SUCCESFULL)
+# ContactList1 <- dt5newVars %>%
+#   filter(FilterPreview == 0,
+#          ICRec_1_TEXT!="",
+#          !grepl("Rep", source),
+#          ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
+#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+#   dplyr::select(ExternalDataReference = ResponseId,
+#                 Language = Q_Language,
+#                 Email = ICRec_1_TEXT,
+#                 StartDateBaseline = StartDate,
+#                 EndDateBaseline = EndDate)
+# table(ContactList1$Language)
 # 
-# # check how many have an @ (not really worth the effort to discard those)
-#   table(ifelse(grepl("@", ContactList1$Email), "keep", "discard"))
-# Check whether there is overlap in IDs
+# ContactList2 <- dt5newVars %>%
+#   filter(FilterPreview == 0,
+#          ICRec_1_TEXT!="",
+#          !grepl("Rep", source), # do not get the people from the representative sample (different contact list)
+#          ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
+#          ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
+#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+#   dplyr::select(ExternalDataReference = ResponseId,
+#                 Language = Q_Language,
+#                 Email = ICRec_1_TEXT,
+#                 StartDateBaseline = StartDate,
+#                 EndDateBaseline = EndDate)
+# 
+# table(ContactList2$Language)
+
+# Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
+         ymd_hms(dt5newVars$EndDate) < "2020-04-21 12:00:00 UTC",
          ICRec_1_TEXT!="") %>% #change in larger next wave
   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
@@ -1614,8 +1602,28 @@ table(ContactList3$Language)
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
-n_occur <- data.frame(table(ContactListAll$ExternalDataReference)) #data frame with  list of ids and number of times they occurred
-n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
+# download contact list from qualtrics (next week this will be one dataframe)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact2.csv", header = T)
+  CL <- plyr::rbind.fill(CL1, CL2)
+# get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
+  CL <- CL %>%
+    dplyr::transmute(Unsubscribed = Unsubscribed, 
+                     ExternalDataReference = as.character(ExternalDataReference),
+                     EmailDown = Email)
+# merge downloaded contact list with all participants that are before cutoff
+  CLmerge <- dplyr::full_join(CL, ContactListAll, by="ExternalDataReference")
+  CLmerge$Unsubscribed[is.na(CLmerge$Unsubscribed)] <- 0 # make "new participants" NA
+
+# check merge  
+  table(CLmerge$EmailDown == CLmerge$Email) # not a big issue
+  # remove all irrelevant columns
+    CLUp <- CLmerge %>%
+      dplyr::select(-EmailDown)
+
+# check whether there are multiple response ID
+  n_occur <- data.frame(table(CLmerge$ExternalDataReference)) 
+  n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
 ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
 ```
 
@@ -2019,6 +2027,8 @@ namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCL3 <- paste0("data/cleaned data/Contact List 3 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLAll <- paste0("data/cleaned data/Contact List All ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -2040,6 +2050,8 @@ save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/
 # export Contact List
   write.csv(ContactList1, file = namCL)
   write.csv(ContactList2, file = namCL2)
+  write.csv(ContactList3, file = namCL3)
+  write.csv(CLUp, file = namCLAll)
 
 # export Language List
 #write.csv(LanguageList, file = namLL)
