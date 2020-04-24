@@ -404,33 +404,37 @@ rm(qualtricsLanguage)
 ### Filter Participants
 #### "Bad" ResponseIds
 ```{r filtBefCalc, echo=T, warning=F, message=F}
-# NYU Abu-Dhabi
-# included
-  inclRepNYU <- dt5newVars %>%
-    filter(FilterPreview == 0,
-           FilterProgress == 0,
-           FilterTime == 0,
-           FilterStraightliner == 0,
-           source == "Rep NYU-AD")
-# excluded
-  exclRepNYU <- dt5newVars %>%
-    filter((FilterPreview == 1 |
-           FilterProgress == 1 |
-           FilterTime == 1 |
-           FilterStraightliner == 1),
-           source == "Rep NYU-AD")
-# excluded (only straightliners)
+# Qualtrics filter
   tmp <- dt5newVars %>%
-    filter(FilterPreview == 0,
-           Finished == 1,
-           FilterTime == 0,
+    filter(gc == 1,
            source == "Rep NYU-AD")
-  tmp2 <- tmp %>%
-    filter(FilterStraightliner == 1)
-    
-# excluded
-  allRepNYU <- dt5newVars %>%
-    filter(source == "Rep NYU-AD")
+# which people do we exclude?
+  exclRepNYU <- tmp %>%
+  filter((FilterPreview == 1 |
+         FilterProgress == 1 |
+         FilterTime == 1 |
+         FilterStraightliner == 1),
+         source == "Rep NYU-AD")
+  # export for qualtrics
+    exclRepNYURespId <- exclRepNYU$ResponseId
+    namExcl <- paste0("data/cleaned data/Exclude NYU RespId ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+    write.csv(exclRepNYURespId, file = namexcl); rm(namExcl)
+# which people do we include?
+  inclRepNYU <- dt5newVars %>%
+  filter(gc == 1,
+         FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0,
+         source == "Rep NYU-AD")
+# which people do we include? (no straightlining exclusion)
+  inclRepNYU2 <- dt5newVars %>%
+  filter(gc == 1,
+         FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         source == "Rep NYU-AD")
+rm(tmp, exclRepNYU, exclRepNYURespId, inclRepNYU, inclRepNYU2)
 ```
 
 #### Filter Out
@@ -494,7 +498,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Bosnia and Herzegovina' = c('Bosnia and Herzegovina', 'bosniaandherzegovina', 'bosnaihercegovina', 'Bosna i Hercegovina', "bih"),
                      'Botswana' = c('(?i)botswana'),
                      'Brazil' = c('brazil', 'riodejaneiro', 'Rio de Janeiro', 'Esp santo', 'Brassil', 'BRASIL', 'Brazil', 'brasil', 'Brasil'),
-                     'Brunei' = c('bruneidarussalam', 'br^unei'),
+                     'Brunei' = c('bruneidarussalam', '^brunei'),
                      'Bulgaria' = c('(?i)bulgaria', 'Bulgaria', 'българия'),
                      'Cambodia' = c('(?i)Cambodia'),
                      'Cameroon' = c('camer', 'Cameroun'),
@@ -1474,7 +1478,12 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 # library(renv)
 # library(countrycode)
 # library(revgeo)
-# 
+
+# set people location and IP NA if they do not provide consent
+  dt5newVars <- dt5newVars %>%
+    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress),
+   #variables                   .funs = list(~ ifelse(ZIP == 1, ., NA)))
+#  # get cell if ZIP == 1 if not set NA
 # # Set to NULL to get all GPS locations; takes a long time
 # only_missing_gps <- TRUE
 # number_of_gps <- 100
