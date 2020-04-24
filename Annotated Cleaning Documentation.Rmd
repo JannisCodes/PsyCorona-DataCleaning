@@ -92,17 +92,20 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import RuG Snowball
-dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+21,+2020_10.45.sav")
+dt0RawRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawRUG$source <- "RUG"
+
 # RUG Representative sample
-dt0RawRepRUG <- read_spss("data/raw data/Snowball_Corona_Long-Term_Coverage_Baseline_RepresentativeRUG_April+21,+2020_10.26.sav")
+dt0RawRepRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepRUG$source <- "Rep RUG"
 dt0RawRepRUG$country <- dt0RawRepRUG$country_new #fixed here but later in MTurk
+
 # NYU Snowball
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 24, 2020_03.08.sav")
+dt0RawNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawNYUAD$source <- "NYU-AD"
+
 # NYU representative
-dt0RawRepNYUAD <- read_spss("data/raw data/Snowball Corona - Baseline - Qualtrics REPRESENTATIVE_April 23, 2020_07.29.sav")
+dt0RawRepNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -132,8 +135,9 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 ### Recontacts
 ```{r LoadRawRec, echo=T, warning=F, message=F}
 # Import Wave 1
-  dt0w1 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2+April+3th_April+14,+2020_17.22.sav")
-  dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+3+April+11th_April+14,+2020_15.04.sav")
+  dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1", full.names = TRUE, ignore.case = TRUE))
+  dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
+  dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) #<-- still needs to be processed
 
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -181,7 +185,7 @@ cat("How many people did we loose in wave 3:")
   nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
   cat("We lost them because an independent link was sent around")
 
-rm(dt0w1)
+rm(list=ls(pattern="dt0w"))
 ```
 
 ## **Data Quality**   
@@ -607,9 +611,9 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
 country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-View(country_matches$unmatched)
+#View(country_matches$unmatched)
 # Check duplicates, and which regular expressions triggered them
-View(country_matches$dup)
+#View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
 dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
 
@@ -1653,77 +1657,77 @@ ctry.scales <- shiny_prep %>%
   filter(!is.na(coded_country)) %>%
   dplyr::group_by(coded_country) %>%
   dplyr::summarize(
-    n = n()+sample(-5:5, 1, replace=TRUE),
+    n = n(),
     
-    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affAnx = mean(affAnx, na.rm = T),
+    affBor = mean(affBor, na.rm = T),
+    affCalm = mean(affCalm, na.rm = T),
+    affContent = mean(affContent, na.rm = T),
+    affDepr = mean(affDepr, na.rm = T),
+    affEnerg = mean(affEnerg, na.rm = T),
+    affExc = mean(affExc, na.rm = T),
+    affNerv = mean(affNerv, na.rm = T),
+    affExh = mean(affExh, na.rm = T),
+    affInsp = mean(affInsp, na.rm = T),
+    affRel = mean(affRel, na.rm = T),
+    affHighPos = mean(affHighPos.m, na.rm = T),
+    affHighNeg = mean(affHighNeg.m, na.rm = T),
+    affLowPos = mean(affLowPos.m, na.rm = T),
+    affLowNeg = mean(affLowNeg.m, na.rm = T),
     
     #ext = mean(ext.m, na.rm = T),
     
-    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov = mean(extC19Msg, na.rm = T),
     gov.sd = sd(extC19Msg, na.rm = T),
     gov.se = gov.sd/sqrt(n),
     
-    comRule = mean(c19IsStrict, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule = mean(c19IsStrict, na.rm = T),
     comRule.sd = sd(c19IsStrict, na.rm = T),
     comRule.se = comRule.sd/sqrt(n),
     
-    comPunish = mean(c19IsPunish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish = mean(c19IsPunish, na.rm = T),
     comPunish.sd = sd(c19IsPunish, na.rm = T),
     comPunish.se = comPunish.sd/sqrt(n),
     
-    comOrg = mean(c19IsOrg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg = mean(c19IsOrg, na.rm = T),
     comOrg.sd = sd(c19IsOrg, na.rm = T),
     comOrg.se = comOrg.sd/sqrt(n),
     
-    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone = mean(lone.m, na.rm = T),
     lone.sd = sd(lone.m, na.rm = T),
     lone.se = lone.sd/sqrt(n),
     
     #bor = mean(bor.m, na.rm = T),
-    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers = mean(isoPers.m, na.rm = T),
     isoPers.sd = sd(isoPers.m, na.rm = T),
     isoPers.se = isoPers.sd/sqrt(n),
     
-    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl = mean(isoOnl.m, na.rm = T),
     isoOnl.sd = sd(isoOnl.m, na.rm = T),
     isoOnl.se = isoOnl.sd/sqrt(n),
     
     #beh = mean(beh.m, na.rm = T),
-    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash = mean(c19perBeh01, na.rm = T),
     behWash.sd = sd(c19perBeh01, na.rm = T),
     behWash.se = behWash.sd/sqrt(n),
     
-    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid = mean(c19perBeh02, na.rm = T),
     behAvoid.sd = sd(c19perBeh02, na.rm = T),
     behAvoid.se = behAvoid.sd/sqrt(n),
     
-    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope = mean(c19Hope, na.rm = T),
     covidHope.sd = sd(c19Hope, na.rm = T),
     covidHope.se = covidHope.sd/sqrt(n),
     
-    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff = mean(c19Eff, na.rm = T),
     covidEff.sd = sd(c19Eff, na.rm = T),
     covidEff.se = covidEff.sd/sqrt(n),
     
-    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para = mean(para.m, na.rm = T),
     para.sd = sd(para.m, na.rm = T),
     para.se = para.sd/sqrt(n),
     
-    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp = mean(consp.m, na.rm = T),
     consp.sd = sd(consp.m, na.rm = T),
     consp.se = consp.sd/sqrt(n)
     
@@ -1736,77 +1740,77 @@ global.scales <- shiny_prep %>%
   filter(!is.na(coded_country)) %>%
   dplyr::summarize(
     coded_country = "global",
-    n = n()+sample(-5:5, 1, replace=TRUE),
+    n = n(),
     
-    affAnx = mean(affAnx, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affBor = mean(affBor, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affCalm = mean(affCalm, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affContent = mean(affContent, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affDepr = mean(affDepr, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affEnerg = mean(affEnerg, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affExc = mean(affExc, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affNerv = mean(affNerv, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affExh = mean(affExh, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affInsp = mean(affInsp, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affRel = mean(affRel, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affHighPos = mean(affHighPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affHighNeg = mean(affHighNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affLowPos = mean(affLowPos.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
-    affLowNeg = mean(affLowNeg.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    affAnx = mean(affAnx, na.rm = T),
+    affBor = mean(affBor, na.rm = T),
+    affCalm = mean(affCalm, na.rm = T),
+    affContent = mean(affContent, na.rm = T),
+    affDepr = mean(affDepr, na.rm = T),
+    affEnerg = mean(affEnerg, na.rm = T),
+    affExc = mean(affExc, na.rm = T),
+    affNerv = mean(affNerv, na.rm = T),
+    affExh = mean(affExh, na.rm = T),
+    affInsp = mean(affInsp, na.rm = T),
+    affRel = mean(affRel, na.rm = T),
+    affHighPos = mean(affHighPos.m, na.rm = T),
+    affHighNeg = mean(affHighNeg.m, na.rm = T),
+    affLowPos = mean(affLowPos.m, na.rm = T),
+    affLowNeg = mean(affLowNeg.m, na.rm = T),
     
     #ext = mean(ext.m, na.rm = T),
     
-    gov = mean(extC19Msg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    gov = mean(extC19Msg, na.rm = T),
     gov.sd = sd(extC19Msg, na.rm = T),
     gov.se = gov.sd/sqrt(n),
     
-    comRule = mean(c19IsStrict, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comRule = mean(c19IsStrict, na.rm = T),
     comRule.sd = sd(c19IsStrict, na.rm = T),
     comRule.se = comRule.sd/sqrt(n),
     
-    comPunish = mean(c19IsPunish, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comPunish = mean(c19IsPunish, na.rm = T),
     comPunish.sd = sd(c19IsPunish, na.rm = T),
     comPunish.se = comPunish.sd/sqrt(n),
     
-    comOrg = mean(c19IsOrg, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    comOrg = mean(c19IsOrg, na.rm = T),
     comOrg.sd = sd(c19IsOrg, na.rm = T),
     comOrg.se = comOrg.sd/sqrt(n),
     
-    lone = mean(lone.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    lone = mean(lone.m, na.rm = T),
     lone.sd = sd(lone.m, na.rm = T),
     lone.se = lone.sd/sqrt(n),
     
     #bor = mean(bor.m, na.rm = T),
-    isoPers = mean(isoPers.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoPers = mean(isoPers.m, na.rm = T),
     isoPers.sd = sd(isoPers.m, na.rm = T),
     isoPers.se = isoPers.sd/sqrt(n),
     
-    isoOnl = mean(isoOnl.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    isoOnl = mean(isoOnl.m, na.rm = T),
     isoOnl.sd = sd(isoOnl.m, na.rm = T),
     isoOnl.se = isoOnl.sd/sqrt(n),
     
     #beh = mean(beh.m, na.rm = T),
-    behWash = mean(c19perBeh01, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behWash = mean(c19perBeh01, na.rm = T),
     behWash.sd = sd(c19perBeh01, na.rm = T),
     behWash.se = behWash.sd/sqrt(n),
     
-    behAvoid = mean(c19perBeh02, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    behAvoid = mean(c19perBeh02, na.rm = T),
     behAvoid.sd = sd(c19perBeh02, na.rm = T),
     behAvoid.se = behAvoid.sd/sqrt(n),
     
-    covidHope = mean(c19Hope, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidHope = mean(c19Hope, na.rm = T),
     covidHope.sd = sd(c19Hope, na.rm = T),
     covidHope.se = covidHope.sd/sqrt(n),
     
-    covidEff = mean(c19Eff, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    covidEff = mean(c19Eff, na.rm = T),
     covidEff.sd = sd(c19Eff, na.rm = T),
     covidEff.se = covidEff.sd/sqrt(n),
     
-    para = mean(para.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    para = mean(para.m, na.rm = T),
     para.sd = sd(para.m, na.rm = T),
     para.se = para.sd/sqrt(n),
     
-    consp = mean(consp.m, na.rm = T)+rnorm(1, mean=0, sd=.2),
+    consp = mean(consp.m, na.rm = T),
     consp.sd = sd(consp.m, na.rm = T),
     consp.se = consp.sd/sqrt(n),
     
@@ -1818,6 +1822,9 @@ global.scales <- shiny_prep %>%
     flag = "https://rawcdn.githack.com/FortAwesome/Font-Awesome/4e6402443679e0a9d12c7401ac8783ef4646657f/svgs/solid/globe.svg"
   )
 ctry.scales <- rbind(global.scales, ctry.scales); rm(global.scales)
+
+scramble20 <- function(x) {ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x)}
+scramble50 <- function(x) {ifelse(x<50, abs(x+sample(-5:5, 1, replace = T)), x)}
 
 languages <- shiny_prep %>% 
   dplyr::select(coded_country, language) %>%
@@ -1832,7 +1839,9 @@ languages.glob <- shiny_prep %>%
   tidyr::spread(language, n)
 languages <- rbind(languages.glob, languages); rm(languages.glob)
 names(languages)[names(languages) != "coded_country"] = paste0("languages_", names(languages)[names(languages) != "coded_country"])
-languages[languages<20] <- NA
+languages[,-1] <- lapply(languages[,-1], scramble20)
+#languages[names(languages) != "coded_country"] <- lapply(languages[names(languages) != "coded_country"], scramble20)
+# languages[] <- lapply(languages, function(x) ifelse(x<20, abs(x+sample(-2:2, 1, replace = T)), x))
 
 gender <- data.frame(coded_country = shiny_prep$coded_country, 
                      gender = as_factor(shiny_prep$gender)) %>%
@@ -1846,7 +1855,7 @@ gender.glob <- data.frame(coded_country = "global",
   tidyr::spread(gender, n)
 gender <- rbind(gender.glob, gender); rm(gender.glob)
 names(gender)[names(gender) != "coded_country"] = paste0("gender_", names(gender)[names(gender) != "coded_country"])
-gender[gender<20] <- NA
+gender[,-1] <- lapply(gender[,-1], scramble20)
 
 age <- data.frame(coded_country = shiny_prep$coded_country, 
                   age = as_factor(shiny_prep$age)) %>%
@@ -1860,7 +1869,7 @@ age.glob <- data.frame(coded_country = "global",
   tidyr::spread(age, n)
 age <- rbind(age.glob, age); rm(age.glob)
 names(age)[names(age) != "coded_country"] = paste0("age_", names(age)[names(age) != "coded_country"])
-age[age<20] <- NA
+age[,-1] <- lapply(age[,-1], scramble20)
 
 edu <- data.frame(coded_country = shiny_prep$coded_country, 
                   edu = as_factor(shiny_prep$edu)) %>%
@@ -1874,7 +1883,7 @@ edu.glob <- data.frame(coded_country = "global",
   tidyr::spread(edu, n)
 edu <- rbind(edu.glob, edu); rm(edu.glob)
 names(edu)[names(edu) != "coded_country"] = paste0("education_", names(edu)[names(edu) != "coded_country"])
-edu[edu<20] <- NA
+edu[,-1] <- lapply(edu[,-1], scramble20)
 
 pol <- shiny_prep %>%
   dplyr::select(coded_country, PolOrCat) %>%
@@ -1893,7 +1902,7 @@ pol.glob <- shiny_prep %>%
   tidyr::spread(PolOrCat, n)
 pol <- rbind(pol.glob, pol); rm(pol.glob)
 names(pol)[names(pol) != "coded_country"] = paste0("political_", names(pol)[names(pol) != "coded_country"])
-pol[pol<50] <- NA
+pol[,-1] <- lapply(pol[,-1], scramble50)
 
 #ctry.scales <- merge(x=ctry.scales, y=languages, by="coded_country", all.x=TRUE)
 ctry.scales <- plyr::join(x=ctry.scales, y=languages, by="coded_country")
@@ -1908,7 +1917,7 @@ world.n <- shiny_prep %>%
   dplyr::select(coded_country, iso_a2, flag) %>%
   dplyr::group_by(coded_country, iso_a2, flag) %>%
   dplyr::summarize(
-    n = n()+sample(-5:5, 1, replace=TRUE)
+    n = n()
   )
 
 ctry.red <- ctry.scales %>%
@@ -2054,7 +2063,7 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
+  save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
   write.csv(ContactList1, file = namCL)
