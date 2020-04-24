@@ -91,18 +91,23 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 # Reset working directory to folder current file is saved in
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
+dir("data/raw data", pattern = "Baseline[ +]\\-[ +]RUG[ +]General", full.names = TRUE, ignore.case = TRUE)
+
 # Import RuG Snowball
-dt0RawRUG <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Baseline_April+21,+2020_10.45.sav")
+dt0RawRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawRUG$source <- "RUG"
+
 # RUG Representative sample
-dt0RawRepRUG <- read_spss("data/raw data/Snowball_Corona_Long-Term_Coverage_Baseline_RepresentativeRUG_April+21,+2020_10.26.sav")
+dt0RawRepRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepRUG$source <- "Rep RUG"
 dt0RawRepRUG$country <- dt0RawRepRUG$country_new #fixed here but later in MTurk
+
 # NYU Snowball
-dt0RawNYUAD <- read_spss("data/raw data/Snowball Corona Long-Term Coverage - Baseline - Copy_April 24, 2020_03.08.sav")
+dt0RawNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawNYUAD$source <- "NYU-AD"
+
 # NYU representative
-dt0RawRepNYUAD <- read_spss("data/raw data/Snowball Corona - Baseline - Qualtrics REPRESENTATIVE_April 23, 2020_07.29.sav")
+dt0RawRepNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -132,8 +137,9 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 ### Recontacts
 ```{r LoadRawRec, echo=T, warning=F, message=F}
 # Import Wave 1
-  dt0w1 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+2+April+3th_April+14,+2020_17.22.sav")
-  dt0w2 <- read_spss("data/raw data/Snowball+Corona+Long-Term+Coverage+-+Wave+3+April+11th_April+14,+2020_15.04.sav")
+  dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1", full.names = TRUE, ignore.case = TRUE))
+  dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
+  dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) #<-- still needs to be processed
 
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -181,7 +187,7 @@ cat("How many people did we loose in wave 3:")
   nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
   cat("We lost them because an independent link was sent around")
 
-rm(dt0w1)
+rm(list=ls(pattern="dt0w"))
 ```
 
 ## **Data Quality**   
