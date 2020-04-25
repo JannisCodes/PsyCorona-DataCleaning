@@ -1708,6 +1708,8 @@ library("lubridate")
   # remove all irrelevant columns
     CLUp <- CLmerge %>%
       dplyr::select(-EmailDown)
+    CLUp1 <- CLUp[1:15000,]
+    CLUp2 <- CLUp[15001:nrow(CLUp),]
 
 # check whether there are multiple response ID
   n_occur <- data.frame(table(CLmerge$ExternalDataReference)) 
@@ -2124,6 +2126,8 @@ namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format =
 namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCL3 <- paste0("data/cleaned data/Contact List 3 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCLAll <- paste0("data/cleaned data/Contact List All ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp1 <- paste0("data/cleaned data/Contact List 0_15000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp2 <- paste0("data/cleaned data/Contact List 15001_30000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -2148,6 +2152,8 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   write.csv(ContactList2, file = namCL2)
   write.csv(ContactList3, file = namCL3)
   write.csv(CLUp, file = namCLAll)
+  write.csv(CLUp1, file = namCLUp1)
+  write.csv(CLUp2, file = namCLUp2)
 
 # export Language List
 #write.csv(LanguageList, file = namLL)
