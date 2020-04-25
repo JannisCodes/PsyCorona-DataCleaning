@@ -137,15 +137,17 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 # Import Wave 1
   dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1", full.names = TRUE, ignore.case = TRUE))
   dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
-  dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) #<-- still needs to be processed
-
+  dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
+  
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
   dplyr::select_if(!(names(dt0w1) %in% names(dt0Raw)))
 notBasew2 <- dt0w2 %>%
   dplyr::select_if(!(names(dt0w2) %in% names(dt0Raw)))
+notBasew3 <- dt0w3 %>%
+  dplyr::select_if(!(names(dt0w3) %in% names(dt0Raw)))
 
-cat("Missmatch between wave 2 and baseline:")
+cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
   data.frame()%>%
   filter(!grepl("t_",.), #filter timer
@@ -154,7 +156,7 @@ names(notBasew1) %>% # get missmatch names
          !grepl("_Submit",.)) #filter Submit
 cat("Checked and all mismatches were added later!"); rm(notBasew1)
 
-cat("Missmatch between wave 3 and baseline:")
+cat("Missmatch between wave 2 and baseline:")
 names(notBasew2) %>% # get missmatch names
   data.frame()%>%
   filter(!grepl("t_",.), #filter timer
@@ -163,34 +165,19 @@ names(notBasew2) %>% # get missmatch names
          !grepl("_Submit",.)) #filter Submit
 cat("Checked and all mismatches were added later!"); rm(notBasew2)
 
-# change column names for waves
-  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
-  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
-
-# create correct ID for merge across waves
-  dt0Raw$mergeID <- as.character(dt0Raw$ResponseId)
-  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
-  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
-  
-# merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt0Raw, dt0w1, dt0w2) %>% #merge multiple dfs at once
-    Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .)
-
-# find mistakes if not the same length
-cat("How many people did we loose in wave 2:")
-  nrow(dt0w1) - sum(dt0All$ICRec_1_TEXT == dt0All$w1_RecipientEmail, na.rm = T)
-  cat("We lost them because an independent link was sent around")
-  
-cat("How many people did we loose in wave 3:")
-  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
-  cat("We lost them because an independent link was sent around")
-
-rm(list=ls(pattern="dt0w"))
+cat("Missmatch between wave 3 and baseline:")
+names(notBasew3) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBasew3)
 ```
 
 ## **Data Quality**   
-
-### Filter: Preview Responses
+### Baseline
+#### Filter: Preview Responses
 Filter the Preview responses.
 ```{r preview, echo=T, warning=F, message=F}
 # flag Preview Responses
@@ -205,7 +192,7 @@ Filter the Preview responses.
 ```
 
 
-### Filter: Survey Progress (drop out)  
+#### Filter: Survey Progress (drop out)  
 <!-- https://cran.r-project.org/web/packages/naniar/vignettes/naniar-visualisation.html -->
 
 Inspecting missing data in the items.
@@ -289,7 +276,7 @@ rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
 
-### Filter: Short Duration on Survey   
+#### Filter: Short Duration on Survey   
 Filter survey responses that were shorter than 5 minutes.   
 ```{r Duration, echo=T, warning=F, message=F}
 # truncate data:
@@ -353,7 +340,7 @@ rm(tOutlierHigh, tCutOff, tCutOffPerc)
 ```
 
 
-### Filter: Straightliners   
+#### Filter: Straightliners   
 Filter participants, who have straightlined on the job insecurity scale, which includes a reverse coded item. We only flag people who straightlined outside the median categories because all "neither agree nor disagree" might be meaningful response.   
 ```{r Straightliner, echo=T, warning=F, message=F}
 # CheckMissingness pattern
@@ -383,6 +370,94 @@ jobinsecRed <- dt3Time %>%
 rm(jobinsecRed)
 ```
 
+### Recontacts
+#### Filter w1: Survey Progress
+```{r recSurvProgw1, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent (check each wave for correct number)
+progressFilter <- dt0w1 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w1 <- dt0w1 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+#### Filter w2: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 95 #cut-off criterion in percent (check each wave for correct number)
+progressFilter <- dt0w2 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w2 <- dt0w2 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+#### Filter w3: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 90 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressFilter <- dt0w3 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w3 <- dt0w3 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+## **Merge Dataframes**
+COULD ALSO GO BEHIND FILTERING dt5 OUT (HAVE TO THINK ABOUT IT)
+```{r merge}
+# change column names for waves
+  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
+  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
+  colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
+
+# create correct ID for merge across waves from the cleaned datasets
+  dt4Straightliner$mergeID <- as.character(dt4Straightliner$ResponseId)
+  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
+  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
+  dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
+
+# merge (can also be dt0Raw but for now seperate)
+  dt0All <- list(dt4Straightliner, dt0w1, dt0w2, dt0w3) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::left_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
+
+# find mistakes if not the same length
+cat("How many people did we loose in wave 2:")
+  nrow(dt0w1) - sum(dt0All$ICRec_1_TEXT == dt0All$w1_RecipientEmail, na.rm = T) #Emails
+  nrow(dt0w1) - sum(dt0All$ResponseId == dt0All$w1_ExternalReference, na.rm = T) #Response IDs
+  cat("We lost them because an independent link was sent around (could maybe be merged over MTurk")
+  
+cat("How many people did we loose in wave 3:")
+  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
+  nrow(dt0w2) - sum(dt0All$ResponseId == dt0All$w2_ExternalReference, na.rm = T)
+  cat("We lost them because an independent link was sent around")
+
+  cat("How many people did we loose in wave 3:")
+  nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
+  nrow(dt0w3) - sum(dt0All$ResponseId == dt0All$w3_ExternalReference, na.rm = T)
+  cat("We lost them because an independent link was sent around")
+
+rm(list=ls(pattern="dt0w"))
+```
 
 ## **Data Preparation**   
 Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet. For centering and standardizing to be accurate, we first filter the relevant criteria.
@@ -907,7 +982,7 @@ dt5newVars$bor.fa <- fa(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03
 ```{r iso, echo=T, results='asis', warning=F, message=F}
 cat(crayon::bold("Offline Isolation"))
 ia.isoPers <- dt5newVars %>%
-    dplyr::select(ends_with("inPerson"), -starts_with("w1_")) %>%
+    dplyr::select(ends_with("inPerson"), -starts_with("w")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoPers$rely   
@@ -918,18 +993,18 @@ as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))
 
 cat("<br>")
 
-dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")), min = 0, max = 7)$scores
+dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation offline") %>%
@@ -938,11 +1013,11 @@ as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
 
 dt5newVars$isoPers.c <- scale(dt5newVars$isoPers.m, scale = F, center = T)
 dt5newVars$isoPers.z <- scale(dt5newVars$isoPers.m, scale = T)
-dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))$scores
+dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))$scores
 
 cat(crayon::bold("Online Isolation"))
 ia.isoOnl <- dt5newVars %>%
-    dplyr::select(ends_with("online"), -starts_with("w1_")) %>%
+    dplyr::select(ends_with("online"), -starts_with("w")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoOnl$rely   
@@ -953,18 +1028,18 @@ as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
 
 cat("<br>")
 
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w1_")))) %>%
+as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
   mutate(vars = rownames(.)) %>%
   kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 cat("<br>")
 
-#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))
+#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")))
 
 cat("<br>")
 
-dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")), min = 0, max = 7)$scores
+dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
 
 as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
   mutate(vars = "Isolation online") %>%
@@ -973,7 +1048,7 @@ as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
 
 dt5newVars$isoOnl.c <- scale(dt5newVars$isoOnl.m, scale = F, center = T)
 dt5newVars$isoOnl.z <- scale(dt5newVars$isoOnl.m, scale = T)
-dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w1_")))$scores
+dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")))$scores
 
 # Leave House
 as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
@@ -1485,9 +1560,9 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 
 # set people location and IP NA if they do not provide consent
   dt5newVars <- dt5newVars %>%
-    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress),
-   #variables                   .funs = list(~ ifelse(ZIP == 1, ., NA)))
-#  # get cell if ZIP == 1 if not set NA
+    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), #variables 
+                     .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
+
 # # Set to NULL to get all GPS locations; takes a long time
 # only_missing_gps <- TRUE
 # number_of_gps <- 100
