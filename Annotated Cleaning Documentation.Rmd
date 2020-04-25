@@ -2004,6 +2004,8 @@ ctry.only.red <- ctry.scales %>%
 
 ctry.scales <- ctry.scales %>%
   filter(n>=20)
+
+latest.DateTime <- format(max(as.POSIXlt(shiny_prep$EndDate, tz = "CET")), "%d %B, %Y - %H:%M %Z")
 ```
 
 ## **Descriptives for Representativeness**
@@ -2138,7 +2140,8 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   save(dt6ReducedTimer, file = namTR)
 
 # export for Shiny
-  save(ctry.scales, world.n, ctry.red, ctry.only.red, file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
+  save(ctry.scales, world.n, ctry.red, ctry.only.red, latest.DateTime, 
+       file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
   write.csv(ContactList1, file = namCL)
