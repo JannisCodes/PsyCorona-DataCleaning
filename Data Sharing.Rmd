@@ -92,15 +92,15 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data
-  dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-24 11-22 CEST.sav")
+  #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-26 14-11 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
   url <- gsheet::construct_download_url('docs.google.com/spreadsheets/d/13PFXsmgjrZBNddHodR2Z_80cjicN4s7yd8BbazKffx8/edit?usp=sharing', format = "csv", sheetid = NULL)
   dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
   namedtReq <- dtReq[1,]
-  dtReq <- dtReq[-c(1:2),]
+  dtReq <- dtReq[-c(1:3),]
 ```
 
 ### Function for Data
