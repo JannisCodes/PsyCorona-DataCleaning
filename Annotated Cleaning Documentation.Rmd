@@ -422,46 +422,6 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
-## **Merge Dataframes**
-COULD ALSO GO BEHIND FILTERING dt5 OUT (HAVE TO THINK ABOUT IT)
-```{r merge}
-# change column names for waves
-  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
-  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
-  colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
-
-# create correct ID for merge across waves from the cleaned datasets
-  dt4Straightliner$mergeID <- as.character(dt4Straightliner$ResponseId)
-  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference)
-  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
-  dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
-
-# merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt4Straightliner, dt0w1, dt0w2, dt0w3) %>% #merge multiple dfs at once
-    Reduce(function(dtf1,dtf2) dplyr::left_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
-
-# find mistakes if not the same length
-cat("How many people did we loose in wave 2:")
-  nrow(dt0w1) - sum(dt0All$ICRec_1_TEXT == dt0All$w1_RecipientEmail, na.rm = T) #Emails
-  nrow(dt0w1) - sum(dt0All$ResponseId == dt0All$w1_ExternalReference, na.rm = T) #Response IDs
-  cat("We lost them because an independent link was sent around (could maybe be merged over MTurk")
-  
-cat("How many people did we loose in wave 3:")
-  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
-  nrow(dt0w2) - sum(dt0All$ResponseId == dt0All$w2_ExternalReference, na.rm = T)
-  cat("We lost them because an independent link was sent around")
-
-  cat("How many people did we loose in wave 3:")
-  nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
-  nrow(dt0w3) - sum(dt0All$ResponseId == dt0All$w3_ExternalReference, na.rm = T)
-  cat("We lost them because an independent link was sent around")
-
-rm(list=ls(pattern="dt0w"))
-```
-
-## **Data Preparation**   
-Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet. For centering and standardizing to be accurate, we first filter the relevant criteria.
-
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -497,7 +457,7 @@ rm(qualtricsLanguage)
   # export for qualtrics
     exclRepNYURespId <- exclRepNYU$ResponseId
     namExcl <- paste0("data/cleaned data/Exclude NYU RespId ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-    write.csv(exclRepNYURespId, file = namexcl); rm(namExcl)
+    write.csv(exclRepNYURespId, file = namExcl); rm(namExcl)
 # which people do we include?
   inclRepNYU <- dt5newVars %>%
   filter(gc == 1,
@@ -537,6 +497,68 @@ dt5newVars <- dt5newVars %>%
     dplyr::filter_all(any_vars(stringr::str_detect(., paste(strings, collapse = "|")))) #loop over cols
   dt5newVars <- dt5newVars[!(dt5newVars$ResponseId %in% tmp$ResponseId), ]; rm(tmp) # remove test Response IDs 
 ```
+
+## **Merge Dataframes**
+```{r merge}
+# change column names for waves
+  colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
+  colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
+  colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
+
+# create correct ID for merge across waves from the cleaned datasets
+  dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
+  dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference) #add MTurk IDs but puh...
+  dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
+  dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
+  
+# How many people do not have a merge ID?
+  # baseline
+cat("How many people do we loose in the baseline due to missing merge ID:")
+  sum(dt5newVars$mergeID == "")
+  dt5newVars <- dt5newVars[dt5newVars$mergeID != "",]
+  # wave 1
+cat("How many people do we loose in wave 1 due to missing merge ID:")
+  sum(dt0w1$mergeID == "")
+  dt0w1 <- dt0w1[dt0w1$mergeID != "",] # due to the link being sent out and translator testing
+  # wave 2
+cat("How many people do we loose in wave 2 due to missing merge ID:")
+  sum(dt0w2$mergeID == "")
+  dt0w2 <- dt0w2[dt0w2$mergeID != "",]
+  # wave 3
+cat("How many people do we loose in wave 3 due to missing merge ID:")
+  sum(dt0w3$mergeID == "")
+  dt0w3 <- dt0w3[dt0w3$mergeID != "",]
+
+# merge (can also be dt0Raw but for now seperate)
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3) %>% #merge multiple dfs at once
+    Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
+  
+# problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
+  tmp <- dplyr::anti_join(dt0w1, dt5newVars,by="mergeID"); rm(tmp)
+
+# find mistakes if not the same length
+cat("How many people do not have fitting emails or response IDs in wave 1:")
+  nrow(dt0w1) - sum(dt0All$ICRec_1_TEXT == dt0All$w1_RecipientEmail, na.rm = T) #Emails
+  nrow(dt0w1) - sum(dt0All$ResponseId == dt0All$w1_ExternalReference, na.rm = T) #Response IDs
+  cat("We loose them because the weirdness above")
+  
+cat("How many people do not have fitting emails or response IDs in wave 2:")
+  nrow(dt0w2) - sum(dt0All$ICRec_1_TEXT == dt0All$w2_RecipientEmail, na.rm = T)
+  nrow(dt0w2) - sum(dt0All$ResponseId == dt0All$w2_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+  cat("How many people do not have fitting emails or response IDs in wave 3:")
+  nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
+  nrow(dt0w3) - sum(dt0All$ResponseId == dt0All$w3_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+rm(list=ls(pattern="dt0w"))
+
+dt5newVars <- dt0All
+```
+
+## **Data Preparation**   
+Note: For each of the scales we do an item analysis, and combine the items to the mean- (.m), and factor scores (.fa). We also centered (.c) and standardized (.z) the mean scores. Most of these items are not labelled for SPSS yet. For centering and standardizing to be accurate, we first filter the relevant criteria.
 
 ### Country
 We currently have `r length(table(dt5newVars$country))` different free text country responses. Here we aim to consolidate them into one variable.
@@ -679,16 +701,16 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Uruguay' = c('urug', 'Uruguay'),
                      'Uzbekistan' = c('u.{2,5}istan', 'u\\w{2,6}istan', '(?i)Uzbekistan', '(?i)узбекистан'),
                      'Venezuela' = c('venezuela'),
-                     'Vietnam' = c('vi.tnam'),
+                     'Vietnam' = c('vi.tnam', 'vi..̣tnam'),
                      'Yemen' = c('العند')
 )
 
 country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-#View(country_matches$unmatched)
+  View(country_matches$unmatched)
 # Check duplicates, and which regular expressions triggered them
-#View(country_matches$dup)
+  View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
 dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
 
@@ -707,7 +729,7 @@ rm(country_dict, country_matches)
 We currently have `r length(unique(dt5newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
 </div>
 
-### Visualize Response Rates (maybe moved somewhere else?)
+### Visualize Response Rates 
 We visualize how many responses we have per day.
 ```{r RespVis, echo=T, warning=F, message=F}
 # All data
@@ -1650,34 +1672,6 @@ dt6Reduced <- dt6ReducedTimer %>%
 as.Date(dt5newVars$EndDate)
 
 library("lubridate")
-# NOT NEEDED ANYMORE (HISTORICAL REASONS; WILL BE DELETED IF RECONTACT SUCCESFULL)
-# ContactList1 <- dt5newVars %>%
-#   filter(FilterPreview == 0,
-#          ICRec_1_TEXT!="",
-#          !grepl("Rep", source),
-#          ymd_hms(dt5newVars$EndDate) < "2020-04-07 12:00:00 UTC") %>% #change in larger next wave
-#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-#   dplyr::select(ExternalDataReference = ResponseId,
-#                 Language = Q_Language,
-#                 Email = ICRec_1_TEXT,
-#                 StartDateBaseline = StartDate,
-#                 EndDateBaseline = EndDate)
-# table(ContactList1$Language)
-# 
-# ContactList2 <- dt5newVars %>%
-#   filter(FilterPreview == 0,
-#          ICRec_1_TEXT!="",
-#          !grepl("Rep", source), # do not get the people from the representative sample (different contact list)
-#          ymd_hms(dt5newVars$EndDate) > "2020-04-07 12:00:00 UTC",
-#          ymd_hms(dt5newVars$EndDate) < "2020-04-14 12:00:00 UTC",) %>% 
-#   dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
-#   dplyr::select(ExternalDataReference = ResponseId,
-#                 Language = Q_Language,
-#                 Email = ICRec_1_TEXT,
-#                 StartDateBaseline = StartDate,
-#                 EndDateBaseline = EndDate)
-# 
-# table(ContactList2$Language)
 
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
@@ -1714,7 +1708,7 @@ library("lubridate")
 # check whether there are multiple response ID
   n_occur <- data.frame(table(CLmerge$ExternalDataReference)) 
   n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
-ContactList1[ContactList1$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
+CLmerge[CLmerge$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
 ```
 
 ## **Data for Shiny App**
