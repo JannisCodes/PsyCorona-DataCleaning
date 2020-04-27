@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-26 14-11 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-27 11-38 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -147,6 +147,58 @@ return(stringOut)
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
 
+### RMD01 
+```{r RMD01, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD01'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 countryCitizenIfNo)
+ 
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
 ### RMD02 (Ben Guetzkow): \n Decision-Making during the COVID-19 Pandemic: Predicting Safe and Unsafe behaviors with the Corona Reflection Test
 ```{r RMD02, echo=T, warning=F, message=F}
 # prepare dataframe
@@ -179,7 +231,14 @@ name <- 'RMD02'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
-    
+
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+  
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -224,6 +283,13 @@ name <- 'RMD03'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -269,6 +335,13 @@ name <- 'RMD04'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -314,6 +387,13 @@ name <- 'RMD05'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -360,6 +440,13 @@ name <- 'RMD06'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -405,6 +492,13 @@ name <- 'RMD07'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -450,6 +544,13 @@ name <- 'RMD08'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -495,6 +596,13 @@ name <- 'RMD09'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -540,6 +648,13 @@ name <- 'RMD10'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -585,6 +700,13 @@ name <- 'RMD11'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -630,6 +752,13 @@ name <- 'RMD12'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -643,7 +772,7 @@ name <- 'RMD12'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD13
+### RMD13 (Lemay)
 ```{r RMD13, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD13'
@@ -675,6 +804,13 @@ name <- 'RMD13'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -720,6 +856,13 @@ name <- 'RMD14'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -765,6 +908,13 @@ name <- 'RMD15'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -810,6 +960,13 @@ name <- 'RMD16'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+  # make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -855,6 +1012,13 @@ name <- 'RMD17'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -900,6 +1064,13 @@ name <- 'RMD18'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -945,6 +1116,13 @@ name <- 'RMD19'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -990,6 +1168,13 @@ name <- 'RMD20'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -1035,6 +1220,13 @@ name <- 'RMD21'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -1080,6 +1272,13 @@ name <- 'RMD22'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -1125,6 +1324,13 @@ name <- 'RMD23'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -1170,6 +1376,13 @@ name <- 'RMD24'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
@@ -1215,6 +1428,13 @@ name <- 'RMD25'
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  countryCitizenIfNo)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
     
 # Export Dataframe
 # Naming
