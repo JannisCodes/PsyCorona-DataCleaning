@@ -41,7 +41,7 @@ editor_options:
   #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
   #                Scale)
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
-         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale", "lubridate")
 
 invisible(lapply(lib, library, character.only = TRUE))  
 lapply(lib, library, character.only = TRUE)
@@ -2001,7 +2001,7 @@ ctry.only.red <- ctry.scales %>%
 ctry.scales <- ctry.scales %>%
   filter(n>=20)
 
-latest.DateTime <- format(max(as.POSIXlt(shiny_prep$EndDate, tz = "CET")), "%d %B, %Y - %H:%M %Z")
+latest.DateTime <- format(max(ymd_hms(shiny_prep$EndDate, tz = "CET"), na.rm=T), "%d %B, %Y - %H:%M %Z")
 ```
 
 ## **Descriptives for Representativeness**
