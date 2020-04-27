@@ -138,6 +138,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1", full.names = TRUE, ignore.case = TRUE))
   dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
   dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w4 <- read_spss(dir("data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -146,6 +147,8 @@ notBasew2 <- dt0w2 %>%
   dplyr::select_if(!(names(dt0w2) %in% names(dt0Raw)))
 notBasew3 <- dt0w3 %>%
   dplyr::select_if(!(names(dt0w3) %in% names(dt0Raw)))
+notBasew4 <- dt0w4 %>%
+  dplyr::select_if(!(names(dt0w4) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -173,6 +176,15 @@ names(notBasew3) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Checked and all mismatches were added later!"); rm(notBasew3)
+
+cat("Missmatch between wave 4 and baseline:")
+names(notBasew4) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Checked and all mismatches were added later!"); rm(notBasew4)
 ```
 
 ## **Data Quality**   
@@ -422,6 +434,23 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
+#### Filter w4: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 90 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressFilter <- dt0w4 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w4 <- dt0w4 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -504,12 +533,14 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w1) <- paste("w1", colnames(dt0w1), sep = "_")
   colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
   colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
+  colnames(dt0w4) <- paste("w4", colnames(dt0w4), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
   dt0w1$mergeID <- as.character(dt0w1$w1_ExternalReference) #add MTurk IDs but puh...
   dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
   dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
+  dt0w4$mergeID <- as.character(dt0w4$w4_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -528,9 +559,13 @@ cat("How many people do we loose in wave 2 due to missing merge ID:")
 cat("How many people do we loose in wave 3 due to missing merge ID:")
   sum(dt0w3$mergeID == "")
   dt0w3 <- dt0w3[dt0w3$mergeID != "",]
+  # wave 4
+cat("How many people do we loose in wave 4 due to missing merge ID:")
+  sum(dt0w4$mergeID == "")
+  dt0w4 <- dt0w4[dt0w4$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -547,9 +582,14 @@ cat("How many people do not have fitting emails or response IDs in wave 2:")
   nrow(dt0w2) - sum(dt0All$ResponseId == dt0All$w2_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
-  cat("How many people do not have fitting emails or response IDs in wave 3:")
+cat("How many people do not have fitting emails or response IDs in wave 3:")
   nrow(dt0w3) - sum(dt0All$ICRec_1_TEXT == dt0All$w3_RecipientEmail, na.rm = T)
   nrow(dt0w3) - sum(dt0All$ResponseId == dt0All$w3_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+  
+cat("How many people do not have fitting emails or response IDs in wave 4:")
+  nrow(dt0w4) - sum(dt0All$ICRec_1_TEXT == dt0All$w4_RecipientEmail, na.rm = T)
+  nrow(dt0w4) - sum(dt0All$ResponseId == dt0All$w4_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
 rm(list=ls(pattern="dt0w"))
@@ -671,7 +711,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
                      'Panama' = c('panam'), 
                      'Peru' = c('PERÚ', '(?i)Peru', '(?i)Perú', '(?i)peru', 'perú'),
-                     'Philippines' = c('(?i)Phillipines', 'phils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES', '206'),
+                     'Philippines' = c('(?pllipines', 'p'phillippines', hils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES', '206'),
                      'Poland' = c('(?i)poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', '(?i)Польша', '(?i)поль.а', '(?i)polska'),
                      'Portugal' = c('(?i)portugal', '葡萄牙', 'portogallo', 'Portugal'), 
                      'Qatar' = c('qatar', 'Qatar', 'Katar'),
