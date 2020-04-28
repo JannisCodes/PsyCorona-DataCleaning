@@ -108,6 +108,10 @@ dt0RawNYUAD$source <- "NYU-AD"
 dt0RawRepNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
+# Iranian data
+dt0RawIran <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.Iran", full.names = TRUE, ignore.case = TRUE))
+dt0RawIran   $source <- "Iran"
+
 # prepare dfs before merge (basically naming variables correct)
 notRug <- dt0RawRUG %>%
   dplyr::select_if(!(names(dt0RawRUG) %in% names(dt0RawNYUAD)))
@@ -124,10 +128,16 @@ names(notRepRug)
 names(notRepNYU)
 cat("Looks good as country_new is calculated by Qualtrics"); rm(notRepRug, notRepNYU)
 
-# merge adn fill missing
-dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG)
+# check dataset from Iran
+notRepIran <- dt0RawIran %>%
+  dplyr::select_if(!(names(dt0RawIran) %in% names(dt0RawNYUAD)))
+names(notRepIran)
+cat("All variables have theo correct names in the Iranian dataset"); rm(notRepIran)
 
-rm(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG)
+# merge adn fill missing
+dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran)
+
+rm(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran)
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
@@ -628,7 +638,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Andorra' = c('(?i)andorra'),
                      'Argentina' = c('Αργεντινή', '(?i)αργεντινή', 'argentina', 'Argentine', 'ARGENTINA', 'Argentina', 'arge'),
                      'Armenia' = c('(?i)армения'),
-                     'Australia' = c('(?i)australia', 'austrlaia',  'austrija', '(?i)Australia', '199'),
+                     'Australia' = c('australi.', 'australi..', 'austrlaia',  'austrija', '199'),
                      'Austria' = c('(?i)Австрія', '(?i)autriche', 'Asturies', '(?i)austria', 'Austrija', 'Austria', 'sterreich'),
                      'Azerbaijan' = c('azerba', 'Azarbaycan',  'Azerbaycan', '(?i)Azerbaijan'),
                      'Bahrain' = c('bahrain', 'Bahrain'),
@@ -647,7 +657,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Chad' = c('(?i)Tchad'),
                      'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
                      'China' = c('^china','Macao', 'kina',  'macau',  'hui', 'chine', '山东泰安东平县', '中华人民共和国', 'china','(?i)китай','^中国', '中國',   '中華民國', '中国大陆'),
-                     'Colombia' = c('(?i)colombia', 'Colombia', 'COLOMBIA'),
+                     'Colombia' = c('(?.ombia'. , '.olombi..'
                      'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
                      'Croatia' = c('croa', '(?i)Kroatien', '(?i)Horvátország',  '(?i)Croácia', '(?i)Croazia',  '(?i)HRVATSKA', 'Hrvatskoj', '(?i)Hrv', 	'(?i)Hrvarska', '(?i)Hrvatska', "hrvatsk", '(?i)Croatia'),
                      'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
@@ -674,11 +684,11 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Iraq' = c('عراق',  'iraq', 'الغراق', 'Iraq', 'العراق'),
                      'Ireland' = c('Ιρλανδία', 'irska', '^nireland$', 'Ιρλανδια', '^ireland$', 'Irska', 'Ireland', 'Irlanda', 'irlanda', 'ιρλ.....'),
                      'Israel' = c('كفرقاسم', '(?i)израиль',  'عارة',   'سخنين',   'رمله',   'القدس','Isreal', 'الطيبة',  'Израиль', 'الطيبه',  '(?i)Jerusalem', 'كفر قاسم',  'الطيرة', 'ISRAEL', 'جت المثلث', 'Israel', 'جلجولية',  'israel', 'اللد',  'اسرائيل',  'كفر, قاسم',  'isreal',  'רמלה', 'الرمله'), 
-                     'Italy' = c('itali.', 'ital.', 'itali..', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия', 'Mareno di Piave', 'Frosinone', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', '^ital', 'Roma', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca', 'arezzo'),
+                     'Italy' = c('itali.', 'ital.', 'itali..', 'fiuggi', 'gragnanolucca',  'calagonone', 'ιταλία',  '(?i)Італія', 'Ιταλία', 'Terralba', 'Tezze di Piave (Tv) ITA', 'Vicenza', 'Vergato', 'Vittorio Veneto',  'SETTIMO VITTONE', 'SS. Cosma e Damiano', 'Segni (RM)', 'Scalea', 'Scauri', 'ROMA', 'Predazzo (Tn)', 'Pellizzano', 'Padova', 'Olevano romano',  'Orosei', 'Italua', 'Itaia', 'Imola', 'Ladispoli', 'Guidonia', 'Guidonia Montecelio', 'Ferentino', 'Fiano romano', 'Chieti', 'Cala gonone',  'Brescia',  'Bari',  'marenodipiave', '(?i)Италия', 'Mareno di Piave', 'Frosinone', 'Milano', '.tal.a', 'Dorgali', 'olevanoromano', 'Castelforte', 'Bisceglie',  'Sardegna',  'salerno',  'sancosmaedamiano', 'santicosmaedamiano(lt)', '^ital', 'Roma', 'sardegna',  'bisceglie',  'ladispoli',  'castelforte',  'milano',  '^roma$', 'dorgali',  'bari',  'bologna',  'brescia', 'vicenza', 'cala, gonone', 'tezzedipiave(tv)ita', 'chieti',  'ferentino',  'frosinone',  'gragnano, lucca, ',  'guidonia',  'mareno, di, piave',  'modena',  'pellizzano',  'predazzo',  'refrontolo',  'cosma, e, damiano',  'scalea',  'scauri',  'segni',  'settimo, vittone',  'susegana',  'terralba',  'trento',  'treviso',  'tezze, di, piave',  'valmontone',  'vergato',  'veneto',  'gragnano, lucca', 'arezzo', 'soresina', 'avellino'),
                      'Jamaica' = c('jamaica', 'Jamaica'),
                      'Japan' = c('(?i)jap.n', 'japao', '(?i)Japão', '(?i)Japonya', 'にほん', 'Giappone',  'giappone', 'japonya', '日本', '일본', '愛知県'),
                      'Jordan' = c(  'الاردن', 'Jordanie',  'jordan', 'الأردن'),
-                     'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', '(?i)Qazaqstan', '(?i)Kazahstan', '(?i)Kazakhstan', 'kazakhstan', 'Казахстан', 'қазақстан'),
+                     'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', 'a.akh..an', 'kа.aza.stan', 'захстан', 'қазақстан', '.aza.stan', 'kaza..stan'),
                      'Kenya' = c('kenia', 'Kenia'),
                      'Kosovo' = c('(?i)Kosovo'),
                      'Kuwait' = c('الكويت'),
@@ -711,7 +721,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Palestine' = c('نابلس',     'كفر عقب',     'فلسطين،غزة',     'فلسطين غزة',   'فلستين',    'غزة',  'رامالله',     '	جنين - فلسطين',   'بيت لحم', 'palestine', 'رام الله',  'Palestine', 'فلسطين, ',  '^فلسطين$',  'الرملة'),
                      'Panama' = c('panam'), 
                      'Peru' = c('PERÚ', '(?i)Peru', '(?i)Perú', '(?i)peru', 'perú'),
-                     'Philippines' = c('(?pllipines', 'p'phillippines', hils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES', '206'),
+                     'Philippines' = c('pllipines', 'phillippines', 'hils.', '^thephilippines$', 'philippinea', '	phillippines', '^philippines$', 'republicofthephilippines', 'Ph', 'Pilipinas', '^Phil$', 'Philippinea', '^phil$',  'filipinas', 'Philippines', 'PHILIPPINES', '206'),
                      'Poland' = c('(?i)poland', 'POLAND', 'POLONIA', 'Portogallo', 'Poland',  'polonia', '(?i)Польша', '(?i)поль.а', '(?i)polska'),
                      'Portugal' = c('(?i)portugal', '葡萄牙', 'portogallo', 'Portugal'), 
                      'Qatar' = c('qatar', 'Qatar', 'Katar'),
@@ -737,7 +747,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'United Arab Emirates' = c('u\\.a\\.\\.', 'emiradosarabesunidos', 'emiratelearabeunite', 'emiratosarabesunidos', 'emiratsarabesunis', '(?i)abudhabi',    'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'(?i)Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
                      'United Kingdom' = c('.γγλ..', 'regatulunit', '(?i)ecosse',  	'ηνωμένοβασίλειο', 'ηνωμένοβασίλειο(αγγλία)', 'theuk', '(?i)regnounito', 'mareabritanie',  '(?i)Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', '^GB$', 'Anglia', 'Ecosse', '(?i)Angleterre', '(?i)Великобритания', 'Αγγλια', 'U.K','SCOTLAN', '(?i)Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', '(?i)London', 'londra', 'Verenigd Koninkrijk', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', '^Northern ireland$', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales','verenigdkoninkrijk', 'Reino Unido', '^Uk$', 'Scotland', 'United Kingdom', 'england', '^UK$',  '^uk$',  '(?i)reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk', 'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland', 'grandcayman,caymanislands', 'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
                      'United Republic of Tanzania' = c('tanzania', 'Tanzania'),
-                     'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   '(?i)Αμερική' , 'ηπα',   'U.s.a.', 'Tempe' , 'alameda',  'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'puertorico', 'idaho', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'concord,ca', 'Amerika Serikat', 'amerikaserikat', '(?i)AMERICA', '(?i)ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', '(?i)Pennsylvania', '(?i)Pennssylvania', 'united sta.e.', 'Estados unidos', 'mcdonaughcounty', 'southcarolina', 'minnesota', 'NEWYORK', 'Arizona',  '(?i)New York', 'new york', 'New york', 'NEW YORK', 'США', 'newjersey', 'newyark', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'United statea', 'United Sates', 'Estados Unidos', 'northcarolina', '^ny$',  'Estados unidos', 'munford', 'wisconsin', 'ESTADOS UNIDOS', 'Untied statest', '\\d{0,30}merica$', 'United State', 'U.S', 'unite. sta//w{1,3}es', 'America', 'america', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  '^america$', 'unitedststes', 'unitedstaes', '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona', '^\\w{1,3}us$', 'merica$', 'theu.s.', 'امریکا', '美國'), 
+                     'United States of America' = c('فلوريدا',     'الولايات المتحدة الامريكية'  , 'الولايات المتحدة الأمريكية',   '(?i)Αμερική' , 'ηπα',   'U.s.a.', 'Tempe' , 'alameda',  'TEXAS', 'untied states', 'TX', 'Untied STates', 'Wisconsin', 'virginia', 'illinois', 'Puerto Rico', 'puertorico', 'idaho', 'Penssylvania', 'NY', 'new yark', 'Munford', 'michigan', 'midwest', 'Minnesota', 'EEUU', 'IDAHO', 'georgia', 'concord,ca', 'Amerika Serikat', 'amerikaserikat', '^ameri.a', '(?i)ALASKA', '^us$', '미국', 'آمریکا', 'أمريكا', '(?i)Pennsylvania', '(?i)Pennssylvania', 'united sta.e.', 'Estados unidos', 'mcdonaughcounty', 'southcarolina', 'minnesota', 'NEWYORK', 'Arizona',  '(?i)New York', 'new york', 'New york', 'NEW YORK', 'США', 'newjersey', 'newyark', 'new jersey',  'Unites stats', 'California', 'Uniteed States', 'United. States', 'United Staes', 'Unite States', 'ESTADOS UNIDOS', 'Unites states', 'United Ststes', 'United statea', 'United Sates', 'Estados Unidos', 'northcarolina', '^ny$',  'Estados unidos', 'munford', 'wisconsin', 'ESTADOS UNIDOS', 'Untied statest', '\\d{0,30}merica$', 'United State', 'U.S', 'unite. sta//w{1,3}es', '^usa', 'u.s.a',  'uni.+stat', 'uni.+merica',  'unitedststes', 'unitedstaes', '^u.{0,1}s.{0,1}$',  'esta.+unid',  'colorado',  'xas',  'sates',  'amerika, serikat',  'california',  'corlifornia',  'états-unis', 'puerto, rico',  '^tx$',  '^tn$', '美国', 'new+york', 'сша', 'un..edsta.es', 'arizona', '^\\w{1,3}us$', 'merica$', 'theu.s.', 'امریکا', '美國'), 
                      'Uruguay' = c('urug', 'Uruguay'),
                      'Uzbekistan' = c('u.{2,5}istan', 'u\\w{2,6}istan', '(?i)Uzbekistan', '(?i)узбекистан'),
                      'Venezuela' = c('venezuela'),
@@ -761,7 +771,7 @@ country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
 # namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 # save(country_entry, country_names, file = namTR)
 
-rm(country_dict, country_matches)
+rm(country_dict, country_matches, country_names, country_entry)
 ```
 <br>
 <div class="alert alert-warning">
@@ -796,10 +806,7 @@ ggplot(tmp, aes(x=Date, y = Count))+
 ### Political Orientation   
 Political orientation was measured per language. We merge these variables here.    
 ```{r PolOr, echo=T, warning=F, message=F}
-# clean-up country coding:
-rm(country_counts)
-
-# political orientation
+# cleitical orientation
 dt5newVars <- dt5newVars %>%
   mutate(PolOrX = labelled(rowSums(dplyr::select(., ends_with("_x")), na.rm = T), 
                            labels = NULL, label="Political Compass X-Coordinate"),
@@ -1724,7 +1731,7 @@ library("lubridate")
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
-# download contact list from qualtrics (next week this will be one dataframe)
+# download contact list from qualtrics (next week this will be in one dataframe)
   CL1 <- read.csv("data/raw data/contact list/c19Recontact.csv", header = T)
   CL2 <- read.csv("data/raw data/contact list/c19Recontact2.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)

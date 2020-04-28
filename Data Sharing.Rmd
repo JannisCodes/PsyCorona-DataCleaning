@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-27 11-38 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-28 12-36 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -147,6 +147,17 @@ return(stringOut)
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
 
+### RMD00 (Bertus wants gender, age, country table)
+```{r bertDemo}
+tmp <- dtAll %>%
+  group_by(coded_country, age, gender) %>%
+  summarise(n = n())
+write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
+write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
+rm(tmp)
+```
+
+
 ### RMD01 
 ```{r RMD01, echo=T, warning=F, message=F}
 # prepare dataframe
@@ -178,7 +189,7 @@ name <- 'RMD01'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
  
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -230,7 +241,7 @@ name <- 'RMD02'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
 
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -282,7 +293,7 @@ name <- 'RMD03'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -334,7 +345,7 @@ name <- 'RMD04'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -386,7 +397,7 @@ name <- 'RMD05'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -439,7 +450,7 @@ name <- 'RMD06'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -491,7 +502,7 @@ name <- 'RMD07'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -543,7 +554,7 @@ name <- 'RMD08'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -595,7 +606,7 @@ name <- 'RMD09'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -647,7 +658,7 @@ name <- 'RMD10'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -699,7 +710,7 @@ name <- 'RMD11'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -751,7 +762,7 @@ name <- 'RMD12'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -803,7 +814,7 @@ name <- 'RMD13'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -824,7 +835,7 @@ name <- 'RMD13'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD14
+### RMD14 (Han)
 ```{r RMD14, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD14'
@@ -855,7 +866,7 @@ name <- 'RMD14'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -907,7 +918,7 @@ name <- 'RMD15'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -959,7 +970,7 @@ name <- 'RMD16'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
   # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1011,7 +1022,7 @@ name <- 'RMD17'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1063,7 +1074,7 @@ name <- 'RMD18'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1115,7 +1126,7 @@ name <- 'RMD19'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1167,7 +1178,7 @@ name <- 'RMD20'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1219,7 +1230,7 @@ name <- 'RMD21'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1271,7 +1282,7 @@ name <- 'RMD22'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1323,7 +1334,7 @@ name <- 'RMD23'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1375,7 +1386,7 @@ name <- 'RMD24'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
@@ -1427,7 +1438,7 @@ name <- 'RMD25'
                  -contains(".fa"),
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
-                 countryCitizenIfNo)
+                 -countryCitizenIfNo)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
