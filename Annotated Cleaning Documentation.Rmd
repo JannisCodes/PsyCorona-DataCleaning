@@ -482,6 +482,40 @@ rm(qualtricsLanguage)
 ### Filter Participants
 #### "Bad" ResponseIds
 ```{r filtBefCalc, echo=T, warning=F, message=F}
+# RUG Representative
+# Qualtrics filter
+  tmp <- dt5newVars %>%
+    filter(gc == 1,
+           source == "Rep RUG")
+# which people do we exclude?
+  exclRepRUG <- tmp %>%
+  filter((FilterPreview == 1 |
+         FilterProgress == 1 |
+         FilterTime == 1 |
+         FilterStraightliner == 1),
+         source == "Rep RUG")
+  # export for qualtrics
+    exclRepRUGRespId <- exclRepRUG$ResponseId
+    namExcl <- paste0("data/cleaned data/Exclude RUG RespId ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+    write.csv(exclRepRUGRespId, file = namExcl); rm(namExcl)
+# which people do we include?
+  inclRepRUG <- dt5newVars %>%
+  filter(gc == 1,
+         FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         FilterStraightliner == 0,
+         source == "Rep RUG")
+# which people do we include? (no straightlining exclusion)
+  inclRepRUG2 <- dt5newVars %>%
+  filter(gc == 1,
+         FilterPreview == 0,
+         FilterProgress == 0,
+         FilterTime == 0,
+         source == "Rep RUG")
+rm(tmp, exclRepRUG, exclRepRUGRespId, inclRepRUG, inclRepRUG2)
+
+# NYU Representative
 # Qualtrics filter
   tmp <- dt5newVars %>%
     filter(gc == 1,
@@ -657,7 +691,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Chad' = c('(?i)Tchad'),
                      'Chile' = c('^chile$', 'CHile',  'Chile', 'CHILE'),
                      'China' = c('^china','Macao', 'kina',  'macau',  'hui', 'chine', '山东泰安东平县', '中华人民共和国', 'china','(?i)китай','^中国', '中國',   '中華民國', '中国大陆'),
-                     'Colombia' = c('(?.ombia'. , '.olombi..'
+                     'Colombia' = c('.ombia', '.olombi..'),
                      'Costa Rica' = c('costa', 'Costa rica', 	'Costa Rica'), 
                      'Croatia' = c('croa', '(?i)Kroatien', '(?i)Horvátország',  '(?i)Croácia', '(?i)Croazia',  '(?i)HRVATSKA', 'Hrvatskoj', '(?i)Hrv', 	'(?i)Hrvarska', '(?i)Hrvatska', "hrvatsk", '(?i)Croatia'),
                      'Cyprus' = c('Κύπρος', 'Κυπρο', 'Κύπρο', 'Cypris', 'cyp', 'Κυπρο','Kuzey Kıbrıs Türk Cumhuriyeti',  'Kuzey Kıbrıs Türk Cumhuriyeti', 'Κυπρος', 'Κύπρος', 'Κύπρος', '^κ...ο.', '^κ...ο', 'Cyprus'), 
@@ -1629,37 +1663,27 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 
 # set people location and IP NA if they do not provide consent
   dt5newVars <- dt5newVars %>%
-    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), #variables 
+    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), 
                      .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
 
 # # Set to NULL to get all GPS locations; takes a long time
 # only_missing_gps <- TRUE
 # number_of_gps <- 100
 # 
-# # df_loc <- read.csv("data/raw data/RMS3_vanLissa_Cooperation 2020-04-19 12-42 CEST.csv", stringsAsFactors = F)
-# df_loc <- dt5newVars %>%
-#   dplyr::select(ResponseId = ResponseId,
-#                 LocationLatitude = LocationLatitude,
-#                 LocationLongitude = LocationLongitude,
-#                 IPAddress = IPAddress,
-#                 ZIP = ZIP_1_TEXT,
-#                 coded_country = coded_country) %>%
-#   mutate_all(na_if,"")
+# dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
 # 
-# df_loc$countryiso3 <- countrycode::countrycode(df_loc$coded_country, origin = "country.name", destination = "iso3c")
-# 
-# df_loc$id <- paste0(formatC(df_loc$LocationLongitude, digits = 7, format = "f"), 
-#                     formatC(df_loc$LocationLatitude, digits = 7, format = "f"))
+# dt5newVars$id <- paste0(formatC(dt5newVars$LocationLongitude, digits = 7, format = "f"),
+#                     formatC(dt5newVars$LocationLatitude, digits = 7, format = "f"))
 # 
 # if(!file.exists(file.path("data", "cleaned data", "geolocate.csv", "id"))){
-#   gps <- df_loc[, c("LocationLongitude", "LocationLatitude")]
-#   if(only_missing_gps) gps <- gps[is.na(df_loc$countryiso3), ]
-#   gps$id <- paste0(formatC(gps$LocationLongitude, digits = 2, format = "f"), 
+#   gps <- dt5newVars[, c("LocationLongitude", "LocationLatitude")]
+#   if(only_missing_gps) gps <- gps[is.na(dt5newVars$countryiso3), ]
+#   gps$id <- paste0(formatC(gps$LocationLongitude, digits = 2, format = "f"),
 #                    formatC(gps$LocationLatitude, digits = 2, format = "f"))
 #   gps <- gps[!duplicated(gps$id), ]
 #   if(is.null(number_of_gps)) number_of_gps <- nrow(gps)
-#   
-#   geolocs <- data.frame(revgeo(longitude=gps$LocationLongitude[1:number_of_gps], latitude=gps$LocationLatitude[1:number_of_gps], provider = 'photon', output="frame"), id = gps$id[1:number_of_gps], stringsAsFactors = FALSE)
+# 
+#   geolocs <- data.frame(revgeo(longitude=gps$LocationLongitude[1:number_of_gps], latitude=gps$LocationLatitude[1:number_of_gps], provider = 'photon', output="frame"), id =  gps$id[1:number_of_gps], stringsAsFactors = FALSE)
 #   names(geolocs)[1:6] <- paste0("gps_", names(geolocs)[1:6])
 #   geolocs$gps_countryiso3 <- countrycode::countrycode(geolocs$gps_country, origin = "country.name", destination = "iso3c")
 #   if(only_missing_gps) write.csv(geolocs, file.path("data", "cleaned data", "geolocate_missing_iso3.csv"), row.names = FALSE)
@@ -1668,11 +1692,11 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 #   geolocs <- read.csv(file.path("data", "cleaned data", "geolocate.csv"), stringsAsFactors = FALSE)
 # }
 # 
-# tmp <- merge(df_loc, geolocs, all.x = TRUE, by = "id")
+# tmp <- merge(dt5newVars, geolocs, all.x = TRUE, by = "id")
 # 
 # # Check which locations are mismatched
-# head(df_loc[which(df_loc$countryiso3 != df_loc$gps_countryiso3), ])
-# rm(tmp, df_loc, only_missing_gps, number_of_gps, gps)
+# head(dt5newVars[which(dt5newVars$countryiso3 != dt5newVars$gps_countryiso3), ])
+# rm(tmp, dt5newVars, only_missing_gps, number_of_gps, gps)
 ```
 
 ### Merge with Metadata
@@ -1723,17 +1747,16 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd_hms(dt5newVars$EndDate) < "2020-04-21 12:00:00 UTC",
-         ICRec_1_TEXT!="") %>% #change in larger next wave
-  dplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+         ymd_hms(dt5newVars$EndDate) < "2020-04-28 12:00:00 UTC",
+         ICRec_1_TEXT!="") %>% #chdplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
-# download contact list from qualtrics (next week this will be in one dataframe)
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact2.csv", header = T)
+# download contact lists from qualtrics
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact3_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact3_2.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
   CL <- CL %>%
@@ -1743,16 +1766,17 @@ library("lubridate")
 # merge downloaded contact list with all participants that are before cutoff
   CLmerge <- dplyr::full_join(CL, ContactListAll, by="ExternalDataReference")
   CLmerge$Unsubscribed[is.na(CLmerge$Unsubscribed)] <- 0 # make "new participants" NA
+  table(CLmerge$Unsubscribed)
 
 # check merge  
   table(CLmerge$EmailDown == CLmerge$Email) # not a big issue
   # remove all irrelevant columns
     CLUp <- CLmerge %>%
       dplyr::select(-EmailDown)
-    CLUp1 <- CLUp[1:15000,]
-    CLUp2 <- CLUp[15001:nrow(CLUp),]
-
-# check whether there are multiple response ID
+    CLUp1 <- CLUp[1:20000,]
+    CLUp2 <- CLUp[20001:nrow(CLUp),]
+    CLUp3 <- CLUp[25000:nrow(CLUp),]
+# # fix because qualtrics fucked up check whether there are multiple response ID
   n_occur <- data.frame(table(CLmerge$ExternalDataReference)) 
   n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
 CLmerge[CLmerge$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
@@ -2168,7 +2192,8 @@ namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format 
 namCL3 <- paste0("data/cleaned data/Contact List 3 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCLAll <- paste0("data/cleaned data/Contact List All ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCLUp1 <- paste0("data/cleaned data/Contact List 0_15000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-namCLUp2 <- paste0("data/cleaned data/Contact List 15001_30000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp2 <- paste0("data/cleaned data/Contact List 15001_3004 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp3 <- paste0("data/cleaned data/Contact List 25000_End ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -2195,6 +2220,7 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   write.csv(CLUp, file = namCLAll)
   write.csv(CLUp1, file = namCLUp1)
   write.csv(CLUp2, file = namCLUp2)
+  write.csv(CLUp3, file = namCLUp3)
 
 # export Language List
 #write.csv(LanguageList, file = namLL)
