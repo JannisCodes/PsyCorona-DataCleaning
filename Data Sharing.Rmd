@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-04-28 12-36 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-04 10-30 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -1007,9 +1007,9 @@ name <- 'RMD16'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD17
+### RMD17 (Bagci)
 ```{r RMD17, echo=T, warning=F, message=F}
-# prepare dataframe
+# prepare data frame
 name <- 'RMD17'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
@@ -1166,7 +1166,7 @@ name <- 'RMD19'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD20
+### RMD20 (Agostini)
 ```{r RMD20, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD20'
@@ -1219,7 +1219,7 @@ name <- 'RMD20'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD21
+### RMD21 (Gomez)
 ```{r RMD21, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD21'
@@ -1272,7 +1272,7 @@ name <- 'RMD21'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD22
+### RMD22 (Erica)
 ```{r RMD22, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD22'
@@ -1325,7 +1325,7 @@ name <- 'RMD22'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD23
+### RMD23 (Hoon-Seok Choi)
 ```{r RMD23, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD23'
@@ -1378,7 +1378,7 @@ name <- 'RMD23'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD24
+### RMD24 (Erica)
 ```{r RMD24, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD24'
@@ -1435,6 +1435,271 @@ rm(dt, namSPSS, namR, namCSV)
 ```{r RMD25, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD25'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD26 (Wollast)
+```{r RMD26, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD26'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD27 (Douglas)
+```{r RMD27, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD27'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD28 (Sutton)
+```{r RMD28, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD28'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD29
+```{r RMD29, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD29'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(varNames),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -contains("ZIP", ignore.case = T),
+                 -ends_with("_TEXT", ignore.case = T),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# make representative if needed
+  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
+    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+# Export
+  write_sav(dt, namSPSS)
+  save(dt, file = namR)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namR, namCSV)
+```
+
+### RMD30 (Caspar)
+```{r RMD30, echo=T, warning=F, message=F}
+# prepare dataframe
+name <- 'RMD30'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
     dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
