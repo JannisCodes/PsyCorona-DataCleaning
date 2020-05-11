@@ -556,6 +556,13 @@ rm(qualtricsLanguage)
          FilterTime == 0,
          FilterStraightliner == 0,
          source == "Rep RUG")
+  # which of the included people have duplicate IPs
+    duplEmailRepRug <- inclRepRUG %>%
+      filter(duplicated(ICRec_1_TEXT),
+             ICRec_1_TEXT != "")%>%
+      transmute(ResponseId = ResponseId,
+             E_mail = ICRec_1_TEXT)
+  
 # which people do we include? (no straightlining exclusion)
   inclRepRUG2 <- dt5newVars %>%
   filter(gc == 1,
@@ -589,6 +596,12 @@ rm(tmp, exclRepRUG, exclRepRUGRespId, inclRepRUG, inclRepRUG2)
          FilterTime == 0,
          FilterStraightliner == 0,
          source == "Rep NYU-AD")
+  # which of the included people have duplicate IPs
+    duplEmailRepNYU <- inclRepNYU %>%
+      filter(duplicated(ICRec_1_TEXT),
+             ICRec_1_TEXT != "")%>%
+      transmute(ResponseId = ResponseId,
+             E_mail = ICRec_1_TEXT)
 # which people do we include? (no straightlining exclusion)
   inclRepNYU2 <- dt5newVars %>%
   filter(gc == 1,
