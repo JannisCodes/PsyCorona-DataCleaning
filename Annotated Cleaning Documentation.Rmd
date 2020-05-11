@@ -51,6 +51,7 @@ rm(lib)
   source("./scripts/functions/fun.panel.R")
   source("./scripts/functions/themes.R")
   source("./scripts/functions/dictionary_functions.R")
+  source("./scripts/functions/recode_if.R")
   
 # Markdown Options
   knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set working directory
@@ -110,7 +111,15 @@ dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
 # Iranian data
 dt0RawIran <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.Iran", full.names = TRUE, ignore.case = TRUE))
-dt0RawIran   $source <- "Iran"
+dt0RawIran$source <- "Iran"
+
+# How Nuts are the Dutch data
+dt0RawHNATD <- read_spss(dir("data/raw data", pattern = "HNDPsyC19", full.names = TRUE, ignore.case = TRUE))
+dt0RawHNATD$source <- "HNATD"
+
+# Flycatcher data
+dt0RawFly <- read_spss(dir("data/raw data", pattern = "Flycatcher", full.names = TRUE, ignore.case = TRUE))
+dt0RawFly$source <- "Fly"
 
 # prepare dfs before merge (basically naming variables correct)
 notRug <- dt0RawRUG %>%
@@ -134,10 +143,22 @@ notRepIran <- dt0RawIran %>%
 names(notRepIran)
 cat("All variables have theo correct names in the Iranian dataset"); rm(notRepIran)
 
-# merge adn fill missing
-dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran)
+# check dataset from HNATD
+notRepHNATD <- dt0RawHNATD %>%
+  dplyr::select_if(!(names(dt0RawHNATD) %in% names(dt0RawNYUAD)))
+names(notRepHNATD)
+cat("Variables that do not match are no problem"); rm(notRepHNATD)
 
-rm(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran)
+# check dataset from Flycatcher
+notRepFly <- dt0RawFly %>%
+  dplyr::select_if(!(names(dt0RawFly) %in% names(dt0RawNYUAD)))
+names(notRepFly)
+cat("Variables that do not match are no problem"); rm(notRepFly)
+
+# merge adn fill missing
+dt0Raw <- plyr::rbind.fill(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran, dt0RawHNATD, dt0RawFly)
+
+rm(dt0RawRUG, dt0RawNYUAD, dt0RawRepNYUAD, dt0RawRepRUG, dt0RawIran, dt0RawHNATD)
 ```
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.   
@@ -149,6 +170,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
   dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
   dt0w4 <- read_spss(dir("data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w5 <- read_spss(dir("data/raw data", pattern = "Wave.5", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -159,6 +181,8 @@ notBasew3 <- dt0w3 %>%
   dplyr::select_if(!(names(dt0w3) %in% names(dt0Raw)))
 notBasew4 <- dt0w4 %>%
   dplyr::select_if(!(names(dt0w4) %in% names(dt0Raw)))
+notBasew5 <- dt0w5 %>%
+  dplyr::select_if(!(names(dt0w5) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -195,6 +219,15 @@ names(notBasew4) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Checked and all mismatches were added later!"); rm(notBasew4)
+
+cat("Missmatch between wave 5 and baseline:")
+names(notBasew5) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Still needs checking"); rm(notBasew5)
 ```
 
 ## **Data Quality**   
@@ -430,7 +463,7 @@ rm(progressFilter, progressCutOff, progressCutOffPerc)
 #### Filter w3: Survey Progress
 ```{r recSurvProg, echo=T, warning=F, message=F}
 # set time cut-off criterion:
-progressCutOff <- 90 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressCutOff <- 95 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
 progressFilter <- dt0w3 %>%
   dplyr::select(Progress) %>%
   mutate(out = Progress < progressCutOff)
@@ -447,7 +480,7 @@ rm(progressFilter, progressCutOff, progressCutOffPerc)
 #### Filter w4: Survey Progress
 ```{r recSurvProg, echo=T, warning=F, message=F}
 # set time cut-off criterion:
-progressCutOff <- 90 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressCutOff <- 95 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
 progressFilter <- dt0w4 %>%
   dplyr::select(Progress) %>%
   mutate(out = Progress < progressCutOff)
@@ -456,6 +489,23 @@ table(progressFilter$out)
 
 # throw them out before the merge
   dt0w4 <- dt0w4 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+#### Filter w5: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 95 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressFilter <- dt0w5 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w5 <- dt0w5 %>%
   filter(progressFilter$out == F)
 
 rm(progressFilter, progressCutOff, progressCutOffPerc)
@@ -578,6 +628,7 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w2) <- paste("w2", colnames(dt0w2), sep = "_")
   colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
   colnames(dt0w4) <- paste("w4", colnames(dt0w4), sep = "_")
+  colnames(dt0w5) <- paste("w5", colnames(dt0w5), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
@@ -585,6 +636,7 @@ dt5newVars <- dt5newVars %>%
   dt0w2$mergeID <- as.character(dt0w2$w2_ExternalReference)
   dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
   dt0w4$mergeID <- as.character(dt0w4$w4_ExternalReference)
+  dt0w5$mergeID <- as.character(dt0w5$w5_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -598,7 +650,7 @@ cat("How many people do we loose in wave 1 due to missing merge ID:")
   # wave 2
 cat("How many people do we loose in wave 2 due to missing merge ID:")
   sum(dt0w2$mergeID == "")
-  dt0w2 <- dt0w2[dt0w2$mergeID != "",]
+  dt0w2 <- dt0w2[dt0w2$mergeID != "",] #translator testing
   # wave 3
 cat("How many people do we loose in wave 3 due to missing merge ID:")
   sum(dt0w3$mergeID == "")
@@ -607,9 +659,12 @@ cat("How many people do we loose in wave 3 due to missing merge ID:")
 cat("How many people do we loose in wave 4 due to missing merge ID:")
   sum(dt0w4$mergeID == "")
   dt0w4 <- dt0w4[dt0w4$mergeID != "",]
+cat("How many people do we loose in wave 5 due to missing merge ID:")
+  sum(dt0w5$mergeID == "")
+  dt0w5 <- dt0w5[dt0w5$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -636,6 +691,11 @@ cat("How many people do not have fitting emails or response IDs in wave 4:")
   nrow(dt0w4) - sum(dt0All$ResponseId == dt0All$w4_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
+cat("How many people do not have fitting emails or response IDs in wave 5:")
+  nrow(dt0w5) - sum(dt0All$ICRec_1_TEXT == dt0All$w5_RecipientEmail, na.rm = T)
+  nrow(dt0w5) - sum(dt0All$ResponseId == dt0All$w5_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
 rm(list=ls(pattern="dt0w"))
 
 dt5newVars <- dt0All
@@ -650,11 +710,6 @@ We currently have `r length(table(dt5newVars$country))` different free text coun
 # CJ: Just as a benchmark, geolocate IP address. Can always use this if a free 
 # CJ: text country response does not resolve 
 # MA: should only be used for those that agree; also VPNs are problematic
-# library(rgeolocate)
-# file <- system.file("extdata","GeoLite2-Country.mmdb", package = "rgeolocate")
-# geolocations <- maxmind(dt5newVars$IPAddress, file, c("continent_name", "country_code", "country_name"))
-# dt5newVars$coded_country_ip <- geolocations$country_name
-# rm(geolocations)
 
 # CJ: This is a slightly cleaner, faster, and more informative regex based approach.
 # CJ: The function and dictionary (based on the code below, some errors corrected) 
@@ -664,6 +719,7 @@ We currently have `r length(table(dt5newVars$country))` different free text coun
 
 source("./scripts/functions/dictionary_functions.R")
 
+# sourcing seems to destroy everything
 # sourcing seems to destroy everything
 country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Albania' = c('albania', '(?i)Albania'),
@@ -699,7 +755,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Denmark' = c('mark', 'danemarca'), 
                      'Dominican Republic' = c('domin', 'Dominican Republic', 'República Dominicana'),
                      'Ecuador' = c('(?i)ecuador', 'Quito', 'Ecuador'),
-                     'Egypt' = c('مصر', '(?i)Egypt'),
+                     'Egypt' = c('مصر', '(?i)Egypt', 'المنوفيه', 'شبينالكوم', 'المنوفية', 'القاهره', 'منوف', 'تلا'),
                      'El Salvador' = c('salvador', '(?i)elsalvado', 'El salvado', 'El Salvaodr', 'El Salvador'),
                      'Estonia' = c('(?i)estonia', '(?i)эстония', 'Estonia'),
                      'Finland' = c('(?i)finland', '(?i)финляндия', '(?i)Finnland', 'Finland'),
@@ -724,7 +780,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Jordan' = c(  'الاردن', 'Jordanie',  'jordan', 'الأردن'),
                      'Kazakhstan' = c('(?i)каза..тан',	'^kz$',  '(?i)алматы', 'a.akh..an', 'kа.aza.stan', 'захстан', 'қазақстан', '.aza.stan', 'kaza..stan'),
                      'Kenya' = c('kenia', 'Kenia'),
-                     'Kosovo' = c('(?i)Kosovo'),
+                     'Kosovo' = c('.osov.', 'pri..tin.', 'poduj.v.'),
                      'Kuwait' = c('الكويت'),
                      'Kyrgyzstan' = c('(?i)кыргызстан'),
                      'Laos' = c('(?i)laos', 'Laos'),
@@ -776,7 +832,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Thailand' = c('^thailand$', 'Thailand', 'ไทย', '^thai'),
                      "Trinidad and Tobago" = c("trinid", 'Trinidad', 'Trinidad and Tobago'),
                      'Tunisia' = c('Tunise', 'جندوبة',  'Tunis', 'Tunis', 'Tunisia', 'tuni', 'Tunisie', 'تونس'),
-                     'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 'Türkçe', 'Türkye', 'Türkei', 'Türkiy', 'Турция',  'Türkıye', '^Tr$', '^TR$', 'tr$', 'TURKEY', 'Turki', 'turquie', 'TÜRKİYE', 'Turkey', 'Turkiye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye", 'турция'), #"'\u00fcrkiye'"
+                     'Turkey' = c('تركيا - اسطنبول', 'turkey', 'تركيا', 'Tür', 't.rk..', 'Турция',  'Türkıye', '^Tr$', '^TR$', 'tr$', 'turki', 'turquie', 'TÜRKİYE', 'tur.iye', 'Türkiye', 't.rk.y.', 't.rk.{0,2}', "t[a-z]rkiye", 'турция'), #"'\u00fcrkiye'"
                      'Ukraine' = c('(?i)ukraine', '(?i)Ураїна', 'укра.н.', 'Киев', '(?i)Укрїна', '(?i)Ук...на', 'Українська', 'Украине', 'УКРАЇНА', 'Украіна', 'у.ра..а', 'україна', '(?i)украина', 'Україна', 'Украина', '207'),
                      'United Arab Emirates' = c('u\\.a\\.\\.', 'emiradosarabesunidos', 'emiratelearabeunite', 'emiratosarabesunidos', 'emiratsarabesunis', '(?i)abudhabi',    'الإمارات العربية المتحدة' ,  'Uae' , 'Emirats Arabes Unis', 'Emiratos Arabes Unidos' ,'(?i)Abu Dhabi',  'Emiratele Arabe Unite' ,   'Dubai',   'Emirados Arabes Unidos', 'الخرج','United Arab emirates',  'United Arab Emirates',  'UAE', 'united, arab, emirates', 'الامارات', '^uae$', 'arabemirates', 'لعربيةالمتحدة'),
                      'United Kingdom' = c('.γγλ..', 'regatulunit', '(?i)ecosse',  	'ηνωμένοβασίλειο', 'ηνωμένοβασίλειο(αγγλία)', 'theuk', '(?i)regnounito', 'mareabritanie',  '(?i)Αγγλια', 'اسكوتلندا', 'Egland', 'royaume uni', 'Liverpool', 'Grand Cayman, Cayman Islands', '^GB$', 'Anglia', 'Ecosse', '(?i)Angleterre', '(?i)Великобритания', 'Αγγλια', 'U.K','SCOTLAN', '(?i)Schotland',  'Scozia',  'Ηνωμένο Βασίλειο', '(?i)London', 'londra', 'Verenigd Koninkrijk', 'Marea Britanie', 'Britain', 'Isole Vergini Britanniche',  'Great Britain',  'United Kingdon', '^Northern ireland$', 'united Kingdom', 'Regno Unito', 'United kingdom', 'United Kingdon', 'uni.+kin', 'Wales','verenigdkoninkrijk', 'Reino Unido', '^Uk$', 'Scotland', 'United Kingdom', 'england', '^UK$',  '^uk$',  '(?i)reino, unido',  'britain',  'regno, unito',  'u\\.k\\.',  'بريطانيا',  'the, uk',  'u, k',  'verenigd, koninkrijk', 'scotland',  'england',  'wales',  'ingiltere',  'northern, ireland',  'egland',  '^gb$',  'n, ireland',  'schotland', 'grandcayman,caymanislands', 'scozia', '英国', 'ngiltere', 'n.{4,9}ireland', 'reinounido', 'anglia'),
@@ -789,6 +845,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Yemen' = c('العند')
 )
 
+
 country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
@@ -797,13 +854,15 @@ country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
   View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
 dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
-
+# save for Solomiia
+  namCtrySol <- paste0("data/cleaned data/Solomiia Country List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  write.csv(namCtrySol, file = country_matches$unmatched)
 
 # CODE FOR EXPORT:
 country_entry <- dt5newVars$country
 country_names <- rnaturalearth::ne_countries(scale = "medium")$admin
-# namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-# save(country_entry, country_names, file = namTR)
+namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+save(country_entry, country_names, file = namTR)
 
 rm(country_dict, country_matches, country_names, country_entry)
 ```
@@ -1653,6 +1712,28 @@ dt5newVars$distract.z <- scale(dt5newVars$distract.m, scale = T)
 dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))$scores
 ```
 
+### Well-Being
+#### Happy
+The happiness scale was reverse coded in French. Gets fixed here.
+```{r happy,echo=T, warning=F, message=F}
+# recode_if function is loaded at the beginning
+  dt5newVars <- dt5newVars %>%
+  dplyr::mutate(happy = labelled(recode_if(as.numeric(happy), language == "French", 
+                        `1` = 10, `2` = 9, `3` = 8, `4` = 7, `5` = 6,
+                        `6` = 5, `7` = 4, `8` = 3, `9` = 2, `10` = 1), labels = NULL, 
+                        label = "In general, how happy would you say you are?" ))
+```
+
+## Weights per Country
+### Merge Weights from Bertus
+```{r mergWeight,echo=T, warning=F, message=F}
+wgtCtry <- read_spss(dir("data/raw data/weights", pattern = "Weights", full.names = TRUE, ignore.case = TRUE))
+
+dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "coded_country",
+                                                    "age" = "age", 
+                                                    "gender" = "gender"))
+```
+
 ## Local Virus Spread
 ### Check with Geolocation (not crucial for now)
 ```{r geoloc, echo=T, warning=F, message=F}
@@ -1660,13 +1741,13 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 # library(renv)
 # library(countrycode)
 # library(revgeo)
-
-# set people location and IP NA if they do not provide consent
-  dt5newVars <- dt5newVars %>%
-    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), 
-                     .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
-
-# # Set to NULL to get all GPS locations; takes a long time
+# 
+# # set people location and IP NA if they do not provide consent
+#   dt5newVars <- dt5newVars %>%
+#     dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), 
+#                      .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
+# 
+# # # Set to NULL to get all GPS locations; takes a long time
 # only_missing_gps <- TRUE
 # number_of_gps <- 100
 # 
@@ -1701,18 +1782,18 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 
 ### Merge with Metadata
 ```{r geoloc, echo=T, warning=F, message=F}
-library(gert)
-library(countrycode)
-source(file.path("scripts", "functions", "merge_metadata.R"))
-
-metadata_location <- file.path("data", "metadata")
-get_metadata(metadata_location, overwrite = FALSE)
-# See which metadata files are available
-which_files(metadata_location)
-
-dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
-
-dt5newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
+# library(gert)
+# library(countrycode)
+# source(file.path("scripts", "functions", "merge_metadata.R"))
+# 
+# metadata_location <- file.path("data", "metadata")
+# get_metadata(metadata_location, overwrite = FALSE)
+# # See which metadata files are available
+# which_files(metadata_location)
+# 
+# dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
+# 
+# dt5newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
 ```
 
 ## **Reduce to Relevant Variales**   
@@ -1747,7 +1828,7 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd_hms(dt5newVars$EndDate) < "2020-04-28 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-05-05 12:00:00 UTC",
          ICRec_1_TEXT!="") %>% #chdplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -1755,9 +1836,10 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact3_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact3_2.csv", header = T)
-  CL <- plyr::rbind.fill(CL1, CL2)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact4_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact4_3.csv", header = T)
+  CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
+  CL <- plyr::rbind.fill(CL1, CL2, CL3)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
   CL <- CL %>%
     dplyr::transmute(Unsubscribed = Unsubscribed, 
@@ -1775,7 +1857,6 @@ library("lubridate")
       dplyr::select(-EmailDown)
     CLUp1 <- CLUp[1:20000,]
     CLUp2 <- CLUp[20001:nrow(CLUp),]
-    CLUp3 <- CLUp[25000:nrow(CLUp),]
 # # fix because qualtrics fucked up check whether there are multiple response ID
   n_occur <- data.frame(table(CLmerge$ExternalDataReference)) 
   n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
@@ -2191,9 +2272,9 @@ namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format =
 namCL2 <- paste0("data/cleaned data/Contact List 2 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCL3 <- paste0("data/cleaned data/Contact List 3 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namCLAll <- paste0("data/cleaned data/Contact List All ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-namCLUp1 <- paste0("data/cleaned data/Contact List 0_15000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-namCLUp2 <- paste0("data/cleaned data/Contact List 15001_3004 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-namCLUp3 <- paste0("data/cleaned data/Contact List 25000_End ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp1 <- paste0("data/cleaned data/Contact List 0_20000 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+namCLUp2 <- paste0("data/cleaned data/Contact List 20001_End ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+#namCLUp3 <- paste0("data/cleaned data/Contact List 25000_End ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namLL <- paste0("data/cleaned data/Language List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 
@@ -2214,9 +2295,9 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
        file = "../PsyCorona-WebApp/data/shinyDataAggregated.RData")
 
 # export Contact List
-  write.csv(ContactList1, file = namCL)
-  write.csv(ContactList2, file = namCL2)
-  write.csv(ContactList3, file = namCL3)
+  # write.csv(ContactList1, file = namCL)
+  # write.csv(ContactList2, file = namCL2)
+  # write.csv(ContactList3, file = namCL3)
   write.csv(CLUp, file = namCLAll)
   write.csv(CLUp1, file = namCLUp1)
   write.csv(CLUp2, file = namCLUp2)

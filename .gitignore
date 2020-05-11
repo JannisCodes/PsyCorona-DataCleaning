@@ -9,6 +9,7 @@
 data/metadata
 .DS_Store
 *.csv
+*.xlsx
 *.zip
 *.png
 #data/
