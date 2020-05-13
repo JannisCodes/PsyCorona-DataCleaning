@@ -169,7 +169,7 @@ rm(tmp)
 ```
 
 
-### RMD01 
+### RMD01 (Representative Sample)
 ```{r RMD01, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD01'
