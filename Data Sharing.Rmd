@@ -41,7 +41,8 @@ editor_options:
   #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
   #                Scale)
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
-         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale")
+         "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale",
+         "dply")
 
 invisible(lapply(lib, library, character.only = TRUE))  
 lapply(lib, library, character.only = TRUE)
@@ -93,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-11 19-34 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-13 17-19 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -108,36 +109,46 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 stringOut <- NA #make var for fill out in function
 nameOut <- function(df){
 # if there is a B (baseline) paste the variable
-  if (grepl("B",df[2], ignore.case = T)) {
+  if (grepl("B|All",df[2], ignore.case = T)) {
     stringOut[1] = paste(df[1])
   } else {
     stringOut[1] = NA
   }
 # if there is a W1 (baseline) paste w1 and the variable
-  if (grepl("W1|Wave1|Wave 1",df[2], ignore.case = T)) {
+  if (grepl("W1|Wave1|Wave 1|All",df[2], ignore.case = T)) {
     stringOut[2] = paste("w1_", df[1], sep = "")
   } else {
     stringOut[2] = NA
   }
-  if (grepl("W2|Wave2|Wave 2",df[2], ignore.case = T)) {
+  if (grepl("W2|Wave2|Wave 2|All",df[2], ignore.case = T)) {
     stringOut[3] = paste("w2_", df[1], sep = "")
   } else {
     stringOut[3] = NA
   }
-  if (grepl("W3|Wave3|Wave 3",df[2], ignore.case = T)) {
+  if (grepl("W3|Wave3|Wave 3|All",df[2], ignore.case = T)) {
     stringOut[4] = paste("w3_", df[1], sep = "")
   } else {
     stringOut[4] = NA
   }
-  if (grepl("W4|Wave4|Wave 4",df[2], ignore.case = T)) {
+  if (grepl("W4|Wave4|Wave 4|All",df[2], ignore.case = T)) {
     stringOut[5] = paste("w4_", df[1], sep = "")
   } else {
     stringOut[5] = NA
   }
-  if (grepl("W5|Wave5|Wave 5",df[2], ignore.case = T)) {
+  if (grepl("W5|Wave5|Wave 5|All",df[2], ignore.case = T)) {
     stringOut[6] = paste("w5_", df[1], sep = "")
   } else {
     stringOut[6] = NA
+  }
+  if (grepl("W6|Wave6|Wave 6|All",df[2], ignore.case = T)) {
+    stringOut[7] = paste("w6_", df[1], sep = "")
+  } else {
+    stringOut[7] = NA
+  }
+  if (grepl("W7|Wave7|Wave 7|All",df[2], ignore.case = T)) {
+    stringOut[8] = paste("w7_", df[1], sep = "")
+  } else {
+    stringOut[8] = NA
   }
 return(stringOut)
 }
@@ -192,7 +203,7 @@ name <- 'RMD01'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -245,7 +256,7 @@ name <- 'RMD02'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -298,7 +309,7 @@ name <- 'RMD03'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -351,7 +362,7 @@ name <- 'RMD04'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -404,7 +415,7 @@ name <- 'RMD05'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -458,7 +469,7 @@ name <- 'RMD06'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -511,7 +522,7 @@ name <- 'RMD07'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -564,7 +575,7 @@ name <- 'RMD08'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -617,7 +628,7 @@ name <- 'RMD09'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -670,7 +681,7 @@ name <- 'RMD10'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -723,7 +734,7 @@ name <- 'RMD11'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -776,7 +787,7 @@ name <- 'RMD12'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -829,7 +840,7 @@ name <- 'RMD13'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -882,7 +893,7 @@ name <- 'RMD14'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -935,7 +946,7 @@ name <- 'RMD15'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -988,7 +999,7 @@ name <- 'RMD16'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1041,7 +1052,7 @@ name <- 'RMD17'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1094,7 +1105,7 @@ name <- 'RMD18'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1172,7 +1183,7 @@ name <- 'RMD19'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1225,7 +1236,7 @@ name <- 'RMD20'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1278,7 +1289,7 @@ name <- 'RMD21'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1331,7 +1342,7 @@ name <- 'RMD22'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1384,7 +1395,7 @@ name <- 'RMD23'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1437,7 +1448,7 @@ name <- 'RMD24'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1490,7 +1501,7 @@ name <- 'RMD25'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1543,7 +1554,7 @@ name <- 'RMD26'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1596,7 +1607,7 @@ name <- 'RMD27'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1649,7 +1660,7 @@ name <- 'RMD28'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1702,7 +1713,7 @@ name <- 'RMD29'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1755,7 +1766,7 @@ name <- 'RMD30'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1766,13 +1777,19 @@ name <- 'RMD30'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
+    }
+
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
     dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
-    
+  
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -1808,7 +1825,7 @@ name <- 'RMD31'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1861,7 +1878,7 @@ name <- 'RMD32'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1914,7 +1931,7 @@ name <- 'RMD33'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -1967,7 +1984,7 @@ name <- 'RMD34'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -2020,7 +2037,7 @@ name <- 'RMD35'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -2073,7 +2090,7 @@ name <- 'RMD36'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),
@@ -2126,7 +2143,7 @@ name <- 'RMD37'
 
 # make dataframe
   dt <- dtAll %>%
-    dplyr::select(one_of(varNames),
+    dplyr::select(one_of(as.character(varNames)),
                  -contains("_DO_"),
                  -contains(".c"),
                  -contains(".m"),

@@ -35,11 +35,11 @@ editor_options:
   gc # garbage collector
   
 # Install and Load Packages
-  #if(!require(pacman)) install.packages("pacman")
+  # if(!require(pacman)) install.packages("pacman")
   # require(pacman)
-  # pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada, 
+  # pacman::p_load(psych, ggplot2, ggthemes, haven, data.table, dplyr, tidyr, Hmisc, mada,
   #                knitr, kableExtra, naniar, stats, readxl, matrixStats, ISOcodes, pander,
-  #                Scale)
+  #                Scale, haven, lubridate, naniar, stats)
 lib <- c("psych", "ggplot2", "ggthemes", "haven", "data.table", "dplyr", "tidyr", "Hmisc", "mada", 
          "knitr", "kableExtra", "naniar", "stats", "readxl", "matrixStats", "ISOcodes", "pander", "Scale", "lubridate")
 
@@ -119,7 +119,7 @@ dt0RawHNATD$source <- "HNATD"
 
 # Flycatcher data
 dt0RawFly <- read_spss(dir("data/raw data", pattern = "Flycatcher", full.names = TRUE, ignore.case = TRUE))
-dt0RawFly$source <- "Fly"
+   dt0RawFly$source <- "Fly"
 
 # prepare dfs before merge (basically naming variables correct)
 notRug <- dt0RawRUG %>%
@@ -171,6 +171,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
   dt0w4 <- read_spss(dir("data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
   dt0w5 <- read_spss(dir("data/raw data", pattern = "Wave.5", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w6 <- read_spss(dir("data/raw data", pattern = "Wave.6", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -183,6 +184,8 @@ notBasew4 <- dt0w4 %>%
   dplyr::select_if(!(names(dt0w4) %in% names(dt0Raw)))
 notBasew5 <- dt0w5 %>%
   dplyr::select_if(!(names(dt0w5) %in% names(dt0Raw)))
+notBasew6 <- dt0w6 %>%
+  dplyr::select_if(!(names(dt0w6) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -228,6 +231,15 @@ names(notBasew5) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Still needs checking"); rm(notBasew5)
+
+cat("Missmatch between wave 6 and baseline:")
+names(notBasew6) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Still needs checking"); rm(notBasew6)
 ```
 
 ## **Data Quality**   
@@ -295,28 +307,28 @@ progressFilter <- dt1Preview %>%
 
 progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2) # percent of missing data with current cut-off criterion
 
-# plot histogram and missing
-ggplot(data=progressFilter, aes(x=Progress, fill=out)) +
-  geom_histogram(bins=50,
-                 alpha=.6) +
-  geom_vline(xintercept = progressCutOff, 
-             color = "darkred",
-             linetype = "longdash") +
-  geom_text(aes(x=progressCutOff, label=paste0("Progress cut-off: ",progressCutOff,"%\n"), y=Inf), 
-            hjust = 1,
-            colour="darkred", 
-            angle=90) +
-  geom_text(aes(x=progressCutOff, label=paste0("\ndata loss: ",progressCutOffPerc,"%"), y=Inf), 
-            hjust = 1,
-            colour="darkred", 
-            angle=90) +
-  #scale_x_continuous(breaks = seq(0, 100,3)) +
-  scale_fill_manual(values=c("darkgrey","darkred")) +
-  labs(title = "Histogram: Survey Progress", 
-       x = "Survey Progress [Percent completed]",
-       y = "Frequency Count") +
-  theme_Publication() +
-  theme(legend.position = "none")
+# plot histogram and missing (COMMENTED FOR TIME)
+# ggplot(data=progressFilter, aes(x=Progress, fill=out)) +
+#   geom_histogram(bins=50,
+#                  alpha=.6) +
+#   geom_vline(xintercept = progressCutOff, 
+#              color = "darkred",
+#              linetype = "longdash") +
+#   geom_text(aes(x=progressCutOff, label=paste0("Progress cut-off: ",progressCutOff,"%\n"), y=Inf), 
+#             hjust = 1,
+#             colour="darkred", 
+#             angle=90) +
+#   geom_text(aes(x=progressCutOff, label=paste0("\ndata loss: ",progressCutOffPerc,"%"), y=Inf), 
+#             hjust = 1,
+#             colour="darkred", 
+#             angle=90) +
+#   #scale_x_continuous(breaks = seq(0, 100,3)) +
+#   scale_fill_manual(values=c("darkgrey","darkred")) +
+#   labs(title = "Histogram: Survey Progress", 
+#        x = "Survey Progress [Percent completed]",
+#        y = "Frequency Count") +
+#   theme_Publication() +
+#   theme(legend.position = "none")
 
 # flag anyone with less than 5 minutes survey duration
 # labelled slow
@@ -346,31 +358,31 @@ tCutOff <- 5 #cut-off criterion in minutes
 tCutOffPerc <- round(sum(tOutlierHigh$Minutes<tCutOff)/nrow(dt2Progress)*100,2) # percent of missing data with current cut-off criterion
 tOutlierHigh$out <- tOutlierHigh$Minutes < tCutOff
 
-# plot histogram and missing
-ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
-  geom_histogram(bins=round(max(tOutlierHigh$Minutes),0),
-                 alpha=.6) +
-  geom_vline(xintercept = tCutOff, 
-             color = "darkred",
-             linetype = "longdash") +
-  geom_text(aes(x=tCutOff, label=paste0("time cut-off: ",tCutOff," Minutes\n"), y=Inf), 
-            hjust = 1,
-            colour="darkred", 
-            angle=90) +
-  geom_text(aes(x=tCutOff, label=paste0("\ndata loss: ",tCutOffPerc,"%"), y=Inf), 
-            hjust = 1,
-            colour="darkred", 
-            angle=90) +
-  scale_x_continuous(breaks = seq(0, round(max(tOutlierHigh$Minutes),0), 5)) +
-  scale_fill_manual(values=c("darkgrey","darkred")) +
-  labs(title = "Truncated Histogram: Survey Duration", 
-       x = "Duration [Mintues]",
-       y = "Frequency Count",
-       caption = "Notes:
-       (1) Truncated: all participants who took less time than Median+3.5*MAD
-       (2) Each bin represents one Minute") +
-  theme_Publication() +
-  theme(legend.position = "none")
+# plot histogram and missing (COMMENTED FOR TIME)
+# ggplot(data=tOutlierHigh, aes(x=Minutes, fill=out)) +
+#   geom_histogram(bins=round(max(tOutlierHigh$Minutes),0),
+#                  alpha=.6) +
+#   geom_vline(xintercept = tCutOff, 
+#              color = "darkred",
+#              linetype = "longdash") +
+#   geom_text(aes(x=tCutOff, label=paste0("time cut-off: ",tCutOff," Minutes\n"), y=Inf), 
+#             hjust = 1,
+#             colour="darkred", 
+#             angle=90) +
+#   geom_text(aes(x=tCutOff, label=paste0("\ndata loss: ",tCutOffPerc,"%"), y=Inf), 
+#             hjust = 1,
+#             colour="darkred", 
+#             angle=90) +
+#   scale_x_continuous(breaks = seq(0, round(max(tOutlierHigh$Minutes),0), 5)) +
+#   scale_fill_manual(values=c("darkgrey","darkred")) +
+#   labs(title = "Truncated Histogram: Survey Duration", 
+#        x = "Duration [Mintues]",
+#        y = "Frequency Count",
+#        caption = "Notes:
+#        (1) Truncated: all participants who took less time than Median+3.5*MAD
+#        (2) Each bin represents one Minute") +
+#   theme_Publication() +
+#   theme(legend.position = "none")
 
 # flag anyone with less than 5 minutes survey duration
 # labelled slow
@@ -511,6 +523,23 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
+#### Filter w6: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 95 #cut-off criterion in percent (NEEDS CHANGING; NO DROPOUTS YET)
+progressFilter <- dt0w6 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w6 <- dt0w6 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -642,6 +671,7 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w3) <- paste("w3", colnames(dt0w3), sep = "_")
   colnames(dt0w4) <- paste("w4", colnames(dt0w4), sep = "_")
   colnames(dt0w5) <- paste("w5", colnames(dt0w5), sep = "_")
+  colnames(dt0w6) <- paste("w6", colnames(dt0w6), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
@@ -650,6 +680,7 @@ dt5newVars <- dt5newVars %>%
   dt0w3$mergeID <- as.character(dt0w3$w3_ExternalReference)
   dt0w4$mergeID <- as.character(dt0w4$w4_ExternalReference)
   dt0w5$mergeID <- as.character(dt0w5$w5_ExternalReference)
+  dt0w6$mergeID <- as.character(dt0w6$w6_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -675,9 +706,12 @@ cat("How many people do we loose in wave 4 due to missing merge ID:")
 cat("How many people do we loose in wave 5 due to missing merge ID:")
   sum(dt0w5$mergeID == "")
   dt0w5 <- dt0w5[dt0w5$mergeID != "",]
+cat("How many people do we loose in wave 6 due to missing merge ID:")
+  sum(dt0w6$mergeID == "")
+  dt0w6 <- dt0w6[dt0w6$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -707,6 +741,11 @@ cat("How many people do not have fitting emails or response IDs in wave 4:")
 cat("How many people do not have fitting emails or response IDs in wave 5:")
   nrow(dt0w5) - sum(dt0All$ICRec_1_TEXT == dt0All$w5_RecipientEmail, na.rm = T)
   nrow(dt0w5) - sum(dt0All$ResponseId == dt0All$w5_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 5:")
+  nrow(dt0w6) - sum(dt0All$ICRec_1_TEXT == dt0All$w6_RecipientEmail, na.rm = T)
+  nrow(dt0w6) - sum(dt0All$ResponseId == dt0All$w6_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
 rm(list=ls(pattern="dt0w"))
@@ -946,7 +985,7 @@ attr(dt5newVars$PolOrCat,'label') <- 'Political Orientation Quadrant'
 
 
 #### High Arousal Negative   
-```{r affHighNeg, echo=T, results='asis', warning=F, message=F}
+```{r affHighNeg, echo=F, results='asis', warning=F, message=F}
 # High Arousal Negative
 ## Anger not measured in wave 1
 #pairs.panels.new(dt5newVars %>% dplyr::select(affAnx, affNerv))
@@ -955,10 +994,10 @@ cat("<br>")
 
 dt5newVars$affHighNeg.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(affAnx, affNerv), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt5newVars$affHighNeg.m, skew=F)) %>%
-  mutate(vars = "High Arousal Negative Affect") %>%
-  kable(., caption = "High Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$affHighNeg.m, skew=F)) %>%
+#   mutate(vars = "High Arousal Negative Affect") %>%
+#   kable(., caption = "High Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$affHighNeg.c <- scale(dt5newVars$affHighNeg.m, scale = F, center = T)
 dt5newVars$affHighNeg.z <- scale(dt5newVars$affHighNeg.m, scale = T)
@@ -966,37 +1005,37 @@ dt5newVars$affHighNeg.fa <- fa(dt5newVars %>% dplyr::select(affAnx, affNerv))$sc
 ```
 
 #### Low Arousal Negative Affect  
-```{r affLowNeg, echo=T, results='asis', warning=F, message=F}
+```{r affLowNeg, echo=F, results='asis', warning=F, message=F}
 # Low Arousal Negative Affect
 ia.affLowNeg <- dt5newVars %>%
     dplyr::select(affBor, affExh, affDepr) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.affLowNeg$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.affLowNeg)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Low Arousal Negative Affect: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.affLowNeg)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Low Arousal Negative Affect: Item Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(affBor, affExh, affDepr))
-
-cat("<br>")
-
+# 
+# cat("<br>")
+# 
 dt5newVars$affLowNeg.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affBor, affExh, affDepr), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt5newVars$affLowNeg.m, skew=F)) %>%
-  mutate(vars = "Low Arousal Negative Affect") %>%
-  kable(., caption = "Low Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$affLowNeg.m, skew=F)) %>%
+#   mutate(vars = "Low Arousal Negative Affect") %>%
+#   kable(., caption = "Low Arousal Negative Affect: Scale Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$affLowNeg.c <- scale(dt5newVars$affLowNeg.m, scale = F, center = T)
 dt5newVars$affLowNeg.z <- scale(dt5newVars$affLowNeg.m, scale = T)
@@ -1004,37 +1043,37 @@ dt5newVars$affLowNeg.fa <- fa(dt5newVars %>% dplyr::select(affBor, affExh, affDe
 ```
 
 #### Low Arousal Positive Affect  
-```{r affLowPos, echo=T, results='asis', warning=F, message=F}
+```{r affLowPos, echo=F, results='asis', warning=F, message=F}
 # Low Arousal Positive Affect
 ia.affLowPos <- dt5newVars %>%
     dplyr::select(affCalm, affContent, affRel) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.affLowPos$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.affLowPos)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Low Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-#pairs.panels.new(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.affLowPos)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Low Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# pairs.panels.new(dt5newVars %>% dplyr::select(affCalm, affContent, affRel))
+# 
+# cat("<br>")
+# 
 dt5newVars$affLowPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affCalm, affContent, affRel), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt5newVars$affLowPos.m, skew=F)) %>%
-  mutate(vars = "Low Arousal Positive Affect") %>%
-  kable(., caption = "Low Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$affLowPos.m, skew=F)) %>%
+#   mutate(vars = "Low Arousal Positive Affect") %>%
+#   kable(., caption = "Low Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$affLowPos.c <- scale(dt5newVars$affLowPos.m, scale = F, center = T)
 dt5newVars$affLowPos.z <- scale(dt5newVars$affLowPos.m, scale = T)
@@ -1042,37 +1081,37 @@ dt5newVars$affLowPos.fa <- fa(dt5newVars %>% dplyr::select(affCalm, affContent, 
 ```
 
 #### High Arousal Positive Affect  
-```{r affHighPos, echo=T, results='asis', warning=F, message=F}
+```{r affHighPos, echo=F, results='asis', warning=F, message=F}
 # High Arousal Positive Affect
 ia.affHighPos <- dt5newVars %>%
     dplyr::select(affEnerg, affExc, affInsp) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.affHighPos$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.affHighPos)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "High Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.affHighPos)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "High Arousal Positive Affect: Item Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp))
-
-cat("<br>")
-
+# 
+# cat("<br>")
+# 
 dt5newVars$affHighPos.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(affEnerg, affExc, affInsp), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt5newVars$affHighPos.m, skew=F)) %>%
-  mutate(vars = "High Arousal Positive Affect") %>%
-  kable(., caption = "High Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$affHighPos.m, skew=F)) %>%
+#   mutate(vars = "High Arousal Positive Affect") %>%
+#   kable(., caption = "High Arousal Positive Affect: Scale Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$affHighPos.c <- scale(dt5newVars$affHighPos.m, scale = F, center = T)
 dt5newVars$affHighPos.z <- scale(dt5newVars$affHighPos.m, scale = T)
@@ -1080,36 +1119,36 @@ dt5newVars$affHighPos.fa <- fa(dt5newVars %>% dplyr::select(affEnerg, affExc, af
 ```
 
 ### Loneliness
-```{r lone, echo=T, results='asis', warning=F, message=F}
+```{r lone, echo=F, results='asis', warning=F, message=F}
 ia.lone<- dt5newVars %>%
     dplyr::select(starts_with("lone")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.lone$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.lone)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("lone")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Loneliness: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.lone)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("lone")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Loneliness: Item Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("lone")))
-
-cat("<br>")
-
+# 
+# cat("<br>")
+# 
 dt5newVars$lone.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("lone")), min = 1, max = 5)$scores
 
-as.data.frame(psych::describe(dt5newVars$lone.m, skew=F)) %>%
-  mutate(vars = "Loneliness") %>%
-  kable(., caption = "Loneliness: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$lone.m, skew=F)) %>%
+#   mutate(vars = "Loneliness") %>%
+#   kable(., caption = "Loneliness: Scale Descriptives", row.names = FALSE) %>% 
+# able_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$lone.c <- scale(dt5newVars$lone.m, scale = F, center = T)
 dt5newVars$lone.z <- scale(dt5newVars$lone.m, scale = T)
@@ -1117,17 +1156,17 @@ dt5newVars$lone.fa <- fa(dt5newVars %>% dplyr::select(starts_with("lone")))$scor
 ```  
 
 ### Boredom
-```{r bore, echo=T, results='asis', warning=F, message=F}
+```{r bore, echo=F, results='asis', warning=F, message=F}
 ia.bor<- dt5newVars %>%
     dplyr::select(starts_with("bor0"), -bor03) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.bor$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.bor)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.bor)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03))
 ```
 <div class="alert alert-info">
@@ -1135,57 +1174,57 @@ as.data.frame(Scale::ReportTable(ia.bor)) %>%
 Item three was not well behaved. It seems to measure something else. We dropped it for now.
 </div>
 
-```{r bore.red, echo=T, results='asis', warning=F, message=F}
+```{r bore.red, echo=F, results='asis', warning=F, message=F}
 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))
-
-cat("<br>")
-
+# 
+# cat("<br>")
+# 
 dt5newVars$bor.m <- scoreItems(keys=c(1,1), items = dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R), min = -3, max = 3)$scores
-
-as.data.frame(psych::describe(dt5newVars$bor.m, skew=F)) %>%
-  mutate(vars = "Boredom") %>%
-  kable(., caption = "Boredom: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# 
+# as.data.frame(psych::describe(dt5newVars$bor.m, skew=F)) %>%
+#   mutate(vars = "Boredom") %>%
+#   kable(., caption = "Boredom: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 dt5newVars$bor.c <- scale(dt5newVars$bor.m, scale = F, center = T)
 dt5newVars$bor.z <- scale(dt5newVars$bor.m, scale = T)
 dt5newVars$bor.fa <- fa(dt5newVars %>% dplyr::select(starts_with("bor0"), -bor03, -bor03_R))$scores
 ```
   
 ### Isolation
-```{r iso, echo=T, results='asis', warning=F, message=F}
+```{r iso, echo=F, results='asis', warning=F, message=F}
 cat(crayon::bold("Offline Isolation"))
 ia.isoPers <- dt5newVars %>%
     dplyr::select(ends_with("inPerson"), -starts_with("w")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoPers$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.isoPers)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Isolation offline: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))
-
-cat("<br>")
-
+# 
+# cat("<br>")
+# 
 dt5newVars$isoPers.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")), min = 0, max = 7)$scores
-
-as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
-  mutate(vars = "Isolation offline") %>%
-  kable(., caption = "Isolation offline: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# 
+# as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
+#   mutate(vars = "Isolation offline") %>%
+#   kable(., caption = "Isolation offline: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 dt5newVars$isoPers.c <- scale(dt5newVars$isoPers.m, scale = F, center = T)
 dt5newVars$isoPers.z <- scale(dt5newVars$isoPers.m, scale = T)
 dt5newVars$isoPers.fa <- fa(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))$scores
@@ -1196,116 +1235,116 @@ ia.isoOnl <- dt5newVars %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.isoOnl$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-#pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")))
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.isoOnl)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(ends_with("inPerson"), -starts_with("w")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Isolation online: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# #pairs.panels.new(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")))
+# 
+# cat("<br>")
+# 
 dt5newVars$isoOnl.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")), min = 0, max = 7)$scores
-
-as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
-  mutate(vars = "Isolation online") %>%
-  kable(., caption = "Isolation online: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# 
+# as.data.frame(psych::describe(dt5newVars$isoPers.m, skew=F)) %>%
+#   mutate(vars = "Isolation online") %>%
+#   kable(., caption = "Isolation online: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 dt5newVars$isoOnl.c <- scale(dt5newVars$isoOnl.m, scale = F, center = T)
 dt5newVars$isoOnl.z <- scale(dt5newVars$isoOnl.m, scale = T)
 dt5newVars$isoOnl.fa <- fa(dt5newVars %>% dplyr::select(ends_with("online"), -starts_with("w")))$scores
 
 # Leave House
-as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
-  mutate(vars = "Leaving House") %>%
-  kable(., caption = "Leaving House: Item Descriptive", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$houseLeave, skew=F)) %>%
+#   mutate(vars = "Leaving House") %>%
+#   kable(., caption = "Leaving House: Item Descriptive", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 ```
 
 ### Government Clarity
-```{r gov, echo=T, results='asis', warning=F, message=F}
-as.data.frame(psych::describe(dt5newVars$extC19Msg)) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Government Response: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-ggplot(dt5newVars, aes(x = extC19Msg)) +
-  geom_histogram(binwidth=1, alpha=0.5) +
-  #geom_density(alpha=0.6)+
-  labs(title="Government Response distribution",x="Government Response", y = "Frequency") +
-  theme_Publication()
+```{r gov, echo=F, results='asis', warning=F, message=F}
+# as.data.frame(psych::describe(dt5newVars$extC19Msg)) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Government Response: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# ggplot(dt5newVars, aes(x = extC19Msg)) +
+#   geom_histogram(binwidth=1, alpha=0.5) +
+#   #geom_density(alpha=0.6)+
+#   labs(title="Government Response distribution",x="Government Response", y = "Frequency") +
+#   theme_Publication()
 ```
 
 ### Coronavirus Responses
 #### Community Response
-```{r community, echo=T, results='asis', warning=F, message=F}
+```{r community, echo=F, results='asis', warning=F, message=F}
 ia.ext <- dt5newVars %>%
   dplyr::select(starts_with("c19Is")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.ext$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.ext)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19Is")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.ext)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19Is")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Community response: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19Is")))
 
 cat("<br>")
 
 dt5newVars$ext.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19Is")), 
                              min = 1, max = 6)$scores
-
-as.data.frame(psych::describe(dt5newVars$ext.m, skew=F)) %>%
-  mutate(vars = "Community response") %>%
-  kable(., caption = "Community response: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# 
+# as.data.frame(psych::describe(dt5newVars$ext.m, skew=F)) %>%
+#   mutate(vars = "Community response") %>%
+#   kable(., caption = "Community response: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 dt5newVars$ext.c <- scale(dt5newVars$ext.m, scale = F, center = T)
 dt5newVars$ext.z <- scale(dt5newVars$ext.m, scale = T)
 dt5newVars$ext.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19Is")))$scores
 ```
 
 #### Behavioral Response
-```{r beh, echo=T, results='asis', warning=F, message=F}
+```{r beh, echo=F, results='asis', warning=F, message=F}
 ia.beh <- dt5newVars %>%
     dplyr::select(starts_with("c19per")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.beh$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.beh)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19per")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Behavioral response: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.beh)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19per")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Behavioral response: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19per")))
 
 cat("<br>")
@@ -1313,10 +1352,10 @@ cat("<br>")
 dt5newVars$beh.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19per")), 
                              min = -3, max = 3)$scores
 
-as.data.frame(psych::describe(dt5newVars$beh.m, skew=F)) %>%
-  mutate(vars = "Behavioral response") %>%
-  kable(., caption = "Behavioral response: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$beh.m, skew=F)) %>%
+#   mutate(vars = "Behavioral response") %>%
+#   kable(., caption = "Behavioral response: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$beh.c <- scale(dt5newVars$beh.m, scale = F, center = T)
 dt5newVars$beh.z <- scale(dt5newVars$beh.m, scale = T)
@@ -1324,37 +1363,37 @@ dt5newVars$beh.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19per")))$sco
 ```
 
 #### Pro-Social Response
-```{r beh, echo=T, results='asis', warning=F, message=F}
+```{r beh, echo=F, results='asis', warning=F, message=F}
 ia.proSo <- dt5newVars %>%
     dplyr::select(starts_with("c19ProSo")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.proSo$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.proSo)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Pro-Social response: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-#pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.proSo)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Pro-Social response: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
+# 
+# cat("<br>")
+# 
 dt5newVars$proSo.m <- scoreItems(keys=c(1,1,1,1), items = dt5newVars %>% dplyr::select(starts_with("c19ProSo")), 
                              min = -3, max = 3)$scores
-
-as.data.frame(psych::describe(dt5newVars$proSo.m, skew=F)) %>%
-  mutate(vars = "Pro-Social response") %>%
-  kable(., caption = "Pro-Social response: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# as.data.frame(psych::describe(dt5newVars$proSo.m, skew=F)) %>%
+#   mutate(vars = "Pro-Social response") %>%
+#   kable(., caption = "Pro-Social response: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$proSo.c <- scale(dt5newVars$proSo.m, scale = F, center = T)
 dt5newVars$proSo.z <- scale(dt5newVars$proSo.m, scale = T)
@@ -1362,76 +1401,76 @@ dt5newVars$proSo.fa <- fa(dt5newVars %>% dplyr::select(starts_with("c19ProSo")))
 ```
 
 ### Likelihood Threat
-```{r likelihood, echo=T, results='asis', warning=F, message=F}
-as.data.frame(psych::describe(dt5newVars$PLRAC19)) %>%
-  mutate(vars = "Likelihood c19") %>%
-  kable(., caption = "Likelihood c19: Item Descriptive", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-ggplot(dt5newVars, aes(x = PLRAC19)) +
-  geom_histogram(binwidth=1, alpha=0.5) +
-  #geom_density(alpha=0.6)+
-  labs(title="Likelihood c19 distribution",x="Likelihood c19", y = "Frequency") +
-  theme_Publication()
-  
-as.data.frame(psych::describe(dt5newVars$PLRAEco)) %>%
-  mutate(vars = "Likelihood Eco") %>%
-  kable(., caption = "Likelihood Eco: Item Descriptive", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-ggplot(dt5newVars, aes(x = PLRAEco)) +
-  geom_histogram(binwidth=1, alpha=0.5) +
-  #geom_density(alpha=0.6)+
-  labs(title="Likelihood Eco distribution",x="Likelihood Eco", y = "Frequency") +
-  theme_Publication()
+```{r likelihood, echo=F, results='asis', warning=F, message=F}
+# as.data.frame(psych::describe(dt5newVars$PLRAC19)) %>%
+#   mutate(vars = "Likelihood c19") %>%
+#   kable(., caption = "Likelihood c19: Item Descriptive", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# ggplot(dt5newVars, aes(x = PLRAC19)) +
+#   geom_histogram(binwidth=1, alpha=0.5) +
+#   #geom_density(alpha=0.6)+
+#   labs(title="Likelihood c19 distribution",x="Likelihood c19", y = "Frequency") +
+#   theme_Publication()
+#   
+# as.data.frame(psych::describe(dt5newVars$PLRAEco)) %>%
+#   mutate(vars = "Likelihood Eco") %>%
+#   kable(., caption = "Likelihood Eco: Item Descriptive", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# ggplot(dt5newVars, aes(x = PLRAEco)) +
+#   geom_histogram(binwidth=1, alpha=0.5) +
+#   #geom_density(alpha=0.6)+
+#   labs(title="Likelihood Eco distribution",x="Likelihood Eco", y = "Frequency") +
+#   theme_Publication()
 ```
 
 ### Hope and Efficacy
-```{r hopeEff, echo=T, results='asis', warning=F, message=F}
-as.data.frame(psych::describe(dt5newVars$c19Hope)) %>%
-  mutate(vars = "Hope") %>%
-  kable(., caption = "Hope: Item Descriptive", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-ggplot(dt5newVars, aes(x = c19Hope)) +
-  geom_histogram(binwidth=1, alpha=0.5) +
-  #geom_density(alpha=0.6)+
-  labs(title="Hope distribution",x="Corona Virus Hope", y = "Frequency") +
-  theme_Publication()
-  
-as.data.frame(psych::describe(dt5newVars$c19Eff)) %>%
-  mutate(vars = "Efficacy") %>%
-  kable(., caption = "Efficacy: Item Descriptive", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-ggplot(dt5newVars, aes(x = c19Eff)) +
-  geom_histogram(binwidth=1, alpha=0.5) +
-  #geom_density(alpha=0.6)+
-  labs(title="Efficacy distribution",x="Corona Virus Efficacy", y = "Frequency") +
-  theme_Publication()
+```{r hopeEff, echo=F, results='asis', warning=F, message=F}
+# as.data.frame(psych::describe(dt5newVars$c19Hope)) %>%
+#   mutate(vars = "Hope") %>%
+#   kable(., caption = "Hope: Item Descriptive", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# ggplot(dt5newVars, aes(x = c19Hope)) +
+#   geom_histogram(binwidth=1, alpha=0.5) +
+#   #geom_density(alpha=0.6)+
+#   labs(title="Hope distribution",x="Corona Virus Hope", y = "Frequency") +
+#   theme_Publication()
+#   
+# as.data.frame(psych::describe(dt5newVars$c19Eff)) %>%
+#   mutate(vars = "Efficacy") %>%
+#   kable(., caption = "Efficacy: Item Descriptive", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# ggplot(dt5newVars, aes(x = c19Eff)) +
+#   geom_histogram(binwidth=1, alpha=0.5) +
+#   #geom_density(alpha=0.6)+
+#   labs(title="Efficacy distribution",x="Corona Virus Efficacy", y = "Frequency") +
+#   theme_Publication()
 ```
 
 ### State Paranoia
-```{r para, echo=T, results='asis', warning=F, message=F}
+```{r para, echo=F, results='asis', warning=F, message=F}
 ia.para <- dt5newVars %>%
     dplyr::select(starts_with("para")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.para$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.para)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("para")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "State Paranoia: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.para)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("para")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "State Paranoia: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("para")))
 
 cat("<br>")
@@ -1439,10 +1478,10 @@ cat("<br>")
 dt5newVars$para.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("para")), 
                              min = 0, max = 10)$scores
 
-as.data.frame(psych::describe(dt5newVars$para.m, skew=F)) %>%
-  mutate(vars = "State Paranoia") %>%
-  kable(., caption = "State Paranoia: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$para.m, skew=F)) %>%
+#   mutate(vars = "State Paranoia") %>%
+#   kable(., caption = "State Paranoia: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$para.c <- scale(dt5newVars$para.m, scale = F, center = T)
 dt5newVars$para.z <- scale(dt5newVars$para.m, scale = T)
@@ -1450,26 +1489,26 @@ dt5newVars$para.fa <- fa(dt5newVars %>% dplyr::select(starts_with("para")))$scor
 ```
 
 ### Conspiracy Theory
-```{r consp, echo=T, results='asis', warning=F, message=F}
+```{r consp, echo=F, results='asis', warning=F, message=F}
 ia.consp <- dt5newVars %>%
     dplyr::select(starts_with("consp")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.consp$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.consp)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("consp")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Conspiracy Theory: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.consp)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("consp")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Conspiracy Theory: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("consp")))
 
 cat("<br>")
@@ -1477,10 +1516,10 @@ cat("<br>")
 dt5newVars$consp.m <- scoreItems(keys=c(1,1,1), items = dt5newVars %>% dplyr::select(starts_with("consp")), 
                              min = 0, max = 10)$scores
 
-as.data.frame(psych::describe(dt5newVars$consp.m, skew=F)) %>%
-  mutate(vars = "Conspiracy Theory") %>%
-  kable(., caption = "Conspiracy Theory: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$consp.m, skew=F)) %>%
+#   mutate(vars = "Conspiracy Theory") %>%
+#   kable(., caption = "Conspiracy Theory: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$para.c <- scale(dt5newVars$consp.m, scale = F, center = T)
 dt5newVars$para.z <- scale(dt5newVars$consp.m, scale = T)
@@ -1488,26 +1527,26 @@ dt5newVars$para.fa <- fa(dt5newVars %>% dplyr::select(starts_with("consp")))$sco
 ```
 
 ### Disempowerment
-```{r disemp, echo=T, results='asis', warning=F, message=F}
+```{r disemp, echo=F, results='asis', warning=F, message=F}
 ia.disemp<- dt5newVars %>%
     dplyr::select(starts_with("fail"), -contains("DO")) %>%
     na_if(., -99) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.disemp$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.disemp)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Disempowerment: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.disemp)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Disempowerment: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99))
 
@@ -1517,10 +1556,10 @@ dt5newVars$disemp.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("fail"), -contains("DO")) %>% na_if(., -99),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$disemp.m, skew=F)) %>%
-  mutate(vars = "Disempowerment") %>%
-  kable(., caption = "Disempowerment: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$disemp.m, skew=F)) %>%
+#   mutate(vars = "Disempowerment") %>%
+#   kable(., caption = "Disempowerment: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$disemp.c <- scale(dt5newVars$disemp.m, scale = F, center = T)
 dt5newVars$disemp.z <- scale(dt5newVars$disemp.m, scale = T)
@@ -1528,27 +1567,27 @@ dt5newVars$disemp.fa <- fa(dt5newVars %>% dplyr::select(starts_with("fail"), -co
 ```
 
 ### Societal Discontent
-```{r socDis, echo=T, results='asis', warning=F, message=F}
+```{r socDis, echo=F, results='asis', warning=F, message=F}
 ia.socdisc<- dt5newVars %>%
     dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>%
     na_if(., -99) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.socdisc$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.socdisc)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Societal Discontent: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.socdisc)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Societal Discontent: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99))
 
 cat("<br>")
@@ -1557,38 +1596,38 @@ dt5newVars$socdisc.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")) %>% na_if(., -99),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$socdisc.m, skew=F)) %>%
-  mutate(vars = "Societal Discontent") %>%
-  kable(., caption = "Societal Discontent: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
+# as.data.frame(psych::describe(dt5newVars$socdisc.m, skew=F)) %>%
+#   mutate(vars = "Societal Discontent") %>%
+#   kable(., caption = "Societal Discontent: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
 dt5newVars$socdisc.c <- scale(dt5newVars$socdisc.m, scale = F, center = T)
 dt5newVars$socdisc.z <- scale(dt5newVars$socdisc.m, scale = T)
 dt5newVars$socdisc.fa <- fa(dt5newVars %>% dplyr::select(starts_with("disc"), -discPers , -disc03, -contains("DO")))$scores
 ```
 
 ### Job Insecurity
-```{r jbinsc, echo=T, results='asis', warning=F, message=F}
+```{r jbinsc, echo=F, results='asis', warning=F, message=F}
 ia.jobinsec<- dt5newVars %>%
     dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>%
     na_if(., -99) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.jobinsec$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.jobinsec)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Job insecurity: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.jobinsec)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Job insecurity: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99))
 
 cat("<br>")
@@ -1597,10 +1636,10 @@ dt5newVars$jobinsec.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("jbInsec"), -jbInsec02, -jbInsec04) %>% na_if(., -99),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$jobinsec.m, skew=F)) %>%
-  mutate(vars = "Job insecurity") %>%
-  kable(., caption = "Job insecurity: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$jobinsec.m, skew=F)) %>%
+#   mutate(vars = "Job insecurity") %>%
+#   kable(., caption = "Job insecurity: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$jobinsec.c <- scale(dt5newVars$jobinsec.m, scale = F, center = T)
 dt5newVars$jobinsec.z <- scale(dt5newVars$jobinsec.m, scale = T)
@@ -1608,25 +1647,25 @@ dt5newVars$jobinsec.fa <- fa(dt5newVars %>% dplyr::select(starts_with("jbInsec")
 ```
 
 ### Financial Strain
-```{r finance, echo=T, results='asis', warning=F, message=F}
+```{r finance, echo=F, results='asis', warning=F, message=F}
 ia.pfs<- dt5newVars %>%
     dplyr::select(starts_with("PFS0")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.pfs$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.pfs)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("PFS0")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Financial Strain: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.pfs)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("PFS0")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Financial Strain: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("PFS0")))
 
@@ -1636,10 +1675,10 @@ dt5newVars$pfs.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("PFS0")),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$pfs.m, skew=F)) %>%
-  mutate(vars = "Financial Strain") %>%
-  kable(., caption = "Financial Strain: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$pfs.m, skew=F)) %>%
+#   mutate(vars = "Financial Strain") %>%
+#   kable(., caption = "Financial Strain: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$pfs.c <- scale(dt5newVars$pfs.m, scale = F, center = T)
 dt5newVars$pfs.z <- scale(dt5newVars$pfs.m, scale = T)
@@ -1648,25 +1687,25 @@ dt5newVars$pfs.fa <- fa(dt5newVars %>% dplyr::select(starts_with("PFS0")))$score
 
 ### Coping
 #### Problem Solving
-```{r probSolv, echo=T, results='asis', warning=F, message=F}
+```{r probSolv, echo=F, results='asis', warning=F, message=F}
 ia.probSolv<- dt5newVars %>%
     dplyr::select(starts_with("probSolving"), -contains("DO")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.probSolv$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.probSolv)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Problem Solving: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.probSolv)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Problem Solving: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")))
 
@@ -1676,10 +1715,10 @@ dt5newVars$probSolv.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("probSolving"), -contains("DO")),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$probSolv.m, skew=F)) %>%
-  mutate(vars = "Problem Solving") %>%
-  kable(., caption = "Problem Solving: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$probSolv.m, skew=F)) %>%
+#   mutate(vars = "Problem Solving") %>%
+#   kable(., caption = "Problem Solving: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$probSolv.c <- scale(dt5newVars$probSolv.m, scale = F, center = T)
 dt5newVars$probSolv.z <- scale(dt5newVars$probSolv.m, scale = T)
@@ -1687,25 +1726,25 @@ dt5newVars$probSolv.fa <- fa(dt5newVars %>% dplyr::select(starts_with("probSolvi
 ```
 
 #### Distraction
-```{r distract, echo=T, results='asis', warning=F, message=F}
+```{r distract, echo=F, results='asis', warning=F, message=F}
 ia.distract<- dt5newVars %>%
     dplyr::select(starts_with("posrefocus"), -contains("DO")) %>%
     Scale::Scale() %>%
     Scale::ItemAnalysis()
 ia.distract$rely   
-cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
-as.data.frame(Scale::ReportTable(ia.distract)) %>%
-  kable(., row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
-
-as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))) %>%
-  mutate(vars = rownames(.)) %>%
-  kable(., caption = "Distraction: Item Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
-
-cat("<br>")
+# cat("<br><br>A gls factor analysis was conducted. Items were regressed to a single factor. Their loadings are the following:")
+# as.data.frame(Scale::ReportTable(ia.distract)) %>%
+#   kable(., row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
+# 
+# as.data.frame(psych::describe(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))) %>%
+#   mutate(vars = rownames(.)) %>%
+#   kable(., caption = "Distraction: Item Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
+# 
+# cat("<br>")
 
 #pairs.panels.new(dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")))
 
@@ -1715,10 +1754,10 @@ dt5newVars$distract.m <- scoreItems(keys=c(1,1,1),
                                   items = dt5newVars %>% dplyr::select(starts_with("posrefocus"), -contains("DO")),
                                   min = -2, max = 2)$scores
 
-as.data.frame(psych::describe(dt5newVars$distract.m, skew=F)) %>%
-  mutate(vars = "Distraction") %>%
-  kable(., caption = "Distraction: Scale Descriptives", row.names = FALSE) %>% 
-  kable_styling("hover", full_width = F, latex_options = "hold_position")
+# as.data.frame(psych::describe(dt5newVars$distract.m, skew=F)) %>%
+#   mutate(vars = "Distraction") %>%
+#   kable(., caption = "Distraction: Scale Descriptives", row.names = FALSE) %>% 
+#   kable_styling("hover", full_width = F, latex_options = "hold_position")
 
 dt5newVars$distract.c <- scale(dt5newVars$distract.m, scale = F, center = T)
 dt5newVars$distract.z <- scale(dt5newVars$distract.m, scale = T)
@@ -1728,7 +1767,7 @@ dt5newVars$distract.fa <- fa(dt5newVars %>% dplyr::select(starts_with("posrefocu
 ### Well-Being
 #### Happy
 The happiness scale was reverse coded in French. Gets fixed here.
-```{r happy,echo=T, warning=F, message=F}
+```{r happy,echo=F, warning=F, message=F}
 # recode_if function is loaded at the beginning
   dt5newVars <- dt5newVars %>%
   dplyr::mutate(happy = labelled(recode_if(as.numeric(happy), language == "French", 
@@ -1739,7 +1778,7 @@ The happiness scale was reverse coded in French. Gets fixed here.
 
 ## Weights per Country
 ### Merge Weights from Bertus
-```{r mergWeight,echo=T, warning=F, message=F}
+```{r mergWeight,echo=F, warning=F, message=F}
 wgtCtry <- read_spss(dir("data/raw data/weights", pattern = "Weights", full.names = TRUE, ignore.case = TRUE))
 
 dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "coded_country",
@@ -1749,7 +1788,7 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 
 ## Local Virus Spread
 ### Check with Geolocation (not crucial for now)
-```{r geoloc, echo=T, warning=F, message=F}
+```{r geoloc, echo=F, warning=F, message=F}
 # library(readr)
 # library(renv)
 # library(countrycode)
@@ -1794,7 +1833,7 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 ```
 
 ### Merge with Metadata
-```{r geoloc, echo=T, warning=F, message=F}
+```{r geoloc, echo=F, warning=F, message=F}
 # library(gert)
 # library(countrycode)
 # source(file.path("scripts", "functions", "merge_metadata.R"))
