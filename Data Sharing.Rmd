@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-13 17-19 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-14 16-16 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -1214,7 +1214,7 @@ rm(dt, namSPSS, namR, namCSV)
 ```
 
 ### RMD20 (Agostini)
-```{r RMD20, echo=T, warning=F, message=F}
+```{r RMD20, echo=T, warning=F, message=T}
 # prepare dataframe
 name <- 'RMD20'
 # from here everything is automatic (just need to change the name above)
@@ -1247,6 +1247,10 @@ name <- 'RMD20'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# only needed for var checking  
+  tmp <- psych::describe(dt)
+  View(tmp)
+  
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
     dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
@@ -1256,9 +1260,9 @@ name <- 'RMD20'
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namR <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+  namCSV <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   save(dt, file = namR)
