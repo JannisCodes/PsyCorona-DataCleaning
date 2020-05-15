@@ -94,7 +94,11 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-14 16-16 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-15 13-47 CEST.sav")
+  dtAll$representative <- dtAll$source
+  # recode source so not identifiable
+    dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, 
+                                  "Rep NYU-AD" = 6, "Rep RUG" = 7)
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -213,10 +217,16 @@ name <- 'RMD01'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
- 
+
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 01)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -266,10 +276,16 @@ name <- 'RMD02'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 02)
+    }
 
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -306,7 +322,7 @@ name <- 'RMD03'
   
 # run function to get requested variable names 
   varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
+  
 # make dataframe
   dt <- dtAll %>%
     dplyr::select(one_of(as.character(varNames)),
@@ -320,13 +336,20 @@ name <- 'RMD03'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 03)
+    }
+
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
-    
+  
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -373,9 +396,15 @@ name <- 'RMD04'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 04)
+  }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -426,9 +455,15 @@ name <- 'RMD05'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 05)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -480,9 +515,15 @@ name <- 'RMD06'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 06)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -533,9 +574,15 @@ name <- 'RMD07'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 07)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -586,9 +633,15 @@ name <- 'RMD08'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 08)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -639,9 +692,15 @@ name <- 'RMD09'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 09)
+  }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -692,9 +751,15 @@ name <- 'RMD10'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 10)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -745,9 +810,15 @@ name <- 'RMD11'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 11)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -798,9 +869,15 @@ name <- 'RMD12'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 12)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -851,9 +928,15 @@ name <- 'RMD13'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 13)
+    }
+  
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -905,8 +988,8 @@ name <- 'RMD14'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -958,8 +1041,8 @@ name <- 'RMD15'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1011,8 +1094,8 @@ name <- 'RMD16'
                  -whatRel)
   
   # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1064,8 +1147,8 @@ name <- 'RMD17'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1142,8 +1225,8 @@ name <- 'RMD18'
                   -contains("mergeID", ignore.case = T))
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1195,8 +1278,8 @@ name <- 'RMD19'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1252,8 +1335,8 @@ name <- 'RMD20'
   View(tmp)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1305,8 +1388,8 @@ name <- 'RMD21'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1358,8 +1441,8 @@ name <- 'RMD22'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1411,8 +1494,8 @@ name <- 'RMD23'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1464,8 +1547,8 @@ name <- 'RMD24'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1517,8 +1600,8 @@ name <- 'RMD25'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1570,8 +1653,8 @@ name <- 'RMD26'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1623,8 +1706,8 @@ name <- 'RMD27'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1676,8 +1759,8 @@ name <- 'RMD28'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1729,8 +1812,8 @@ name <- 'RMD29'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1788,8 +1871,8 @@ name <- 'RMD30'
     }
 
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1841,8 +1924,8 @@ name <- 'RMD31'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1894,8 +1977,8 @@ name <- 'RMD32'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -1947,8 +2030,8 @@ name <- 'RMD33'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -2000,8 +2083,8 @@ name <- 'RMD34'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -2053,8 +2136,8 @@ name <- 'RMD35'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -2106,8 +2189,8 @@ name <- 'RMD36'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
@@ -2159,8 +2242,8 @@ name <- 'RMD37'
                  -whatRel)
   
 # make representative if needed
-  if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
-    dt <- dt[grepl("Rep", dt$source),]  # reduce df to representative
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
   } else { # if not
     dt <- dt # keep dt
   }
