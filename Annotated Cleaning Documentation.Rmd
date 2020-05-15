@@ -750,6 +750,10 @@ cat("How many people do not have fitting emails or response IDs in wave 5:")
 
 rm(list=ls(pattern="dt0w"))
 
+# make correct NAs
+ dt0All[dt0All == -99] <- NA
+ dt0All[dt0All == ""] <- NA
+
 dt5newVars <- dt0All
 ```
 

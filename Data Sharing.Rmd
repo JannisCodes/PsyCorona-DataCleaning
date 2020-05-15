@@ -1214,7 +1214,7 @@ rm(dt, namSPSS, namR, namCSV)
 ```
 
 ### RMD20 (Agostini)
-```{r RMD20, echo=T, warning=F, message=F}
+```{r RMD20, echo=T, warning=F, message=T}
 # prepare dataframe
 name <- 'RMD20'
 # from here everything is automatic (just need to change the name above)
@@ -1246,6 +1246,10 @@ name <- 'RMD20'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# only needed for var checking  
+  tmp <- psych::describe(dt)
+  View(tmp)
   
 # make representative if needed
   if(sum(grepl("source", names(dt))) == 1 ){ # if the sum of columns that have the string source == 2
