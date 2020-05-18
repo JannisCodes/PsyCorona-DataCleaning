@@ -752,8 +752,7 @@ rm(list=ls(pattern="dt0w"))
 
 # make correct NAs
  dt0All[dt0All == -99] <- NA
- dt0All[dt0All == ""] <- NA
-
+ 
 dt5newVars <- dt0All
 
 
@@ -777,8 +776,6 @@ We currently have `r length(table(dt5newVars$country))` different free text coun
 
 source("./scripts/functions/dictionary_functions.R")
 
-# sourcing seems to destroy everything
-# sourcing seems to destroy everything
 # sourcing seems to destroy everything
 country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Albania' = c('albania', 'shkoder', '(?i)Albania'),
@@ -822,8 +819,8 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'frankreich', '^fr$', 'La Réunion', 'laréunion', 'La réunion', 'fran.e', 'francia',  'frankrijk'),
                      'Gabon' = c('Gabon'),
                      'Georgia' = c('(?i)грузия', 'georgien'),
-                     'Germany' = c('^德国$', 'niemcy', '`^de$', 'Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γερμανια', 'allemagne', 'Γερμανία', 'Γερμανία', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....'),, 'gj.rman.'
-                     'Greece' = c('اليونان', 'ΕΛΛΑΣΑ', '(?i)athens', 'αθήνα', 'θεσσαλονίκη', 'ιωάννινα', '(?i)Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', '(?i)Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  '(?i)Ellada', '^希腊$', '(?i)GRECE', '(?i)ellada', 'Grecia', 'grèce', 'greee', 'griechenland', 'griekenland', '(?i)GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', 	'.λλ...', '.λλ..', 'ελλάδα', '200'),
+                     'Germany' = c('^德国$', 'niemcy', '`^de$', 'Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γε..magne', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....', 'gj.rman.'),
+                     'Greece' = c('اليونان', 'ΕΛΛΑΣΑ', '(?i)athens', 'αθήνα', 'θεσσαλονίκη', 'ιωάννινα', '(?i)Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', '(?i)Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  '(?i)Ellada', '^希腊$', '(?i)GRECE', '(?i)ellada', 'Grecia', 'grèce', 'greee', 'griechenland', 'griekenland', '(?i)GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', '.λλ...', '.λλ..', 'ελλάδα', '200'),
                      'Guatemala' = c('guat', 'Guatemala'),
                      'Hong Kong S.A.R.' = c('Hongkong', '^hk$', 'hong.{0,}kong', '香港'),
                      'Hungary' = c('(?i)hungary', 'ungheria', 'magxarország', 'Ungheria', 'Ungarn', 'ma.arska', '(?i)Magyar', '(?i)Magyarorszag', 'magyarosz.g', '^magyarorsz', '(?i)magyar', 'ungarn'),
@@ -840,7 +837,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'Jordan' = c(  'الاردن', 'Jordanie',  'jordan', 'الأردن'),
                      'Kazakhstan' = c('(?i)каза..тан', 'рк', 'казах', 'кз',	'^kz$',  '(?i)алматы', 'a.akh..an', 'kа.aza.stan', 'захстан', 'қазақстан', '.aza.stan', 'kaza..stan'),
                      'Kenya' = c('kenia', 'Kenia'),
-                     'Kosovo' = c('shtime', 'vshtrri', 'vraniq,suharekë', 's.harek.', 'sk.nderaj', 'sfe..l', 'prizren', 'rahovec',  'raçak-shtime', 'klin.', 'pej.', 'mitrovi..',  'kosov', 'gjilan', 'drenas', '^de.an$', 'vushtrri', 'obiliq', 'ferizaj', 'ske...raj', 'istog', '.osov.', 'pri..tin.','poduj.v.', 'mill.sh.v.', 'mil.sh.v.', 'l.pj.n', 'bellan.c.'),, 'gjak.v.'
+                     'Kosovo' = c('shtime', 'vshtrri', 'vraniq,suharekë', 's.harek.', 'sk.nderaj', 'sfe..l', 'prizren', 'rahovec',  'raçak-shtime', 'klin.', 'pej.', 'mitrovi..',  'kosov', 'gjilan', 'drenas', '^de.an$', 'vushtrri', 'obiliq', 'ferizaj', 'ske...raj', 'istog', '.osov.', 'pri..tin.','poduj.v.', 'mill.sh.v.', 'mil.sh.v.', 'l.pj.n', 'bellan.c.', 'gjak.v.'),
                      'Kuwait' = c('الكويت'),
                      'Kyrgyzstan' = c('(?i)кыргызстан'),
                      'Laos' = c('(?i)laos', 'Laos'),
