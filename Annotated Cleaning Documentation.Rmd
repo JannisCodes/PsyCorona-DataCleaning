@@ -1892,10 +1892,10 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact4_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact4_3.csv", header = T)
-  CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
-  CL <- plyr::rbind.fill(CL1, CL2, CL3)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact5_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact5_2.csv", header = T)
+  # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
+  CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
   CL <- CL %>%
     dplyr::transmute(Unsubscribed = Unsubscribed, 

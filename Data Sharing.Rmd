@@ -94,11 +94,12 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-15 13-47 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-17 11-30 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, 
                                   "Rep NYU-AD" = 6, "Rep RUG" = 7)
+    table(dtAll$representative, dtAll$source) # for checking
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -987,6 +988,12 @@ name <- 'RMD14'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 14)
+    }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1039,6 +1046,12 @@ name <- 'RMD15'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 15)
+    }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -1093,6 +1106,12 @@ name <- 'RMD16'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 16)
+    }
+  
   # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1146,6 +1165,12 @@ name <- 'RMD17'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 17)
+    }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1195,7 +1220,16 @@ name <- 'RMD18'
                  -contains(".z"),
                  -contains(".fa"),
                  -countryCitizenIfNo,
-                 -whatRel) %>%
+                 -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 18)
+  }
+  
+# this dataset only wants the Netherlands
+  dt <- dt %>%
   filter(coded_country == "Netherlands") #this proposal only wants the netherlands
   
 # prepare dataframe for merge
@@ -1277,6 +1311,12 @@ name <- 'RMD19'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 19)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1329,6 +1369,12 @@ name <- 'RMD20'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
+  }
   
 # only needed for var checking  
   tmp <- psych::describe(dt)
@@ -1387,6 +1433,12 @@ name <- 'RMD21'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 21)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1439,6 +1491,12 @@ name <- 'RMD22'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 22)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -1493,6 +1551,12 @@ name <- 'RMD23'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 23)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1545,6 +1609,12 @@ name <- 'RMD24'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 24)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -1599,6 +1669,12 @@ name <- 'RMD25'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 25)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1651,6 +1727,12 @@ name <- 'RMD26'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 26)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -1705,6 +1787,12 @@ name <- 'RMD27'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 27)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1758,6 +1846,12 @@ name <- 'RMD28'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 28)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1810,6 +1904,12 @@ name <- 'RMD29'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 29)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -1923,6 +2023,12 @@ name <- 'RMD31'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 31)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -1975,6 +2081,12 @@ name <- 'RMD32'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 32)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -2029,6 +2141,12 @@ name <- 'RMD33'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 33)
+  }  
+
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -2081,6 +2199,12 @@ name <- 'RMD34'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 34)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -2135,6 +2259,12 @@ name <- 'RMD35'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 35)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -2188,6 +2318,12 @@ name <- 'RMD36'
                  -countryCitizenIfNo,
                  -whatRel)
   
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 36)
+  }
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -2240,6 +2376,12 @@ name <- 'RMD37'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 37)
+  }
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
