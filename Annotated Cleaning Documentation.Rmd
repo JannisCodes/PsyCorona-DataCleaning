@@ -751,7 +751,8 @@ cat("How many people do not have fitting emails or response IDs in wave 5:")
 rm(list=ls(pattern="dt0w"))
 
 # make correct NAs
- dt0All[dt0All == -99] <- NA
+  dt0All <- dt0All %>%
+    dplyr::mutate_all(na_if, -99)
  
 dt5newVars <- dt0All
 
@@ -819,7 +820,7 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
                      'France' = c('(?i)france', 'régionpaca', 'francr', 'francuska', 'frankreich', 'fransa', '(?i)франц.я', '(?i)franța', 'Vendée', 'Valmontone (RM)', 'vouziers','guyanefrançaise',  'Région PACA', '(?i)Paris', '(?i)París', 'Oise', 'nouvelle-calédonie', 'LYON', 'Guyane Française', '(?i)Guadeloupe', 'Grand est', 'Fransa', 'Frznce', 'Réunion', 'Franche', 'frankreich', '^fr$', 'La Réunion', 'laréunion', 'La réunion', 'fran.e', 'francia',  'frankrijk'),
                      'Gabon' = c('Gabon'),
                      'Georgia' = c('(?i)грузия', 'georgien'),
-                     'Germany' = c('^德国$', 'niemcy', '`^de$', 'Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γε..magne', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....', 'gj.rman.', 'allem.gn.'),
+                     'Germany' = c('^德国$', 'niemcy', '`^de$', 'Duitsland', 'n\\w{0,2}ema.ka', 'brd', '(?i)Németország', 'ΓΕΡΜΑΝΙΑ', 'آلمان', '(?i)Германия', 'ألمانيا', 'Berlin', 'Γε..magne', 'Almanya', 'Alemania', '^.erman\\w{1,3}', '.eutschlan.', 'alemania',  'germania',  '^almanya$', 'berlin',  'duitsland', 'γ.ρ.....', 'gj.rman.', 'all.magn.'),
                      'Greece' = c('اليونان', 'ΕΛΛΑΣΑ', '(?i)athens', 'αθήνα', 'θεσσαλονίκη', 'ιωάννινα', '(?i)Ελλα', 'Ιωάννινα', 'greece', 'Θεσσαλονίκη', '(?i)Hellas', 'GRecia', 'Griechenland', 'Griekenland',  'Grèce',  '(?i)Ellada', '^希腊$', '(?i)GRECE', '(?i)ellada', 'Grecia', 'grèce', 'greee', 'griechenland', 'griekenland', '(?i)GREECE', 'Ελλα', 'ΕΛΛΑΣ', 'ΕΛΛΑΣΑ', 'ΕΛΛΆΔΑ', 'Greece', 'ΕΛΛΑΔΑ', 'grecia', '.λλ...', '.λλ..', 'ελλάδα', '200'),
                      'Guatemala' = c('guat', 'Guatemala'),
                      'Hong Kong S.A.R.' = c('Hongkong', '^hk$', 'hong.{0,}kong', '香港'),
@@ -1792,18 +1793,29 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 ```
 
 ## Local Virus Spread
+### Prepare Data
+```{r}
+# set people location and IP NA if they do not provide consent
+  dt5newVars <- dt5newVars %>%
+    dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress),
+                     .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
+```
+
+
+### Localization Script from Floris Uithof and Leon van der Meulen
+```{r localize}
+
+
+```
+
+
 ### Check with Geolocation (not crucial for now)
 ```{r geoloc, echo=F, warning=F, message=F}
 # library(readr)
 # library(renv)
 # library(countrycode)
 # library(revgeo)
-# 
-# # set people location and IP NA if they do not provide consent
-#   dt5newVars <- dt5newVars %>%
-#     dplyr::mutate_at(.vars = vars(LocationLatitude, LocationLongitude, IPAddress), 
-#                      .funs = list(~ ifelse(ZIP == 1, ., NA))) # get cell if ZIP == 1 if not set NA
-# 
+#
 # # # Set to NULL to get all GPS locations; takes a long time
 # only_missing_gps <- TRUE
 # number_of_gps <- 100
