@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-20 19-59 CEST .sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-21 15-13 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, 
@@ -1977,6 +1977,10 @@ name <- 'RMD30'
     dt <- dt # keep dt
   }
   
+# check whether hashIds work
+   # dtCasper <- read_spss("data/collab data/RMD30_Caspar van Lissa_2020-05-17 11-46 CEST.sav")
+    
+    
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
