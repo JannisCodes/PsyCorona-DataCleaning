@@ -94,11 +94,10 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-21 15-13 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-26 10-30 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
-    dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, 
-                                  "Rep NYU-AD" = 6, "Rep RUG" = 7)
+    dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
   
 # Import Request sheet
@@ -2111,7 +2110,7 @@ name <- 'RMD32'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD33
+### RMD33 (Silvana Mula)
 ```{r RMD33, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD33'
