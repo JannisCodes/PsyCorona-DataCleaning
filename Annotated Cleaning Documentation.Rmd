@@ -183,6 +183,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w5 <- read_spss(dir("data/raw data", pattern = "Wave.5", full.names = TRUE, ignore.case = TRUE)) 
   dt0w6 <- read_spss(dir("data/raw data", pattern = "Wave.6", full.names = TRUE, ignore.case = TRUE)) 
   dt0w7 <- read_spss(dir("data/raw data", pattern = "Wave.7", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w8 <- read_spss(dir("data/raw data", pattern = "Wave.8", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -199,6 +200,8 @@ notBasew6 <- dt0w6 %>%
   dplyr::select_if(!(names(dt0w6) %in% names(dt0Raw)))
 notBasew7 <- dt0w7 %>%
   dplyr::select_if(!(names(dt0w7) %in% names(dt0Raw)))
+notBasew8 <- dt0w8 %>%
+  dplyr::select_if(!(names(dt0w8) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -262,6 +265,15 @@ names(notBasew7) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Still needs checking"); rm(notBasew7)
+
+cat("Missmatch between wave 8 and baseline:")
+names(notBasew8) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Still needs checking"); rm(notBasew8)
 ```
 
 ## **Data Quality**   
@@ -579,6 +591,23 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
+#### Filter w8: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt0w8 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w8 <- dt0w8 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -712,6 +741,7 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w5) <- paste("w5", colnames(dt0w5), sep = "_")
   colnames(dt0w6) <- paste("w6", colnames(dt0w6), sep = "_")
   colnames(dt0w7) <- paste("w7", colnames(dt0w7), sep = "_")
+  colnames(dt0w8) <- paste("w8", colnames(dt0w8), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
@@ -722,6 +752,7 @@ dt5newVars <- dt5newVars %>%
   dt0w5$mergeID <- as.character(dt0w5$w5_ExternalReference)
   dt0w6$mergeID <- as.character(dt0w6$w6_ExternalReference)
   dt0w7$mergeID <- as.character(dt0w7$w7_ExternalReference)
+  dt0w8$mergeID <- as.character(dt0w8$w8_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -753,9 +784,12 @@ cat("How many people do we loose in wave 6 due to missing merge ID:")
 cat("How many people do we loose in wave 7 due to missing merge ID:")
   sum(dt0w7$mergeID == "")
   dt0w7 <- dt0w7[dt0w7$mergeID != "",]
+cat("How many people do we loose in wave 8 due to missing merge ID:")
+  sum(dt0w8$mergeID == "")
+  dt0w8 <- dt0w8[dt0w8$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -787,14 +821,19 @@ cat("How many people do not have fitting emails or response IDs in wave 5:")
   nrow(dt0w5) - sum(dt0All$ResponseId == dt0All$w5_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
-cat("How many people do not have fitting emails or response IDs in wave 5:")
+cat("How many people do not have fitting emails or response IDs in wave 6:")
   nrow(dt0w6) - sum(dt0All$ICRec_1_TEXT == dt0All$w6_RecipientEmail, na.rm = T)
   nrow(dt0w6) - sum(dt0All$ResponseId == dt0All$w6_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
-cat("How many people do not have fitting emails or response IDs in wave 5:")
+cat("How many people do not have fitting emails or response IDs in wave 7:")
   nrow(dt0w7) - sum(dt0All$ICRec_1_TEXT == dt0All$w7_RecipientEmail, na.rm = T)
   nrow(dt0w7) - sum(dt0All$ResponseId == dt0All$w7_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 8:")
+  nrow(dt0w8) - sum(dt0All$ICRec_1_TEXT == dt0All$w8_RecipientEmail, na.rm = T)
+  nrow(dt0w8) - sum(dt0All$ResponseId == dt0All$w8_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
 rm(list=ls(pattern="dt0w"))
@@ -804,7 +843,6 @@ rm(list=ls(pattern="dt0w"))
     dplyr::mutate_all(na_if, -99)
  
 dt5newVars <- dt0All
-
 
 ```
 
@@ -1851,10 +1889,51 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 ```
 
 
-### Localization Script from Floris Uithof and Leon van der Meulen
+### Localization Script from Floris Uithof
 ```{r localize}
+# Load packages
+library(GADMTools)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(ggplot2)
+library(dplyr)
+library(osmdata)
+library(ggmap)
+library(RColorBrewer)
 
+# Load in shapefile of provinces of the whole world
+# map <- st_read(file.choose())
+map <- st_read("C:/Users/user/Downloads/ne_10m_admin_1_states_provinces.shp")
 
+# Filter can be added here
+Provinces <- map 
+
+# Create the proper data set with responseId for later merging
+  data <- dt5newVars %>%
+    filter(!is.na(LocationLatitude),
+           LocationLatitude != "")%>%
+    dplyr::select(ResponseId, LocationLatitude, LocationLongitude)
+
+# add localization
+  data <- st_as_sf(data, coords=c("LocationLongitude", "LocationLatitude"), crs=4326, remove=FALSE)  
+
+# Select the provinces with points in them
+  provincesWithPoints <- Provinces[data, ]
+
+# Add the Province name to each of the data points
+  dataPerProvince <- st_join(data, Provinces['name'])
+
+# some people were not identified as their dots did not correspond to the map we uploaded
+  dataPerProvince$name[is.na(dataPerProvince$name)] <- 'no province'
+
+# merge province by Id
+  tmp <- dataPer.frame(ResponseId = dataPerProvince$ResponseId,
+                    region = dataPerProvince$name)
+  nd merge
+    dt5newVars <- dplyr::left_join(dt5newVars, tmp, by = "ResponseId")
+    
+rm(tmp, dataPerProvince, data, Provinces, provincesWithPoints)
 ```
 
 
