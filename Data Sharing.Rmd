@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-26 10-30 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-27 20-13 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
@@ -154,6 +154,11 @@ nameOut <- function(df){
   } else {
     stringOut[8] = NA
   }
+  if (grepl("W8|Wave8|Wave 8|All",df[2], ignore.case = T)) {
+    stringOut[9] = paste("w8_", df[1], sep = "")
+  } else {
+    stringOut[9] = NA
+  }
 return(stringOut)
 }
 # ADD WARNING IF ZIP CODE REQUESTED
@@ -171,18 +176,6 @@ write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format 
 write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
 rm(tmp)
 ```
-
-### RMD00 Leon needs lat/long
-```{r bertDemo}
-tmp <- dtAll %>%
-  transmute(ResponseId = ResponseId,
-            LocationLatitude = LocationLatitude,
-            LocationLongitude = LocationLongitude)
-write_sav(tmp, paste0("data/collab data/LeonLatLong ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
-write.csv(tmp, paste0("data/collab data/LeonLatLong ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
-rm(tmp)
-```
-
 
 ### RMD01 (Representative Sample)
 ```{r RMD01, echo=T, warning=F, message=F}
@@ -1385,7 +1378,7 @@ name <- 'RMD20'
   } else { # if not
     dt <- dt # keep dt
   }
-    
+
 # Export Dataframe
 # Naming
   namSPSS <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")

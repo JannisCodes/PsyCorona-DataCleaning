@@ -1918,9 +1918,13 @@ Provinces <- map
 # add localization
   data <- st_as_sf(data, coords=c("LocationLongitude", "LocationLatitude"), crs=4326, remove=FALSE)  
 
+# plot if needed
+  # plot(Provinces$geometry)
+  # plot(data$geometry, col='red', pch=16, cex=0.4,add = T)
+  
 # Select the provinces with points in them
   provincesWithPoints <- Provinces[data, ]
-
+  
 # Add the Province name to each of the data points
   dataPerProvince <- st_join(data, Provinces['name'])
 
@@ -1928,9 +1932,9 @@ Provinces <- map
   dataPerProvince$name[is.na(dataPerProvince$name)] <- 'no province'
 
 # merge province by Id
-  tmp <- dataPer.frame(ResponseId = dataPerProvince$ResponseId,
+  tmp <- data.frame(ResponseId = dataPerProvince$ResponseId,
                     region = dataPerProvince$name)
-  nd merge
+# and merge
     dt5newVars <- dplyr::left_join(dt5newVars, tmp, by = "ResponseId")
     
 rm(tmp, dataPerProvince, data, Provinces, provincesWithPoints)
