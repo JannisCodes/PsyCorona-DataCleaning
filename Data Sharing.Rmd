@@ -94,11 +94,10 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-17 11-30 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-27 20-13 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
-    dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, 
-                                  "Rep NYU-AD" = 6, "Rep RUG" = 7)
+    dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
   
 # Import Request sheet
@@ -155,6 +154,11 @@ nameOut <- function(df){
   } else {
     stringOut[8] = NA
   }
+  if (grepl("W8|Wave8|Wave 8|All",df[2], ignore.case = T)) {
+    stringOut[9] = paste("w8_", df[1], sep = "")
+  } else {
+    stringOut[9] = NA
+  }
 return(stringOut)
 }
 # ADD WARNING IF ZIP CODE REQUESTED
@@ -172,18 +176,6 @@ write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format 
 write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
 rm(tmp)
 ```
-
-### RMD00 Leon needs lat/long
-```{r bertDemo}
-tmp <- dtAll %>%
-  transmute(ResponseId = ResponseId,
-            LocationLatitude = LocationLatitude,
-            LocationLongitude = LocationLongitude)
-write_sav(tmp, paste0("data/collab data/LeonLatLong ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
-write.csv(tmp, paste0("data/collab data/LeonLatLong ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
-rm(tmp)
-```
-
 
 ### RMD01 (Representative Sample)
 ```{r RMD01, echo=T, warning=F, message=F}
@@ -1386,7 +1378,7 @@ name <- 'RMD20'
   } else { # if not
     dt <- dt # keep dt
   }
-    
+
 # Export Dataframe
 # Naming
   namSPSS <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -1977,6 +1969,10 @@ name <- 'RMD30'
     dt <- dt # keep dt
   }
   
+# check whether hashIds work
+   # dtCasper <- read_spss("data/collab data/RMD30_Caspar van Lissa_2020-05-17 11-46 CEST.sav")
+    
+    
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -2048,7 +2044,7 @@ name <- 'RMD31'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD32
+### RMD32 (Elena Resta)
 ```{r RMD32, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD32'
@@ -2107,7 +2103,7 @@ name <- 'RMD32'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD33
+### RMD33 (Silvana Mula)
 ```{r RMD33, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD33'
@@ -2166,13 +2162,13 @@ name <- 'RMD33'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD34
+### RMD34 (van Dellen)
 ```{r RMD34, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD34'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% #  select the column in which the name and vars are
     as.character() # make it a character
   author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
 
