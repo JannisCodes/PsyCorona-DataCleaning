@@ -711,6 +711,22 @@ rm(tmp, exclRepNYU, exclRepNYURespId, inclRepNYU, inclRepNYU2)
 
 #### Filter Out
 ```{r filtBefCalc, echo=T, warning=F, message=F}
+# TEMPORARY (the commented code should only be run after creating the coded_country; it serves to identify exclusion by country)
+# throw out the ones that need to be excluded
+  # tmp <- dt5newVars %>%
+  # filter(FilterPreview == 0,
+  #        FilterProgress == 0)
+  # # how many people do we loose per country
+  #   tmp <- tmp %>%
+  #     group_by(coded_country) %>%
+  #     summarise(outTime = sum(FilterTime),
+  #               outStraight = sum(FilterStraightliner),
+  #               total = n(),
+  #               percOut = (outTime + outStraight)/ total)
+  #   # save it
+  #     write.csv(tmp,'data/cleaned data/Exclusion by Country.csv'); rm(tmp)
+  # 
+
 dt5newVars <- dt5newVars %>%
   filter(FilterPreview == 0,
          FilterProgress == 0,
@@ -1017,7 +1033,8 @@ rm(country_dict, country_matches, country_names, country_entry)
 We currently have `r length(unique(dt5newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
 </div>
 
-### Visualize Response Rates 
+### Visualize Response Rates
+#### For the baseline
 We visualize how many responses we have per day.
 ```{r RespVis, echo=T, warning=F, message=F}
 # All data
@@ -1038,6 +1055,21 @@ ggplot(tmp, aes(x=Date, y = Count))+
    # scale_y_continuous(limits = c(0, 158),
    #                    breaks = seq(0,160,20))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmpdt)
+```
+
+#### For the recontact
+```{r RespVisWeekly, echo=T, warning=F, message=F}
+
+tmp <- dt5newVars %>%
+  dplyr::select(ends_with("EndDate")) %>%
+  dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
+
+tmp$numRec <- rowSums(tmp)-1
+table(tmp$numRec) # -1 are the Chinese who have no endDate; 0 means no recontacts
+tmp$lang <- dt5newVars$language
+table(tmp$numRec, tmp$lang) # recontact per language
+rm(tmp)
+
 ```
 
 
@@ -2029,7 +2061,7 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd_hms(dt5newVars$EndDate) < "2020-05-19 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-05-26 12:00:00 UTC",
          ICRec_1_TEXT!="") %>% #chdplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -2037,8 +2069,8 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact6_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact6_2.csv", header = T)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact7_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact7_2.csv", header = T)
   # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
