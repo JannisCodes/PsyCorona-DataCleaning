@@ -711,6 +711,22 @@ rm(tmp, exclRepNYU, exclRepNYURespId, inclRepNYU, inclRepNYU2)
 
 #### Filter Out
 ```{r filtBefCalc, echo=T, warning=F, message=F}
+# TEMPORARY (the commented code should only be run after creating the coded_country; it serves to identify exclusion by country)
+# throw out the ones that need to be excluded
+  # tmp <- dt5newVars %>%
+  # filter(FilterPreview == 0,
+  #        FilterProgress == 0)
+  # # how many people do we loose per country
+  #   tmp <- tmp %>%
+  #     group_by(coded_country) %>%
+  #     summarise(outTime = sum(FilterTime),
+  #               outStraight = sum(FilterStraightliner),
+  #               total = n(),
+  #               percOut = (outTime + outStraight)/ total)
+  #   # save it
+  #     write.csv(tmp,'data/cleaned data/Exclusion by Country.csv'); rm(tmp)
+  # 
+
 dt5newVars <- dt5newVars %>%
   filter(FilterPreview == 0,
          FilterProgress == 0,
