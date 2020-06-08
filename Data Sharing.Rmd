@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-27 20-13 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-06-07 19-25 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
@@ -946,7 +946,7 @@ name <- 'RMD13'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD14 (Han)
+### RMD14 (Quing Han)
 ```{r RMD14, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD14'
@@ -2280,7 +2280,7 @@ name <- 'RMD35'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD36
+### RMD36 (Michelle and William)
 ```{r RMD36, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD36'
@@ -2339,7 +2339,7 @@ name <- 'RMD36'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD37
+### RMD37 (Lindsy Richardson)
 ```{r RMD37, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD37'
@@ -2398,7 +2398,7 @@ name <- 'RMD37'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD38
+### RMD38 (Yasin Koc)
 ```{r RMD38, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD38'
