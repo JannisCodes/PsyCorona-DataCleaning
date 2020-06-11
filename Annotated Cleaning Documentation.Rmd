@@ -1133,7 +1133,21 @@ ggplot(tmp, aes(x=Date, y = Count))+
    # scale_y_continuous(limits = c(0, 158),
    #                    breaks = seq(0,160,20))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmpdt)
-```
+
+tmp# Check Chinese data
+  tmp <- dt5newVars %>%
+    filter(source != "Rep China",
+           coded_country == "China" | coded_country == "Hong Kong S.A.R.")
+  tmp2 <- setNames(data.frame(table(lubridate::round_date(tmp$StartDate, unit = "12 hours"))),c("Date","Count"))
+  
+  ggplot(tmp2, aes(x=Date, y = Count))+
+     geom_line(group = 1)+
+     theme_bw()+
+     # scale_y_continuous(limits = c(0, 158),
+     #                    breaks = seq(0,160,20))+
+     theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmp2)
+
+
 
 #### For the recontact
 ```{r RespVisWeekly, echo=T, warning=F, message=F}
