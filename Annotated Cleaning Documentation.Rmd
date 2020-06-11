@@ -176,7 +176,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 ### Recontacts
 ```{r LoadRawRec, echo=T, warning=F, message=F}
 # Import Wave 1
-  dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1", full.names = TRUE, ignore.case = TRUE))
+  dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1...M", full.names = TRUE, ignore.case = TRUE))
   dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
   dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
   dt0w4 <- read_spss(dir("data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
@@ -184,6 +184,8 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w6 <- read_spss(dir("data/raw data", pattern = "Wave.6", full.names = TRUE, ignore.case = TRUE)) 
   dt0w7 <- read_spss(dir("data/raw data", pattern = "Wave.7", full.names = TRUE, ignore.case = TRUE)) 
   dt0w8 <- read_spss(dir("data/raw data", pattern = "Wave.8", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w9 <- read_spss(dir("data/raw data", pattern = "Wave.9", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w10 <- read_spss(dir("data/raw data", pattern = "Wave.10", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -202,6 +204,10 @@ notBasew7 <- dt0w7 %>%
   dplyr::select_if(!(names(dt0w7) %in% names(dt0Raw)))
 notBasew8 <- dt0w8 %>%
   dplyr::select_if(!(names(dt0w8) %in% names(dt0Raw)))
+notBasew9 <- dt0w9 %>%
+  dplyr::select_if(!(names(dt0w9) %in% names(dt0Raw)))
+notBasew10 <- dt0w10 %>%
+  dplyr::select_if(!(names(dt0w10) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -274,6 +280,24 @@ names(notBasew8) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Still needs checking"); rm(notBasew8)
+
+cat("Missmatch between wave 9 and baseline:")
+names(notBasew9) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Still needs checking"); rm(notBasew9)
+
+cat("Missmatch between wave 10 and baseline:")
+names(notBasew10) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Still needs checking"); rm(notBasew10)
 ```
 
 ## **Data Quality**   
@@ -608,6 +632,40 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
+#### Filter w9: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt0w9 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w9 <- dt0w9 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+#### Filter w10: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt0w10 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w10 <- dt0w10 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -758,6 +816,8 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w6) <- paste("w6", colnames(dt0w6), sep = "_")
   colnames(dt0w7) <- paste("w7", colnames(dt0w7), sep = "_")
   colnames(dt0w8) <- paste("w8", colnames(dt0w8), sep = "_")
+  colnames(dt0w9) <- paste("w9", colnames(dt0w9), sep = "_")
+  colnames(dt0w10) <- paste("w10", colnames(dt0w10), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
@@ -769,6 +829,8 @@ dt5newVars <- dt5newVars %>%
   dt0w6$mergeID <- as.character(dt0w6$w6_ExternalReference)
   dt0w7$mergeID <- as.character(dt0w7$w7_ExternalReference)
   dt0w8$mergeID <- as.character(dt0w8$w8_ExternalReference)
+  dt0w9$mergeID <- as.character(dt0w9$w9_ExternalReference)
+  dt0w10$mergeID <- as.character(dt0w10$w10_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -803,9 +865,15 @@ cat("How many people do we loose in wave 7 due to missing merge ID:")
 cat("How many people do we loose in wave 8 due to missing merge ID:")
   sum(dt0w8$mergeID == "")
   dt0w8 <- dt0w8[dt0w8$mergeID != "",]
+cat("How many people do we loose in wave 9 due to missing merge ID:")
+  sum(dt0w9$mergeID == "")
+  dt0w9 <- dt0w9[dt0w9$mergeID != "",]
+cat("How many people do we loose in wave 10 due to missing merge ID:")
+  sum(dt0w10$mergeID == "")
+  dt0w10 <- dt0w10[dt0w10$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8, dt0w9, dt0w10) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -850,6 +918,16 @@ cat("How many people do not have fitting emails or response IDs in wave 7:")
 cat("How many people do not have fitting emails or response IDs in wave 8:")
   nrow(dt0w8) - sum(dt0All$ICRec_1_TEXT == dt0All$w8_RecipientEmail, na.rm = T)
   nrow(dt0w8) - sum(dt0All$ResponseId == dt0All$w8_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 9:")
+  nrow(dt0w9) - sum(dt0All$ICRec_1_TEXT == dt0All$w9_RecipientEmail, na.rm = T)
+  nrow(dt0w9) - sum(dt0All$ResponseId == dt0All$w9_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 10:")
+  nrow(dt0w10) - sum(dt0All$ICRec_1_TEXT == dt0All$w10_RecipientEmail, na.rm = T)
+  nrow(dt0w10) - sum(dt0All$ResponseId == dt0All$w10_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
 rm(list=ls(pattern="dt0w"))
@@ -1055,7 +1133,21 @@ ggplot(tmp, aes(x=Date, y = Count))+
    # scale_y_continuous(limits = c(0, 158),
    #                    breaks = seq(0,160,20))+
    theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmpdt)
-```
+
+tmp# Check Chinese data
+  tmp <- dt5newVars %>%
+    filter(source != "Rep China",
+           coded_country == "China" | coded_country == "Hong Kong S.A.R.")
+  tmp2 <- setNames(data.frame(table(lubridate::round_date(tmp$StartDate, unit = "12 hours"))),c("Date","Count"))
+  
+  ggplot(tmp2, aes(x=Date, y = Count))+
+     geom_line(group = 1)+
+     theme_bw()+
+     # scale_y_continuous(limits = c(0, 158),
+     #                    breaks = seq(0,160,20))+
+     theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmp2)
+
+
 
 #### For the recontact
 ```{r RespVisWeekly, echo=T, warning=F, message=F}
@@ -2085,6 +2177,7 @@ library("lubridate")
 
 # check merge  
   table(CLmerge$EmailDown == CLmerge$Email) # not a big issue
+  CLmerge$Email <- CLmerge$EmailDown #overwrite the original Email with the downloaded one as some change
   # remove all irrelevant columns
     CLUp <- CLmerge %>%
       dplyr::select(-EmailDown)

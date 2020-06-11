@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-05-27 20-13 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-06-09 14-53 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
@@ -106,6 +106,14 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
   namedtReq <- dtReq[1,]
   dtReq <- dtReq[-c(1:3),]
+  
+  
+tmp2 <- dtAll[dtAll$coded_country == "China",]
+tmp2 <- dtAll[dtAll$language == "Chinese (Simplified)" | dtAll$language == "Chinese (Traditional)",]
+table(tmp2$source, tmp2$language)
+table(tmp2$source, tmp2$language)
+table(tmp2$source, tmp2$coded_country)
+
 ```
 
 ### Function for Data
@@ -119,7 +127,7 @@ nameOut <- function(df){
     stringOut[1] = NA
   }
 # if there is a W1 (baseline) paste w1 and the variable
-  if (grepl("W1|Wave1|Wave 1|All",df[2], ignore.case = T)) {
+  if (grepl("W1$|Wave1$|Wave 1$|All",df[2], ignore.case = T)) { # needs special care as it coincides with 10
     stringOut[2] = paste("w1_", df[1], sep = "")
   } else {
     stringOut[2] = NA
@@ -158,6 +166,16 @@ nameOut <- function(df){
     stringOut[9] = paste("w8_", df[1], sep = "")
   } else {
     stringOut[9] = NA
+  }
+  if (grepl("W9|Wave9|Wave 9|All",df[2], ignore.case = T)) {
+    stringOut[10] = paste("w9_", df[1], sep = "")
+  } else {
+    stringOut[10] = NA
+  }
+  if (grepl("W10|Wave10|Wave 10|All",df[2], ignore.case = T)) {
+    stringOut[11] = paste("w10_", df[1], sep = "")
+  } else {
+    stringOut[11] = NA
   }
 return(stringOut)
 }
@@ -946,7 +964,7 @@ name <- 'RMD13'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD14 (Han)
+### RMD14 (Quing Han)
 ```{r RMD14, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD14'
@@ -1363,10 +1381,10 @@ name <- 'RMD20'
                  -whatRel)
   
 # needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
-  }
+  # dt$ResponseId <- c(1:nrow(dt))
+  # for (i in 1:nrow(dt)) {
+  # dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
+  # }
   
 # only needed for var checking  
   tmp <- psych::describe(dt)
@@ -2280,7 +2298,7 @@ name <- 'RMD35'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD36
+### RMD36 (Michelle and William)
 ```{r RMD36, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD36'
@@ -2339,7 +2357,7 @@ name <- 'RMD36'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD37
+### RMD37 (Lindsy Richardson)
 ```{r RMD37, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD37'
@@ -2398,7 +2416,7 @@ name <- 'RMD37'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD38
+### RMD38 (Yasin Koc)
 ```{r RMD38, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD38'
