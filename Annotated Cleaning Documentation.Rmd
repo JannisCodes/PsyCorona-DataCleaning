@@ -1111,7 +1111,17 @@ rm(country_dict, country_matches, country_names, country_entry)
 We currently have `r length(unique(dt5newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
 </div>
 
-### Visualize Response Rates
+### Filter Continued
+#### Chinese trust responses made NA
+```{r}
+d filtCh , echo=T, warning=F, message=Ft5newVars <- dt5newVars %>%
+  dplyr::mutate_at(.vars = vars(ends_with("GovCtry"), ends_with("GovState"), ends_with("Business")),
+   #which variables mutates
+                   .funs = list(~ ifelse(coded_country == "China", NA, .)))  # function to mutate`
+
+
+##```#
+ Visualize Response Rates
 #### For the baseline
 We visualize how many responses we have per day.
 ```{r RespVis, echo=T, warning=F, message=F}
