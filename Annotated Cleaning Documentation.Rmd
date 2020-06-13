@@ -1113,15 +1113,15 @@ We currently have `r length(unique(dt5newVars$country))` different free text cou
 
 ### Filter Continued
 #### Chinese trust responses made NA
-```{r}
-d filtCh , echo=T, warning=F, message=Ft5newVars <- dt5newVars %>%
+```{r filtCh , echo=T, warning=F, message=F}
+dt5newVars <- dt5newVars %>%
   dplyr::mutate_at(.vars = vars(ends_with("GovCtry"), ends_with("GovState"), ends_with("Business")),
    #which variables mutates
                    .funs = list(~ ifelse(coded_country == "China", NA, .)))  # function to mutate`
 
+```
 
-##```#
- Visualize Response Rates
+### Visualize Response Rates
 #### For the baseline
 We visualize how many responses we have per day.
 ```{r RespVis, echo=T, warning=F, message=F}
@@ -2163,7 +2163,7 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd_hms(dt5newVars$EndDate) < "2020-05-26 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-06-09 12:00:00 UTC",
          ICRec_1_TEXT!="") %>% #chdplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -2171,8 +2171,8 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact7_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact7_2.csv", header = T)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact9_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact9_2.csv", header = T)
   # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
@@ -2198,6 +2198,14 @@ library("lubridate")
   n_occur[n_occur$Freq > 1,] #which ids occurred more than once.
 CLmerge[CLmerge$ExternalDataReference %in% n_occur$Var1[n_occur$Freq > 1],] #which ones
 ```
+
+### Make Contact List per Country
+```{r CLperCountry}
+CLLang <- split(CLUp, CLUp$Language)
+# save it
+  mapply(write.csv, CLLang, file=paste0('data/cleaned data/Contact List ', names(CLLang), '.csv'), row.names = F)
+```
+
 
 ## **Data for Shiny App**
 ```{r shinyApp, echo=T, warning=F, message=F}
