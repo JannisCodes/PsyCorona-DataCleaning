@@ -1164,7 +1164,7 @@ tmp# Check Chinese data
 
 tmp <- dt5newVars %>%
   dplyr::select(ends_with("EndDate")) %>%
-  dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
+   dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
 
 tmp$numRec <- rowSums(tmp)-1
 table(tmp$numRec) # -1 are the Chinese who have no endDate; 0 means no recontacts
