@@ -180,21 +180,27 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 
 ### Data Stuff
 ```{r bertDemo}
-# how much responses per wave
-  tmp <- dtAll %>%
-    dplyr::select(contains("JWB"))%>%
-     dplyr::mutate_all(~ifelse(is.na(.), 0, 1))
-  tmp$nBoth <- rowSums(tmp)
-  table(tmp$nBoth)
-  
 # how much responses per country
   tmp <- dtAll %>% 
-  group_by(coded_country) %>% # group by country
-  filter(n() > 50)
+  group_by(language) %>% # group by country
+  filter(n() > 50) 
 
- 
+# how much responses per wave
+  tmp <- tmp %>%
+    dplyr::select(contains("JWB"))%>%
+     dplyr::mutate_all(~ifelse(is.na(.), 0, 1))
+  tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
+  table(tmp$nBoth)
+  tmpOut <- table(tmp$language, tmp$nBoth)
+  
+
+
 # how much responses  
 # colSums(!is.na(tmp))
+  
+# export if needed
+write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
+write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
 ```
 
 ### RMD00 (Bertus wants gender, age, country table)
