@@ -188,7 +188,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 # how much responses per wave
   tmp <- tmp %>%
     dplyr::select(contains("JWB"))%>%
-     dplyr::mutate_all(~ifelse(is.na(.), 0, 1))
+     dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
   tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
   table(tmp$nBoth)
   tmpOut <- table(tmp$language, tmp$nBoth)
