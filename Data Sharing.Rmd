@@ -94,7 +94,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-06-09 14-53 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-06-15 13-26 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
@@ -107,13 +107,6 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   namedtReq <- dtReq[1,]
   dtReq <- dtReq[-c(1:3),]
   
-  
-tmp2 <- dtAll[dtAll$coded_country == "China",]
-tmp2 <- dtAll[dtAll$language == "Chinese (Simplified)" | dtAll$language == "Chinese (Traditional)",]
-table(tmp2$source, tmp2$language)
-table(tmp2$source, tmp2$language)
-table(tmp2$source, tmp2$coded_country)
-
 ```
 
 ### Function for Data
@@ -184,6 +177,31 @@ return(stringOut)
 
 
 The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
+
+### Data Stuff
+```{r bertDemo}
+# how much responses per country
+  tmp <- dtAll %>% 
+  group_by(language) %>% # group by country
+  filter(n() > 50) 
+
+# how much responses per wave
+  tmp <- tmp %>%
+    dplyr::select(contains("JWB"))%>%
+     dplyr::mutate_all(~ifelse(is.na(.), 0, 1))
+  tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
+  table(tmp$nBoth)
+  tmpOut <- table(tmp$language, tmp$nBoth)
+  
+
+
+# how much responses  
+# colSums(!is.na(tmp))
+  
+# export if needed
+write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
+write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
+```
 
 ### RMD00 (Bertus wants gender, age, country table)
 ```{r bertDemo}
@@ -2475,7 +2493,7 @@ name <- 'RMD38'
 rm(dt, namSPSS, namR, namCSV)
 ```
 
-### RMD39
+### RMD39 (Birga Schumpe)
 ```{r RMD39, echo=T, warning=F, message=F}
 # prepare dataframe
 name <- 'RMD39'
