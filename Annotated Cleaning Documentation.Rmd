@@ -1,7 +1,7 @@
 ---
 title: "Psycorona - Data Cleaning Documentation"
 subtitle: "Step by step description" 
-author: "PsyCorona Gang"
+author: "PsyCorona: Max, Jannis & Ben"
 date: "3/30/2020"
 output:
   html_document: 
@@ -1219,8 +1219,12 @@ Political orientation was measured per language. We merge these variables here.
 
 #### Update the x and y scales to be correct
 As the picture sizes were different we update the x and y-axis here
+MAKE ME PROUD BEN!
 ```{r PolOrUpd, echo=T, warning=F, message=F}
-
+dt5newVars <- dt5newVars %>%
+  dplyr::mutate(PolEN_1_x = PolEN_1_x - 200,
+                PolEN_1_y = PolEN_1_y - 213
+                )
 
 ```
 
