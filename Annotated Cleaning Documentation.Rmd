@@ -1215,7 +1215,17 @@ rm(tmp)
 
 
 ### Political Orientation   
-Political orientation was measured per language. We merge these variables here.    
+Political orientation was measured per language. We merge these variables here.
+
+#### Update the x and y scales to be correct
+As the picture sizes were different we update the x and y-axis here
+```{r PolOrUpd, echo=T, warning=F, message=F}
+
+
+```
+
+
+#### Merge the Languages
 ```{r PolOr, echo=T, warning=F, message=F}
 # cleitical orientation
 dt5newVars <- dt5newVars %>%
