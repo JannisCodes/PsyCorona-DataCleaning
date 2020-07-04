@@ -1412,6 +1412,8 @@ name <- 'RMD20'
 # only needed for var checking  
   tmp <- psych::describe(dt)
   View(tmp)
+  write.csv(tmp, file = 'data/cleaned data/psychDescribe.csv')
+
   
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
