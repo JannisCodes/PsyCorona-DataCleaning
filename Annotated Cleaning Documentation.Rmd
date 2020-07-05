@@ -2873,8 +2873,12 @@ Export main dataframe as RData and SPSS sav files. We export versions with and w
 ```{r export, echo=T, warning=F, message=F}
 namSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namR <- paste0("data/cleaned data/Psycorona Baseline cleaned ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
-namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ",  format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+# relevant saves
+  namASPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ",  format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namAR <- paste0("data/cleaned data/Psycorona Baseline cleaned - All ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+  namASPSSHarmo <- paste0("data/cleaned data/Psycorona Baseline cleaned - All Harmonized ",  format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+  namARHarmo <- paste0("data/cleaned data/Psycorona Baseline cleaned - All Harmonized ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
+
 namTSPSS <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
 namTR <- paste0("data/cleaned data/Psycorona Baseline cleaned with page timer ", format(Sys.time(), format = "%F %H-%M %Z"),".RData")
 namCL <- paste0("data/cleaned data/Contact List 1 ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
@@ -2894,6 +2898,10 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
 # save full dataset
   write_sav(dt5newVars, namASPSS)
   write_sav(dt5newVars, namAR)
+
+# save harmonized dataset
+  write_sav(dt5as.data.frame(newVarsHarmo, n)amASPSSHarmo)
+  write_sav(dt5as.data.frame(newVarsHarmo, n)amARHarmo)
 
 # save data
   write_sav(dt6ReducedTimer, namTSPSS)
