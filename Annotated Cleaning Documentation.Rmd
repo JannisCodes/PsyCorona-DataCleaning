@@ -52,7 +52,7 @@ rm(lib)
   source("./scripts/functions/themes.R")
   source("./scripts/functions/dictionary_functions.R")
   source("./scripts/functions/recode_if.R")
-  
+
 # Markdown Options
   knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file()) # set working directory
   knitr::opts_knit$get("root.dir") # check working directory
@@ -1223,7 +1223,60 @@ MAKE ME PROUD BEN!
 ```{r PolOrUpd, echo=T, warning=F, message=F}
 dt5newVars <- dt5newVars %>%
   dplyr::mutate(PolEN_1_x = PolEN_1_x - 200,
-                PolEN_1_y = PolEN_1_y - 213
+                PolEN_1_y = PolEN_1_y - 213,
+                PolDE_1_x = PolDE_1_x - 210,
+                PolDE_1_y = PolDE_1_y - 177,
+                PolID_1_x = PolID_1_x - 210,
+                PolID_1_y = PolID_1_y - 177,
+                PolMS_1_x = PolMS_1_x - 210,
+                PolMS_1_y = PolMS_1_y - 181,
+                PolES_ES_1_x = PolES_ES_1_x - 239,
+                PolES_ES_1_y = PolES_ES_1_y - 181,
+                PolFR_1_x = PolFR_1_x - 236,
+                PolFR_1_y = PolFR_1_y - 178,
+                PolHR_1_x = PolHR_1_x - 215,
+                PolIT_1_x = PolIT_1_x - 227,
+                PolIT_1_y = PolIT_1_y - 173,
+                PolHU_1_x = PolHU_1_x - 286,
+                PolHU_1_y = PolHU_1_y - 175,
+                polNL_1_x = polNL_1_x - 196,
+                polNL_1_y = polNL_1_y - 176,
+                PolPL_1_x = PolPL_1_x - 245,
+                PolPL_1_y = PolPL_1_y - 179,
+                PolPT_1_x = PolPT_1_x - 256,
+                PolPT_1_y = PolPT_1_y - 177,
+                PolRO_1_x = PolRO_1_x - 224,
+                PolRO_1_y = PolRO_1_y - 171,
+                PolSQI_1_x = PolSQI_1_x - 211,
+                PolSQI_1_y = PolSQI_1_y - 177,
+                PolSR_1_x = PolSR_1_x - 209,
+                PolSR_1_y = PolSR_1_y - 184,
+                PolVI_1_x = PolVI_1_x - 233,
+                PolVI_1_y = PolVI_1_y - 178,
+                PolTR_1_x = PolTR_1_x - 210,
+                PolTR_1_y = PolTR_1_y - 177,
+                PolEL_1_x = PolEL_1_x - 288,
+                PolEL_1_y = PolEL_1_y - 181,
+                PolRU_1_x = PolRU_1_x - 239,
+                PolRU_1_y = PolRU_1_y - 173,
+                PolUK_1_x = PolUK_1_x - 195,
+                PolUK_1_y = PolUK_1_y - 176,
+                PolUR_1_x = PolUR_1_x - 210,
+                PolUR_1_y = PolUR_1_y - 177,
+                PolAR_1_x = PolAR_1_x - 200,
+                PolAR_1_y = PolAR_1_y - 177,
+                PolFA_1_x = PolFA_1_x - 186,
+                PolFA_1_y = PolFA_1_y - 179,
+                PolHI_1_x = PolHI_1_x - 255,
+                PolHI_1_y = PolHI_1_y - 182,
+                PolBN_1_x = PolBN_1_x - 210,
+                PolBN_1_y = PolBN_1_y - 184,
+                PolTH_1_x = PolTH_1_x - 210,
+                PolTH_1_y = PolTH_1_y - 185,
+                PolKO_1_x = PolKO_1_x - 279,
+                PolKO_1_y = PolKO_1_y - 180,
+                PolJA_1_x = PolJA_1_x - 210,
+                PolJA_1_y = PolJA_1_y - 185
                 )
 
 ```
@@ -2056,7 +2109,7 @@ The happiness scale was reverse coded in French. Gets fixed here.
                         label = "In general, how happy would you say you are?" ))
 ```
 
-## Weights per Country
+## Cross-Cultural Adjustement
 ### Merge Weights from Bertus
 ```{r mergWeight,echo=F, warning=F, message=F}
 wgtCtry <- read_spss(dir("data/raw data/weights", pattern = "Weights", full.names = TRUE, ignore.case = TRUE))
@@ -2065,6 +2118,164 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
                                                     "age" = "age", 
                                                     "gender" = "gender"))
 ```
+
+### Create Pp Grand Mean and Sd
+#### Set-Up
+```{r grandMean,echo=F, warning=F, message=F}
+stringOut <- NA #make var for fill out in function
+  source("./scripts/functions/nameOut.R") # load nameOut function
+
+# Import Request sheet (we only need column 50 really)
+  url <- gsheet::construct_download_url('https://docs.google.com/spreadsheets/d/13PFXsmgjrZBNddHodR2Z_80cjicN4s7yd8BbazKffx8/edit?usp=sharing', format = "csv", sheetid = NULL)
+  dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
+  namedtReq <- dtReq[1,]
+  dtReq <- dtReq[-c(1:3),]
+
+# prepare dataframe
+name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+```
+
+#### Calculate Mean and Sd per Wave
+```{r}
+# make dataframe for All
+  dt5newVarsHarmo <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames))) # get row of var names
+  dt5newVarsHarmo <- apply(dt5newVarsHarmo, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+
+# make dataframe for baseline
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[1,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 1
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[2,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w1_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w1_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 2
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[3,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w2_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w2_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 3
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[4,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w3_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w3_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 4
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[5,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w4_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w4_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 5
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[6,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w5_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w5_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 6
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[7,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w6_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w6_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 7
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[8,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w7_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w7_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 8
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[9,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w8_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w8_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 9
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[10,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w9_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w9_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 10
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[11,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w10_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w10_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
+# make dataframe for wave 11
+  tmpdt <- dt5newVars %>%
+    dplyr::select(one_of(as.character(varNames[12,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w11_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w11_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+    
+# clean dt (still NaNs?)
+  # tmp <- dt5newVars %>%
+  #   dplyr::mutate_at(.vars = vars(contains("respSet")),
+  #                    .funs = list(~ifelse(is.na(.), 'NaN', .)))
+ 
+    
+```
+
+
 
 ## Local Virus Spread
 ### Prepare Data
