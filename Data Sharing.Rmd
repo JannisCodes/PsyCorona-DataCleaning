@@ -224,7 +224,7 @@ name <- RMD
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+rm(dt, namSPSS, namCSV)
 }
 ```
 
@@ -536,9 +536,9 @@ name <- 'RMD36'
   mergedt <- read_spss("data/raw data/ZIP/mergedformax.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
-# # remove duplicate postal codes from the postal database
-#   mergedt <- mergedt %>%
-#     dplyr::distinct(mergeID, .keep_all = T)
+# remove duplicate postal codes (requested by Michelle)
+  mergedt <- mergedt %>%
+    dplyr::distinct(mergeID, .keep_all = T)
 
 # make merge ID in the created df
   dt$mergeID <- dt$ZIP_1_TEXT %>%
