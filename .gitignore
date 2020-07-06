@@ -12,5 +12,8 @@ data/metadata
 *.xlsx
 *.zip
 *.png
+*.md
+*.ini
+*.db
 #data/
 Icon?
