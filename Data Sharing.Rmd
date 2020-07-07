@@ -94,11 +94,14 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-06-23 13-01 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-07-05 23-03 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
+    
+# Import Harmonized Data
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-05 23-03 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -106,77 +109,13 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
   namedtReq <- dtReq[1,]
   dtReq <- dtReq[-c(1:3),]
-  
 ```
 
 ### Function for Data
 ```{r fctExp, echo=T, warning=F, message=F}
 stringOut <- NA #make var for fill out in function
-nameOut <- function(df){
-# if there is a B (baseline) paste the variable
-  if (grepl("B|All",df[2], ignore.case = T)) {
-    stringOut[1] = paste(df[1])
-  } else {
-    stringOut[1] = NA
-  }
-# if there is a W1 (baseline) paste w1 and the variable
-  if (grepl("W1$|Wave1$|Wave 1$|All",df[2], ignore.case = T)) { # needs special care as it coincides with 10
-    stringOut[2] = paste("w1_", df[1], sep = "")
-  } else {
-    stringOut[2] = NA
-  }
-  if (grepl("W2|Wave2|Wave 2|All",df[2], ignore.case = T)) {
-    stringOut[3] = paste("w2_", df[1], sep = "")
-  } else {
-    stringOut[3] = NA
-  }
-  if (grepl("W3|Wave3|Wave 3|All",df[2], ignore.case = T)) {
-    stringOut[4] = paste("w3_", df[1], sep = "")
-  } else {
-    stringOut[4] = NA
-  }
-  if (grepl("W4|Wave4|Wave 4|All",df[2], ignore.case = T)) {
-    stringOut[5] = paste("w4_", df[1], sep = "")
-  } else {
-    stringOut[5] = NA
-  }
-  if (grepl("W5|Wave5|Wave 5|All",df[2], ignore.case = T)) {
-    stringOut[6] = paste("w5_", df[1], sep = "")
-  } else {
-    stringOut[6] = NA
-  }
-  if (grepl("W6|Wave6|Wave 6|All",df[2], ignore.case = T)) {
-    stringOut[7] = paste("w6_", df[1], sep = "")
-  } else {
-    stringOut[7] = NA
-  }
-  if (grepl("W7|Wave7|Wave 7|All",df[2], ignore.case = T)) {
-    stringOut[8] = paste("w7_", df[1], sep = "")
-  } else {
-    stringOut[8] = NA
-  }
-  if (grepl("W8|Wave8|Wave 8|All",df[2], ignore.case = T)) {
-    stringOut[9] = paste("w8_", df[1], sep = "")
-  } else {
-    stringOut[9] = NA
-  }
-  if (grepl("W9|Wave9|Wave 9|All",df[2], ignore.case = T)) {
-    stringOut[10] = paste("w9_", df[1], sep = "")
-  } else {
-    stringOut[10] = NA
-  }
-  if (grepl("W10|Wave10|Wave 10|All",df[2], ignore.case = T)) {
-    stringOut[11] = paste("w10_", df[1], sep = "")
-  } else {
-    stringOut[11] = NA
-  }
-  if (grepl("W11|Wave11|Wave 11|All",df[2], ignore.case = T)) {
-    stringOut[11] = paste("w11_", df[1], sep = "")
-  } else {
-    stringOut[11] = NA
-  }
-return(stringOut)
-}
+  source("./scripts/functions/nameOut.R") # load nameOut function
+
 # ADD WARNING IF ZIP CODE REQUESTED
 ```
 
@@ -197,8 +136,6 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
   table(tmp$nBoth)
   tmpOut <- table(tmp$language, tmp$nBoth)
-  
-
 
 # how much responses  
 # colSums(!is.na(tmp))
@@ -218,10 +155,11 @@ write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format 
 rm(tmp)
 ```
 
-### RMD01 (Representative Sample)
-```{r RMD01, echo=T, warning=F, message=F}
+## Function for Data Creation
+```{r}
+dataCreate <- function(RMD, seedNum){
 # prepare dataframe
-name <- 'RMD01'
+name <- RMD
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
     dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
@@ -251,976 +189,129 @@ name <- 'RMD01'
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
+  
+# add harmonized data if grandMean and Sd are requested
+    if(sum(grepl("respSetMean", names(dt))) > 1 ){ # if response Set Mean is requested
+        dtHarmo <- dtAllHarmo %>% 
+          dplyr::select(one_of(as.character(varNames))) #make harmonized continous variable dataset
+        colnames(dtHarmo) <- paste(colnames(dtHarmo), "Harmonized",  sep = "_")
+        # and add harmonized variables to requested dt
+        dt <- cbind(dt, dtHarmo); rm(dtHarmo)
+  } else { # if not
+    print("Participant Mean and Sd not requested!") # keep dt
+  }
 
 # needs response ID (make through digest)
   dt$ResponseId <- c(1:nrow(dt))
   for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 01)
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = seedNum)
     }
   
-# make representative if needed
+# add representative info if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
+    dt$representative <- factor(dtAll$source, 
+                                levels = c(1,2,3,4,5,6,7,8), 
+                                labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))  # add column for representative
   } else { # if not
+    print("Representative indication not requested!")
     dt <- dt # keep dt
   }
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+   namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
-  save(dt, file = namR)
   write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+rm(dt, namSPSS, namCSV)
+}
+```
+
+## Create Datasets
+### RMD01 (Representative Sample)
+```{r RMD01, echo=T, warning=F, message=F}
+dataCreate("RMD01", 01)
 ```
 
 ### RMD02 (Ben Guetzkow): \n Decision-Making during the COVID-19 Pandemic: Predicting Safe and Unsafe behaviors with the Corona Reflection Test
 ```{r RMD02, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD02'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 02)
-    }
-
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-  
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD02", 02)
 ```
 
 ### RMD03 (Caspar van Lissa): \n Cooperation, Trust, and Behavioral Responses Across Societies During the COVID-19 Pandemic
 ```{r RMD03, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD03'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-  
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 03)
-    }
-
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-  
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD03", 03)
 ```
 
 ### RMD04 (Qing Han): \n Trust in government and its influence on health behaviour and prosocial behaviour during the COVID-19 pandemic
 ```{r RMD04, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD04'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 04)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD04", 04)
 ```
 
 ### RMD05 (Anne Margit): \n Predictors of consistently high well-being during COVID-19
 ```{r RMD05, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD05'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 05)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD05", 05)
 ```
-
 
 ### RMD06 (Anne Margit): \n Emotional experiences across nations during COVID-19: age, gender, and cultural differences
 ```{r RMD06, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD06'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 06)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD06", 06)
 ```
 
 ### RMD07 (Anne Margit): \n The association of emotional experiences during the height of COVID-19 with well-being across nations
 ```{r RMD07, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD07'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 07)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD07", 07)
 ```
 
 ### RMD08 (Lemay): \n Hope During the COVID-19 Pandemic: Implications for Individual and National Prevention Behaviors, Infection, and Well-Being
 ```{r RMD08, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD08'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 08)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD08", 08)
 ```
 
 ### RMD09 (Abakoumkin): \n Prediction of health protective behavior in the context of COVID-19 pandemic drawing from protection motivation theory
 ```{r RMD09, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD09'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 09)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD09", 09)
 ```
 
 ### RMD10 (Schumpe): \n Adoption of recommended behaviors to fight COVID-19
 ```{r RMD10, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD10'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 10)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD10", 10)
 ```
 
 ### RMD11 (Jin): \n Intergenerational Conflict of Interest and Prosocial Behavior During COVID-19 Pandemic
 ```{r RMD11, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD11'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 11)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD11", 11)
 ```
 
 ### RMD12 (Zuniga): \n Emotions, prosocial behaviour, wellbeing and disempowerment in response to the pandemic
 ```{r RMD12, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD12'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 12)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD12", 12)
 ```
 
 ### RMD13 (Lemay)
 ```{r RMD13, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD13'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 13)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD13", 13)
 ```
 
 ### RMD14 (Quing Han)
 ```{r RMD14, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD14'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 14)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD14", 14)
 ```
 
 ### RMD15 (Claudia Fernandes)
 ```{r RMD15, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD15'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 15)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD15", 15)
 ```
 
 ### RMD16 (van Breen)
 ```{r RMD16, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD16'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 16)
-    }
-  
-  # make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD16", 16)
 ```
 
 ### RMD17 (Bagci)
 ```{r RMD17, echo=T, warning=F, message=F}
-# prepare data frame
-name <- 'RMD17'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 17)
-    }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD17", 17)
 ```
 
 ### RMD18 (van Veen)
@@ -1312,1018 +403,96 @@ rm(dt, namSPSS, namR, namCSV)
 
 ### RMD19 (Buttrick)
 ```{r RMD19, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD19'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 19)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD19", 19)
 ```
 
 ### RMD20 (Agostini)
 ```{r RMD20, echo=T, warning=F, message=T}
-# prepare dataframe
-name <- 'RMD20'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  # dt$ResponseId <- c(1:nrow(dt))
-  # for (i in 1:nrow(dt)) {
-  # dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
-  # }
-  
-# only needed for var checking  
-  tmp <- psych::describe(dt)
-  View(tmp)
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("../psyCorona-Analysis/data/raw data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD20", 20)
 ```
 
 ### RMD21 (Gomez)
 ```{r RMD21, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD21'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 21)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD21", 21)
 ```
 
 ### RMD22 (Erica)
 ```{r RMD22, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD22'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 22)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD22", 22)
 ```
 
 ### RMD23 (Hoon-Seok Choi)
 ```{r RMD23, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD23'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 23)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD23", 23)
 ```
 
 ### RMD24 (Erica)
 ```{r RMD24, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD24'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 24)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD24", 24)
 ```
 
 ### RMD25 (Lemay)
 ```{r RMD25, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD25'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 25)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD25", 25)
 ```
 
 ### RMD26 (Wollast)
 ```{r RMD26, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD26'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 26)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD26", 26)
 ```
 
 ### RMD27 (Douglas)
 ```{r RMD27, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD27'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 27)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD27", 27)
 ```
 
 ### RMD28 (Sutton)
 ```{r RMD28, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD28'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 28)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD28", 28)
 ```
 
 ### RMD29
 ```{r RMD29, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD29'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 29)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD29", 29)
 ```
 
 ### RMD30 (Caspar)
 ```{r RMD30, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD30'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 20)
-    }
-
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-  
-# check whether hashIds work
-   # dtCasper <- read_spss("data/collab data/RMD30_Caspar van Lissa_2020-05-17 11-46 CEST.sav")
-    
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD30", 20) #yes on the first go there was no structured seed yet
 ```
 
 ### RMD31 (Pica)
 ```{r RMD31, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD31'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 31)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD31", 31)
 ```
 
 ### RMD32 (Elena Resta)
 ```{r RMD32, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD32'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 32)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD32", 32)
 ```
 
 ### RMD33 (Silvana Mula)
 ```{r RMD33, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD33'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 33)
-  }  
-
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD33", 33)
 ```
 
 ### RMD34 (van Dellen)
 ```{r RMD34, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD34'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% #  select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 34)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD34", 34)
 ```
 
 ### RMD35
 ```{r RMD35, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD35'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 35)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD35", 35)
 ```
 
 ### RMD36 (Michelle and William)
 ```{r RMD36, echo=T, warning=F, message=F}
-# prepare dataframe
+# make full dataset
+  dataCreate("RMD36", 36)
+
+# make US dataset where data is matched to ZIP
+  # prepare dataframe
 name <- 'RMD36'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
@@ -2350,8 +519,6 @@ name <- 'RMD36'
                  -contains(".m"),
                  -contains(".z"),
                  -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
                  -whatRel)
   
@@ -2361,6 +528,45 @@ name <- 'RMD36'
   dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 36)
   }
   
+# this dataset only wants the Netherlands
+  dt <- dt %>%
+  filter(coded_country == "United States of America") #this proposal only wants the netherlands
+  
+# prepare dataframe for merge
+  mergedt <- read_spss("data/raw data/ZIP/mergedformax.sav")
+  mergedt <- mergedt %>%
+    mutate(mergeID = as.character(ZIP))
+# remove duplicate postal codes (requested by Michelle)
+  mergedt <- mergedt %>%
+    dplyr::distinct(mergeID, .keep_all = T)
+
+# make merge ID in the created df
+  dt$mergeID <- dt$ZIP_1_TEXT %>%
+    tolower() %>% #make them lower case
+    gsub(" ", "", ., fixed = TRUE) %>% # remove white space
+    as.character()
+  
+# and merge them 
+  dt <- dplyr::left_join(dt, mergedt, by = "mergeID")
+  
+# remove ZIP again
+  dt <- dt %>%
+    dplyr::select(-contains("ZIP", ignore.case = T),
+                  -ends_with("_TEXT", ignore.case = T),
+                  -contains("mergeID", ignore.case = T),
+                  -City,
+                  -ST,
+                  -A_C,
+                  -FIPS,
+                  -County,
+                  -Pref_,
+                  -Type,
+                  -countyFIPS,
+                  -County_Name,
+                  -State,
+                  -stateFIPS
+                  )
+  
 # make representative if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
     dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
@@ -2370,838 +576,81 @@ name <- 'RMD36'
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
+  namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
 # Export
   write_sav(dt, namSPSS)
-  save(dt, file = namR)
   write.csv(dt, file = namCSV)
 rm(dt, namSPSS, namR, namCSV)
+
 ```
 
 ### RMD37 (Lindsy Richardson)
 ```{r RMD37, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD37'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 37)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD37", 37)
 ```
 
 ### RMD38 (Yasin Koc)
 ```{r RMD38, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD38'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 38)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD38", 38)
 ```
 
 ### RMD39 (Birga Schumpe)
 ```{r RMD39, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD39'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 39)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD39", 39)
 ```
 
 ### RMD40 (Leslie Zwerwer)
 ```{r RMD40, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD40'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 40)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD40", 40)
 ```
 
 ### RMD41 (Jose Rama)
 ```{r RMD41, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD41'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 41)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD41", 41)
 ```
 
 ### RMD42 (Michael Stuton)
 ```{r RMD42, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD42'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 42)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD42", 42)
 ```
 
 ### RMD43
 ```{r RMD43, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD43'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 43)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD43", 43)
 ```
 
 ### RMD44
 ```{r RMD44, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD44'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 44)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD44", 44)
 ```
 
 ### RMD45
 ```{r RMD45, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD45'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 45)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD45", 45)
 ```
 
-### RMD46
+### RMD46 (Pontus Leander)
 ```{r RMD46, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD46'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 46)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD46", 46)
 ```
 
 ### RMD47
 ```{r RMD47, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD47'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 47)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD47", 47)
 ```
 
 ### RMD48
 ```{r RMD48, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD48'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 48)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD48", 48)
 ```
 
 ### RMD49
 ```{r RMD49, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD49'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 49)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD49", 49)
 ```
 
-### RMD50
+### RMD50 (Max and Marie)
 ```{r RMD50, echo=T, warning=F, message=F}
-# prepare dataframe
-name <- 'RMD50'
-# from here everything is automatic (just need to change the name above)
-  author <- namedtReq %>%
-    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
-    as.character() # make it a character
-  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
-
-# make df  
-  tmp <- dtReq %>% 
-    dplyr::select(name = var, # get variable names
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
- 
-  tmp <- tmp %>% #remove empty rows
-    dplyr::filter(request != "") 
-  
-# run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
-
-# make dataframe
-  dt <- dtAll %>%
-    dplyr::select(one_of(as.character(varNames)),
-                 -contains("_DO_"),
-                 -contains(".c"),
-                 -contains(".m"),
-                 -contains(".z"),
-                 -contains(".fa"),
-                 -contains("ZIP", ignore.case = T),
-                 -ends_with("_TEXT", ignore.case = T),
-                 -countryCitizenIfNo,
-                 -whatRel)
-  
-# needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 50)
-  }
-  
-# make representative if needed
-  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
-  } else { # if not
-    dt <- dt # keep dt
-  }
-    
-# Export Dataframe
-# Naming
-  namSPSS <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-  namR <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
-  namCSV <- paste0("data/collab data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-# Export
-  write_sav(dt, namSPSS)
-  save(dt, file = namR)
-  write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+dataCreate("RMD50", 50)
 ```
