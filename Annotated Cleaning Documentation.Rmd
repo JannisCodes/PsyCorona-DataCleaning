@@ -2121,7 +2121,8 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 
 ### Create Pp Grand Mean and Sd
 #### Set-Up
-```{r grandMean,echo=F, warning=F, message=F}
+```We basically load in the variables we want to have harmonized (see RMD50 for those variables)
+{r grandMean,echo=F, warning=F, message=F}
 stringOut <- NA #make var for fill out in function
   source("./scripts/functions/nameOut.R") # load nameOut function
 
@@ -2900,8 +2901,8 @@ namDemo <- paste0("data/cleaned data/Country Demographics ", format(Sys.time(), 
   write_sav(dt5newVars, namAR)
 
 # save harmonized dataset
-  write_sav(dt5as.data.frame(newVarsHarmo, n)amASPSSHarmo)
-  write_sav(dt5as.data.frame(newVarsHarmo, n)amARHarmo)
+  write_sav(as.data.frame(dt5newVarsHarmo), namASPSSHarmo)
+  write_sav(as.data.frame(dt5newVarsHarmo), namARHarmo)
 
 # save data
   write_sav(dt6ReducedTimer, namTSPSS)
