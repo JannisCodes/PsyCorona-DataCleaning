@@ -2121,8 +2121,8 @@ dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "co
 
 ### Create Pp Grand Mean and Sd
 #### Set-Up
-```We basically load in the variables we want to have harmonized (see RMD50 for those variables)
-{r grandMean,echo=F, warning=F, message=F}
+We basically load in the variables we want to have harmonized (see RMD50 for those variables)
+```{r grandMean,echo=F, warning=F, message=F}
 stringOut <- NA #make var for fill out in function
   source("./scripts/functions/nameOut.R") # load nameOut function
 
@@ -2428,7 +2428,7 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd_hms(dt5newVars$EndDate) < "2020-06-09 12:00:00 UTC",
+         ymd_hms(dt5newVars$EndDate) < "2020-06-07 11:00:00 UTC",
          ICRec_1_TEXT!="") %>% #chdplyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
@@ -2436,8 +2436,8 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact9_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact9_2.csv", header = T)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact9_110csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact9_210csv", header = T)
   # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
