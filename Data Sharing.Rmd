@@ -94,14 +94,14 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-07-05 23-03 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-07-07 15-58 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-05 23-03 CEST.sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-07 15-58 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -533,7 +533,7 @@ name <- 'RMD36'
   filter(coded_country == "United States of America") #this proposal only wants the netherlands
   
 # prepare dataframe for merge
-  mergedt <- read_spss("data/raw data/ZIP/mergedformax.sav")
+  mergedt <- read_spss("data/raw data/ZIP/mergedformax2.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
@@ -563,7 +563,6 @@ name <- 'RMD36'
                   -Type,
                   -countyFIPS,
                   -County_Name,
-                  -State,
                   -stateFIPS
                   )
   
@@ -581,7 +580,7 @@ name <- 'RMD36'
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
-rm(dt, namSPSS, namR, namCSV)
+rm(dt, namSPSS, namCSV)
 
 ```
 
@@ -620,12 +619,12 @@ dataCreate("RMD42", 42)
 dataCreate("RMD43", 43)
 ```
 
-### RMD44
+### RMD44 (violeta Enea)
 ```{r RMD44, echo=T, warning=F, message=F}
 dataCreate("RMD44", 44)
 ```
 
-### RMD45
+### RMD45 (Anton Kurapov)
 ```{r RMD45, echo=T, warning=F, message=F}
 dataCreate("RMD45", 45)
 ```

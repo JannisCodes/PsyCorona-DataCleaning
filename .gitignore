@@ -15,5 +15,7 @@ data/metadata
 *.md
 *.ini
 *.db
+*.db-shm
+*.db-wal
 #data/
 Icon?
