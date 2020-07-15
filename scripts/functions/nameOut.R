@@ -1,7 +1,7 @@
 
 nameOut <- function(df){
 # if there is a B (baseline) paste the variable
-  if (grepl("B|All",df[2], ignore.case = T)) {
+  if (grepl("B|Baseline|All",df[2], ignore.case = T)) {
     stringOut[1] = paste(df[1])
   } else {
     stringOut[1] = NA
