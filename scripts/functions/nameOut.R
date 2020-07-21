@@ -7,7 +7,7 @@ nameOut <- function(df){
     stringOut[1] = NA
   }
 # if there is a W1 (baseline) paste w1 and the variable
-  if (grepl("W1,|W1;|Wave1,|Wave1;|Wave 1,|Wave 1;|All",df[2], ignore.case = T)) { # needs special care as it coincides with 10
+  if (grepl("W1$|W1,|W1;|Wave1,|Wave1;|Wave 1,|Wave 1;|All",df[2], ignore.case = T)) { # needs special care as it coincides with 10
     stringOut[2] = paste("w1_", df[1], sep = "")
   } else {
     stringOut[2] = NA
