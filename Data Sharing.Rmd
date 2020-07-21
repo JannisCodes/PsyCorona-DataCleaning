@@ -191,7 +191,7 @@ name <- RMD
                  -whatRel)
   
 # add harmonized data if grandMean and Sd are requested
-    if(sum(grepl("respSetMean", names(dt))) > 1 ){ # if response Set Mean is requested
+    if(sum(grepl("respSetMean", names(dt))) > 0 ){ # if response Set Mean is requested
         dtHarmo <- dtAllHarmo %>% 
           dplyr::select(one_of(as.character(varNames))) #make harmonized continous variable dataset
         colnames(dtHarmo) <- paste(colnames(dtHarmo), "Harmonized",  sep = "_")
@@ -721,7 +721,7 @@ dataCreate("RMD46", 46)
 dataCreate("RMD47", 47)
 ```
 
-### RMD48
+### RMD48 (Peter Strelan)
 ```{r RMD48, echo=T, warning=F, message=F}
 dataCreate("RMD48", 48)
 ```
