@@ -479,6 +479,93 @@ dataCreate("RMD33", 33)
 ### RMD34 (van Dellen)
 ```{r RMD34, echo=T, warning=F, message=F}
 dataCreate("RMD34", 34)
+
+# make US dataset where data is matched to ZIP
+  # prepare dataframe
+name <- 'RMD34'
+# from here everything is automatic (just need to change the name above)
+  author <- namedtReq %>%
+    dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
+    as.character() # make it a character
+  author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
+
+# make df  
+  tmp <- dtReq %>% 
+    dplyr::select(name = var, # get variable names
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+ 
+  tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "") 
+  
+# run function to get requested variable names 
+  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+
+# make dataframe
+  dt <- dtAll %>%
+    dplyr::select(one_of(as.character(varNames)),
+                 -contains("_DO_"),
+                 -contains(".c"),
+                 -contains(".m"),
+                 -contains(".z"),
+                 -contains(".fa"),
+                 -countryCitizenIfNo,
+                 -whatRel)
+  
+# needs response ID (make through digest)
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = 36)
+  }
+  
+# this dataset only wants the Netherlands
+  dt <- dt %>%
+  filter(coded_country == "United States of America") #this proposal only wants the US
+  
+# prepare dataframe for merge
+  mergedt <- read_spss("data/raw data/ZIP/mergedforjannis.sav")
+  mergedt <- mergedt %>%
+    mutate(mergeID = as.character(ZIP))
+# remove duplicate postal codes (requested by Michelle)
+  mergedt <- mergedt %>%
+    dplyr::distinct(mergeID, .keep_all = T)
+
+# make merge ID in the created df
+  dt$mergeID <- dt$ZIP_1_TEXT %>%
+    tolower() %>% #make them lower case
+    gsub(" ", "", ., fixed = TRUE) %>% # remove white space
+    as.character()
+  
+# and merge them 
+  dt <- dplyr::left_join(dt, mergedt, by = "mergeID")
+  
+# remove ZIP again
+  dt <- dt %>%
+    dplyr::select(-contains("ZIP", ignore.case = T),
+                  -ends_with("_TEXT", ignore.case = T),
+                  -contains("mergeID", ignore.case = T),
+                  -ST,
+                  -FIPS,
+                  -County,
+                  -County_Name,
+                  -stateFIPS,
+                  -statecounty
+                  )
+  
+# make representative if needed
+  if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
+  } else { # if not
+    dt <- dt # keep dt
+  }
+    
+# Export Dataframe
+# Naming
+  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
+  namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
+# Export
+  write_sav(dt, namSPSS)
+  write.csv(dt, file = namCSV)
+rm(dt, namSPSS, namCSV)
 ```
 
 ### RMD35
@@ -530,10 +617,10 @@ name <- 'RMD36'
   
 # this dataset only wants the Netherlands
   dt <- dt %>%
-  filter(coded_country == "United States of America") #this proposal only wants the netherlands
+  filter(coded_country == "United States of America") #this proposal only wants the US
   
 # prepare dataframe for merge
-  mergedt <- read_spss("data/raw data/ZIP/mergedformax2.sav")
+  mergedt <- read_spss("data/raw data/ZIP/mergedforjannis.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
@@ -554,16 +641,12 @@ name <- 'RMD36'
     dplyr::select(-contains("ZIP", ignore.case = T),
                   -ends_with("_TEXT", ignore.case = T),
                   -contains("mergeID", ignore.case = T),
-                  -City,
                   -ST,
-                  -A_C,
                   -FIPS,
                   -County,
-                  -Pref_,
-                  -Type,
-                  -countyFIPS,
                   -County_Name,
-                  -stateFIPS
+                  -stateFIPS,
+                  -statecounty
                   )
   
 # make representative if needed
@@ -581,7 +664,6 @@ name <- 'RMD36'
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
 rm(dt, namSPSS, namCSV)
-
 ```
 
 ### RMD37 (Lindsy Richardson)
