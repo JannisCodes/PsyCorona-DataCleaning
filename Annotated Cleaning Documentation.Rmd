@@ -1195,8 +1195,7 @@ tmp# Check Chinese data
      # scale_y_continuous(limits = c(0, 158),
      #                    breaks = seq(0,160,20))+
      theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 8)); rm (tmp, tmp2)
-
-
+```
 
 #### For the recontact
 ```{r RespVisWeekly, echo=T, warning=F, message=F}
@@ -1219,7 +1218,6 @@ Political orientation was measured per language. We merge these variables here.
 
 #### Update the x and y scales to be correct
 As the picture sizes were different we update the x and y-axis here
-MAKE ME PROUD BEN!
 ```{r PolOrUpd, echo=T, warning=F, message=F}
 dt5newVars <- dt5newVars %>%
   dplyr::mutate(PolEN_1_x = PolEN_1_x - 200,
@@ -2153,15 +2151,47 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
 
 ```
 
+#### Fix reverse coded items
+```{r}
+dt5newVarsRec <- dt5newVars
+
+# recode scales going from 1 to 5
+dt5newVarsRec <- dt5newVarsRec %>%
+  dplyr::mutate_at(.funs = list(~ recode(as.numeric(.), `1` = 5, `2` = 4, `3` = 3, `4` = 2, `5` = 1)), #function used
+                   .vars = vars(matches("affCalm|affContent|affEnerg|affExc|affInsp|affRel|affLov|posrefocus01|posrefocus02|posrefocus03"))) # variables selected
+
+# recode scales going from -2 to 2
+dt5newVarsRec <- dt5newVarsRec %>%
+  dplyr::mutate_at(.funs = list(~ recode(as.numeric(.), `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2)), #function used
+                   .vars = vars(matches("disc03|jbInsec02|Masks_4"))) # variables selected
+
+# recode scales going from -3 to 3
+dt5newVarsRec <- dt5newVarsRec %>%
+  dplyr::mutate_at(.funs = list(~ recode(as.numeric(.), `-3` = 3, `-2` = 2, `-1` = 1, `0` = 0, `1` = -1, `2` = -2, `3` = -3)), #function used
+                   .vars = vars(matches("bor03|neuro03|godOpinInfl"))) # variables selected
+
+# recode scales going from 1 to 7
+dt5newVarsRec <- dt5newVarsRec %>%
+  dplyr::mutate_at(.funs = list(~ recode(as.numeric(.), `1` = 7, `2` = 6, `3` = 5, `4` = 4, `5` = 3, `6` = 2, `7` = 1)), #function used
+                   .vars = vars(matches("MoneyTime"))) # variables selected
+
+# recode scales going from 1 to 6
+dt5newVarsRec <- dt5newVarsRec %>%
+  dplyr::mutate_at(.funs = list(~ recode(as.numeric(.), `1` = 6, `2` = 5, `3` = 4, `4` = 3, `5` = 2, `6` = 1)), #function used
+                   .vars = vars(matches("godForgive"))) # variables selected
+
+```
+
+
 #### Calculate Mean and Sd per Wave
 ```{r}
-# make dataframe for All
-  dt5newVarsHarmo <- dt5newVars %>%
+# make dataframe for All (for saving it later)
+  dt5newVarsHarmo <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames))) # get row of var names
   dt5newVarsHarmo <- apply(dt5newVarsHarmo, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
 
 # make dataframe for baseline
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[1,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2170,7 +2200,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 1
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[2,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2179,7 +2209,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w1_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 2
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[3,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2188,7 +2218,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w2_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 3
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[4,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2197,7 +2227,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w3_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 4
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[5,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2206,7 +2236,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w4_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 5
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[6,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2215,7 +2245,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w5_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 6
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[7,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2224,7 +2254,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w6_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 7
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[8,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2233,7 +2263,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w7_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 8
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[9,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2242,7 +2272,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w8_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 9
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[10,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2251,7 +2281,7 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w9_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 10
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[11,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
@@ -2260,14 +2290,16 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
     dt5newVars$w10_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
 
 # make dataframe for wave 11
-  tmpdt <- dt5newVars %>%
+  tmpdt <- dt5newVarsRec %>%
     dplyr::select(one_of(as.character(varNames[12,]))) # get row of var names
   tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
   
   # calc grand mean and sd
     dt5newVars$w11_respSetMean <- rowMeans(tmpdt, na.rm = T)
     dt5newVars$w11_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+
     
+      
 # clean dt (still NaNs?)
   # tmp <- dt5newVars %>%
   #   dplyr::mutate_at(.vars = vars(contains("respSet")),
@@ -2275,7 +2307,6 @@ name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
  
     
 ```
-
 
 
 ## Local Virus Spread
