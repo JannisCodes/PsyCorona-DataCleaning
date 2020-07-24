@@ -821,4 +821,5 @@ dataCreate("RMD49", 49)
 ### RMD50 (Max and Marie)
 ```{r RMD50, echo=T, warning=F, message=F}
 dataCreate("RMD50", 50)
+dataCreate("RMD50", 12) # for Ed so he can merge with Claudia (RMD12) dataset to check for the responseSetMean problems
 ```
