@@ -101,7 +101,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-27 13-42 CEST .sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-27 13-42 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -117,42 +117,6 @@ stringOut <- NA #make var for fill out in function
   source("./scripts/functions/nameOut.R") # load nameOut function
 
 # ADD WARNING IF ZIP CODE REQUESTED
-```
-
-
-The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` cases.
-
-### Data Stuff
-```{r bertDemo}
-# how much responses per country
-  tmp <- dtAll %>% 
-  group_by(language) %>% # group by country
-  filter(n() > 50) 
-
-# how much responses per wave
-  tmp <- tmp %>%
-    dplyr::select(contains("JWB"))%>%
-     dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
-  tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
-  table(tmp$nBoth)
-  tmpOut <- table(tmp$language, tmp$nBoth)
-
-# how much responses  
-# colSums(!is.na(tmp))
-  
-# export if needed
-write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
-write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
-```
-
-### RMD00 (Bertus wants gender, age, country table)
-```{r bertDemo}
-tmp <- dtAll %>%
-  group_by(coded_country, age, gender) %>%
-  summarise(n = n())
-write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
-write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
-rm(tmp)
 ```
 
 ## Function for Data Creation
@@ -226,6 +190,39 @@ name <- RMD
   write.csv(dt, file = namCSV)
 rm(dt, namSPSS, namCSV)
 }
+```
+
+### Data Stuff
+```{r bertDemo}
+# how much responses per country
+  tmp <- dtAll %>% 
+  group_by(language) %>% # group by country
+  filter(n() > 50) 
+
+# how much responses per wave
+  tmp <- tmp %>%
+    dplyr::select(contains("JWB"))%>%
+     dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
+  tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
+  table(tmp$nBoth)
+  tmpOut <- table(tmp$language, tmp$nBoth)
+
+# how much responses  
+# colSums(!is.na(tmp))
+  
+# export if needed
+write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
+write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
+```
+
+### RMD00 (Bertus wants gender, age, country table)
+```{r bertDemo}
+tmp <- dtAll %>%
+  group_by(coded_country, age, gender) %>%
+  summarise(n = n())
+write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
+write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
+rm(tmp)
 ```
 
 ## Create Datasets
@@ -878,4 +875,9 @@ dataCreate("RMD49", 49)
 ```{r RMD50, echo=T, warning=F, message=F}
 dataCreate("RMD50", 50)
 dataCreate("RMD50", 12) # for Ed so he can merge with Claudia (RMD12) dataset to check for the responseSetMean problems
+```
+
+### RMD51 (Edona Berisha-Kida)
+```{r RMD49, echo=T, warning=F, message=F}
+dataCreate("RMD51", 51)
 ```
