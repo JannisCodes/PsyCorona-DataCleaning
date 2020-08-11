@@ -2460,18 +2460,18 @@ rm(tmp, dataPerProvince, data, Provinces, provincesWithPoints)
 
 ### Merge with Metadata
 ```{r geoloc, echo=F, warning=F, message=F}
-# library(gert)
-# library(countrycode)
-# source(file.path("scripts", "functions", "merge_metadata.R"))
-# 
-# metadata_location <- file.path("data", "metadata")
-# get_metadata(metadata_location, overwrite = FALSE)
-# # See which metadata files are available
+# llibrary(gert)
+library(countrycode)
+source(file.path("scripts", "functions", "merge_metadata.R"))
+
+metadata_location <- file.path("data", "metadata")
+get_metadata(metadata_location, overwrite = FALSE)
+# See which metadata files are available
 # which_files(metadata_location)
-# 
+
 # dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
 # 
-# dt5newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
+# newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
 ```
 
 ## **Reduce to Relevant Variales**   

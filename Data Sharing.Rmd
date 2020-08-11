@@ -109,6 +109,9 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
   namedtReq <- dtReq[1,]
   dtReq <- dtReq[-c(1:3),]
+  
+  # Meta request sheet (rows 300 until end)
+  dtRewMeta <- dtReq[c(300:nrow(dtReq)),]
 ```
 
 ### Function for Data
@@ -180,6 +183,8 @@ name <- RMD
     print("Representative indication not requested!")
     dt <- dt # keep dt
   }
+  
+# ADD MERGE WITH META DATA (MAYBE IFELSE?)
     
 # Export Dataframe
 # Naming
