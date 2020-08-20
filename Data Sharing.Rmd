@@ -111,7 +111,19 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- dtReq[-c(1:3),]
   
   # Meta request sheet (rows 300 until end)
-  dtRewMeta <- dtReq[c(300:nrow(dtReq)),]
+  dtReqMeta <- dtReq[c(300:nrow(dtReq)),]
+  # normal request sheet the first rows
+  dtReq <- dtReq[c(1:296),]
+```
+
+Prepare Caspar van Lissa's library and functions
+```{r}
+library(countrycode)
+source(file.path("scripts", "functions", "merge_metadata.R"))
+
+metadata_location <- file.path("data", "metadata")
+get_metadata(metadata_location, overwrite = F)
+# deleting the metadata folder and reloading solves quite some issues
 ```
 
 ### Function for Data
@@ -122,7 +134,7 @@ stringOut <- NA #make var for fill out in function
 # ADD WARNING IF ZIP CODE REQUESTED
 ```
 
-## Function for Data Creation
+### Function for Data Creation
 ```{r}
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -184,8 +196,49 @@ name <- RMD
     dt <- dt # keep dt
   }
   
-# ADD MERGE WITH META DATA (MAYBE IFELSE?)
-    
+# Merge Requested Meta-Data to requested variables
+  # make df  
+  tmp <- dtReqMeta %>% 
+    dplyr::select(origin = Origin,
+                  path = var, # get variable names
+                  mergTech = min,
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+  
+   tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "")
+  # split the string at "/" and get the fifth; also remove everything after the dot; for loop needed so it does it for each row
+  # seperately
+   if(nrow(tmp) > 0 ){
+     tmp$name <- NA
+     for(i in 1:nrow(tmp)) {
+       tmp$name[i] <- gsub(".csv", "", strsplit(tmp$path[i], "[/]")[[1]][5])  
+     }
+     rm(i)
+   }
+     
+  # print the requested datasets and run for loop for the merge
+    if(nrow(tmp) == 0 ){ # if row length is 0
+      print("No Meta-Data requested")
+    } else { # if not
+      
+      # for loop to merge each dataset according to its merging mechanism (iso or more complicated)
+        for (i in 1:nrow(tmp)) {
+          if(tmp$mergTech[i] == "countryiso3") {
+            print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
+            dt <- merge_files(dt, tmp$name[i], metadata_location)
+          }
+          else {
+            print(paste("Merging complicated stuff: ", tmp$name[i], ". Computer says no...", sep = ""))
+          }
+  
+        } 
+    }
+ 
+# remove irrelevant columns 
+  dt <- dt %>%
+   dplyr::select(-matches('^country..$'), 
+                 -countryiso3)   
+
 # Export Dataframe
 # Naming
   namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
@@ -228,6 +281,8 @@ tmp <- dtAll %>%
 write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".sav"))
 write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
 rm(tmp)
+
+dataCreate("RMD00", 00)
 ```
 
 ## Create Datasets
@@ -885,4 +940,14 @@ dataCreate("RMD50", 12) # for Ed so he can merge with Claudia (RMD12) dataset to
 ### RMD51 (Edona Berisha-Kida)
 ```{r RMD49, echo=T, warning=F, message=F}
 dataCreate("RMD51", 51)
+```
+
+### RMD54 (Marieke van Vlugt)
+```{r RMD54, echo=T, warning=F, message=F}
+dataCreate("RMD54", 54)
+```
+
+### RMD55 (Alexandra Gheorghiu)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD55", 55)
 ```
