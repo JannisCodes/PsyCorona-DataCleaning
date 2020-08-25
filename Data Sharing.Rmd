@@ -227,6 +227,10 @@ name <- RMD
             print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
+          else if(tmp$mergTech[i] == "difficult") {
+            print(paste("Merging ", tmp$name[i], ". Not optimally merged but for now this works...", sep = ""))
+            dt <- merge_files(dt, tmp$name[i], metadata_location)
+          }
           else {
             print(paste("Merging complicated stuff: ", tmp$name[i], ". Computer says no...", sep = ""))
           }
@@ -236,7 +240,8 @@ name <- RMD
  
 # remove irrelevant columns 
   dt <- dt %>%
-   dplyr::select(-matches('^country..$'), 
+   dplyr::select(-matches('^country..$'),
+                 -matches('^region..$'),
                  -countryiso3)   
 
 # Export Dataframe
@@ -762,12 +767,63 @@ name <- 'RMD36'
                   -statecounty
                   )
   
-# make representative if needed
+# add representative info if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
-    dt <- dt[grepl("Rep", dt$representative),]  # reduce df to representative
+    dt$representative <- factor(dtAll$source, 
+                                levels = c(1,2,3,4,5,6,7,8), 
+                                labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))  # add column for representative
   } else { # if not
+    print("Representative indication not requested!")
     dt <- dt # keep dt
   }
+  
+# Merge Requested Meta-Data to requested variables
+  # make df  
+  tmp <- dtReqMeta %>% 
+    dplyr::select(origin = Origin,
+                  path = var, # get variable names
+                  mergTech = min,
+                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+  
+   tmp <- tmp %>% #remove empty rows
+    dplyr::filter(request != "")
+  # split the string at "/" and get the fifth; also remove everything after the dot; for loop needed so it does it for each row
+  # seperately
+   if(nrow(tmp) > 0 ){
+     tmp$name <- NA
+     for(i in 1:nrow(tmp)) {
+       tmp$name[i] <- gsub(".csv", "", strsplit(tmp$path[i], "[/]")[[1]][5])  
+     }
+     rm(i)
+   }
+     
+   # print the requested datasets and run for loop for the merge
+    if(nrow(tmp) == 0 ){ # if row length is 0
+      print("No Meta-Data requested")
+    } else { # if not
+      
+      # for loop to merge each dataset according to its merging mechanism (iso or more complicated)
+        for (i in 1:nrow(tmp)) {
+          if(tmp$mergTech[i] == "countryiso3") {
+            print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
+            dt <- merge_files(dt, tmp$name[i], metadata_location)
+          }
+          else if(tmp$mergTech[i] == "difficult") {
+            print(paste("Merging ", tmp$name[i], ". Not optimally merged but for now this works...", sep = ""))
+            dt <- merge_files(dt, tmp$name[i], metadata_location)
+          }
+          else {
+            print(paste("Merging complicated stuff: ", tmp$name[i], ". Computer says no...", sep = ""))
+          }
+  
+        } 
+    }
+ 
+# remove irrelevant columns 
+  dt <- dt %>%
+   dplyr::select(-matches('^country..$'),
+                 -matches('^region..$'),
+                 -countryiso3)
     
 # Export Dataframe
 # Naming
