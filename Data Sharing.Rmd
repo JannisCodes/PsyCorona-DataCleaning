@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-# RMD <- "RMD00"
-# seedNum <- 0
+RMD <- "RMD00"
+seedNum <- 0
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -232,9 +232,14 @@ name <- RMD
             print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
-          else if(tmp$mergTech[i] == "longitudinal") {
-            print(paste("Merging ", tmp$name[i], ". Not optimally merged but for now this works...", sep = ""))
-            dt <- merge_files(dt, tmp$name[i], metadata_location)
+        # Oxford data
+          else if(tmp$mergTech[i] == "oxford") {
+            print(paste("Merging ", tmp$name[i], ". Please wait...", sep = ""))
+
+            dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
+            
+           
+            dt <- # merge the baseline
           }
           else {
             print(paste("Merging complicated stuff: ", tmp$name[i], ". Computer says no...", sep = ""))
