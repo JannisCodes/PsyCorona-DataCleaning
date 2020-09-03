@@ -136,6 +136,9 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
+# RMD <- "RMD00"
+# seedNum <- 0
+
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
 name <- RMD
@@ -171,6 +174,7 @@ name <- RMD
   
 # add harmonized data if grandMean and Sd are requested
     if(sum(grepl("respSetMean", names(dt))) > 0 ){ # if response Set Mean is requested
+        print("Merging Participant Mean and Sd. Please wait...")
         dtHarmo <- dtAllHarmo %>% 
           dplyr::select(one_of(as.character(varNames))) #make harmonized continous variable dataset
         colnames(dtHarmo) <- paste(colnames(dtHarmo), "Harmonized",  sep = "_")
@@ -188,6 +192,7 @@ name <- RMD
   
 # add representative info if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
+    print("Adding Representative indication. Please wait...")
     dt$representative <- factor(dtAll$source, 
                                 levels = c(1,2,3,4,5,6,7,8), 
                                 labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))  # add column for representative
@@ -227,7 +232,7 @@ name <- RMD
             print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
-          else if(tmp$mergTech[i] == "difficult") {
+          else if(tmp$mergTech[i] == "longitudinal") {
             print(paste("Merging ", tmp$name[i], ". Not optimally merged but for now this works...", sep = ""))
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
