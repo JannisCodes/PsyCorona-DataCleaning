@@ -2506,16 +2506,17 @@ library("lubridate")
 # Make contact list of all people before cutoff date
   ContactListAll <- dt5newVars %>%
   filter(FilterPreview == 0,
-         ymd#_hms(dt5newVars$EndDate) < "2020-06-07 11:00:00 UTC",
-   # filter not needed anymore       ICRec_1_TEXT!="") %>% #chdyr::distinct(ICRec_1_TEXT, .keep_all = TRUE) %>%
+         ICRec_1_TEXT!="") %>%
+         # ymd_hms(dt5newVars$EndDate) < "2020-06-07 11:00:00 UTC",
+         # chdyr::distinct(ICRec_1_TEXT, .keep_all = TRUE)
   dplyr::select(ExternalDataReference = ResponseId,
                 Language = Q_Language,
                 Email = ICRec_1_TEXT,
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact9_111_1.", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact9_211_2.", header = T)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact12_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact12_2.csv", header = T)
   # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
