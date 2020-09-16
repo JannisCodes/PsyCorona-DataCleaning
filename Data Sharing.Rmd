@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-# RMD <- "RMD56"
-# seedNum <- 56
+RMD <- "RMD00"
+seedNum <- 0
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -233,85 +233,81 @@ name <- RMD
           if(tmp$mergTech[i] == "countryiso3") {
             print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
             dt <- merge_files(dt, tmp$name[i], metadata_location)
-          # remove country columns if they were aded
-            dt <- dt %>%
-             dplyr::select(-matches('^country..$'),
-                           -matches('^region..$'))
           }
         # Oxford data
           else if(tmp$mergTech[i] == "oxford") {
-            print(paste("Merging ", tmp$name[i], ". Currently not working...", sep = ""))
-        #   # load data
-        #     dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
-        #     # prepare merg data
-        #       dtMeta$mergCtry <- dtMeta$CountryCode
-        #       dtMeta$mergDate <- dtMeta$Date
-        #   # Baseline (always first: make time merge variables)
-        #     dt$mergDate <- as.numeric(paste0(substr(dt$EndDate, 1, 4), substr(dt$EndDate, 6, 7), 
-        #                                      substr(dt$EndDate, 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 1
-        #     dt$mergDate <- as.numeric(paste0(substr(dt$w1_EndDate , 1, 4), substr(dt$w1_EndDate , 6, 7),
-        #                                      substr(dt$w1_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 2
-        #     dt$w2_mergDate <- as.numeric(paste0(substr(dt$w2_EndDate , 1, 4), substr(dt$w2_EndDate , 6, 7),
-        #                                         substr(dt$w2_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 3
-        #     dt$w3_mergDate <- as.numeric(paste0(substr(dt$w3_EndDate , 1, 4), substr(dt$w3_EndDate , 6, 7),
-        #                                         substr(dt$w3_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 4
-        #     dt$w4_mergDate <- as.numeric(paste0(substr(dt$w4_EndDate , 1, 4), substr(dt$w4_EndDate , 6, 7),
-        #                                         substr(dt$w4_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 5
-        #     dt$w5_mergDate <- as.numeric(paste0(substr(dt$w5_EndDate , 1, 4), substr(dt$w5_EndDate , 6, 7),
-        #                                         substr(dt$w5_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 6
-        #     dt$w6_mergDate <- as.numeric(paste0(substr(dt$w6_EndDate , 1, 4), substr(dt$w6_EndDate , 6, 7),
-        #                                         substr(dt$w6_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 7
-        #     dt$w7_mergDate <- as.numeric(paste0(substr(dt$w7_EndDate , 1, 4), substr(dt$w7_EndDate , 6, 7),
-        #                                         substr(dt$w7_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 8
-        #     dt$w8_mergDate <- as.numeric(paste0(substr(dt$w8_EndDate , 1, 4), substr(dt$w8_EndDate , 6, 7),
-        #                                         substr(dt$w8_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 9
-        #     dt$w9_mergDate <- as.numeric(paste0(substr(dt$w9_EndDate , 1, 4), substr(dt$w9_EndDate , 6, 7),
-        #                                         substr(dt$w9_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 10
-        #     dt$w10_mergDate <- as.numeric(paste0(substr(dt$w10_EndDate , 1, 4), substr(dt$w10_EndDate , 6, 7),
-        #                                          substr(dt$w10_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 11
-        #     dt$w11_mergDate <- as.numeric(paste0(substr(dt$w11_EndDate , 1, 4), substr(dt$w11_EndDate , 6, 7),
-        #                                          substr(dt$w11_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # Wave 12
-        #     dt$w12_mergDate <- as.numeric(paste0(substr(dt$w12_EndDate , 1, 4), substr(dt$w12_EndDate , 6, 7),
-        #                                          substr(dt$w12_EndDate , 9, 10)))
-        #     # merge
-        #       dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
-        #   # merge data
+            print(paste("Merging ", tmp$name[i], ". Please wait...", sep = ""))
+          # load data
+            dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
+            # prepare merg data
+              dtMeta$mergCtry <- dtMeta$CountryCode
+              dtMeta$mergDate <- dtMeta$Date
+          # Baseline (always first: make time merge variables)
+            dt$mergDate <- as.numeric(paste0(substr(dt$EndDate, 1, 4), substr(dt$EndDate, 6, 7), 
+                                             substr(dt$EndDate, 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 1
+            dt$mergDate <- as.numeric(paste0(substr(dt$w1_EndDate , 1, 4), substr(dt$w1_EndDate , 6, 7),
+                                             substr(dt$w1_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 2
+            dt$w2_mergDate <- as.numeric(paste0(substr(dt$w2_EndDate , 1, 4), substr(dt$w2_EndDate , 6, 7),
+                                                substr(dt$w2_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 3
+            dt$w3_mergDate <- as.numeric(paste0(substr(dt$w3_EndDate , 1, 4), substr(dt$w3_EndDate , 6, 7),
+                                                substr(dt$w3_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 4
+            dt$w4_mergDate <- as.numeric(paste0(substr(dt$w4_EndDate , 1, 4), substr(dt$w4_EndDate , 6, 7),
+                                                substr(dt$w4_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 5
+            dt$w5_mergDate <- as.numeric(paste0(substr(dt$w5_EndDate , 1, 4), substr(dt$w5_EndDate , 6, 7),
+                                                substr(dt$w5_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 6
+            dt$w6_mergDate <- as.numeric(paste0(substr(dt$w6_EndDate , 1, 4), substr(dt$w6_EndDate , 6, 7),
+                                                substr(dt$w6_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 7
+            dt$w7_mergDate <- as.numeric(paste0(substr(dt$w7_EndDate , 1, 4), substr(dt$w7_EndDate , 6, 7),
+                                                substr(dt$w7_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 8
+            dt$w8_mergDate <- as.numeric(paste0(substr(dt$w8_EndDate , 1, 4), substr(dt$w8_EndDate , 6, 7),
+                                                substr(dt$w8_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 9
+            dt$w9_mergDate <- as.numeric(paste0(substr(dt$w9_EndDate , 1, 4), substr(dt$w9_EndDate , 6, 7),
+                                                substr(dt$w9_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 10
+            dt$w10_mergDate <- as.numeric(paste0(substr(dt$w10_EndDate , 1, 4), substr(dt$w10_EndDate , 6, 7),
+                                                 substr(dt$w10_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 11
+            dt$w11_mergDate <- as.numeric(paste0(substr(dt$w11_EndDate , 1, 4), substr(dt$w11_EndDate , 6, 7),
+                                                 substr(dt$w11_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # Wave 12
+            dt$w12_mergDate <- as.numeric(paste0(substr(dt$w12_EndDate , 1, 4), substr(dt$w12_EndDate , 6, 7),
+                                                 substr(dt$w12_EndDate , 9, 10)))
+            # merge
+              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+          # merge data
             
             
 
@@ -321,11 +317,11 @@ name <- RMD
           }
   
         } 
-      # # remove irrelevant columns 
-      #   dt <- dt %>%
-      #    dplyr::select(-matches('^country..$'),
-      #                  -matches('^region..$'),
-      #                  -countryiso3)  
+      # remove irrelevant columns 
+        dt <- dt %>%
+         dplyr::select(-matches('^country..$'),
+                       -matches('^region..$'),
+                       -countryiso3)  
     }
  
  
@@ -1092,9 +1088,4 @@ dataCreate("RMD54", 54)
 ### RMD55 (Alexandra Gheorghiu)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD55", 55)
-```
-
-### RMD56 (Alexandra Gheorghiu)
-```{r RMD56, echo=T, warning=F, message=F}
-dataCreate("RMD56", 56)
 ```
