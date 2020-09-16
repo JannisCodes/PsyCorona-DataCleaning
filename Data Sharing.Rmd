@@ -185,10 +185,10 @@ name <- RMD
   }
 
 # needs response ID (make through digest)
-  dt$ResponseId <- c(1:nrow(dt))
-  for (i in 1:nrow(dt)) {
-  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = seedNum)
-    }
+  # dt$ResponseId <- c(1:nrow(dt))
+  # for (i in 1:nrow(dt)) {
+  # dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = seedNum)
+  #   }
   
 # add representative info if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -235,78 +235,136 @@ name <- RMD
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
         # Oxford data
-          else if(tmp$mergTech[i] == "oxford") {
+          else if(tmp$mergTech[i] == "long_DateNum") {
             print(paste("Merging ", tmp$name[i], ". Please wait...", sep = ""))
           # load data
             dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
+          # do we have regional data?
+            if("RegionName" %in% colnames(dtMeta)) {
+                tmp <- dtMeta %>% filter(RegionName != "")
+                print(paste("There is regional data available for: ", unique(tmp$CountryCode), "!", sep = "")); rm(tmp)
+                print("Ignored and deleted for now.")
+              dtMeta <- dtMeta %>% filter(RegionName == "")
+            }
+            else {
+              (print("No Regional data available (but may need a manual check if too many rows appear in data)"))
+            } 
             # prepare merg data
               dtMeta$mergCtry <- dtMeta$CountryCode
-              dtMeta$mergDate <- dtMeta$Date
+              dtMeta$mergDate <- as.numeric(dtMeta$Date)
           # Baseline (always first: make time merge variables)
             dt$mergDate <- as.numeric(paste0(substr(dt$EndDate, 1, 4), substr(dt$EndDate, 6, 7), 
                                              substr(dt$EndDate, 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              dt <- dplyr::left_join(dt, dtMeta, by=c("mergCtry","mergDate"))
           # Wave 1
-            dt$mergDate <- as.numeric(paste0(substr(dt$w1_EndDate , 1, 4), substr(dt$w1_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w1_EndDate , 1, 4), substr(dt$w1_EndDate , 6, 7), #overwrite mergDate
                                              substr(dt$w1_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w1", colnames(dtMeta), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w1_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w1_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 2
-            dt$w2_mergDate <- as.numeric(paste0(substr(dt$w2_EndDate , 1, 4), substr(dt$w2_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w2_EndDate , 1, 4), substr(dt$w2_EndDate , 6, 7),
                                                 substr(dt$w2_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w2", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w2_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w2_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 3
-            dt$w3_mergDate <- as.numeric(paste0(substr(dt$w3_EndDate , 1, 4), substr(dt$w3_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w3_EndDate , 1, 4), substr(dt$w3_EndDate , 6, 7),
                                                 substr(dt$w3_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w3", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w3_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w3_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 4
-            dt$w4_mergDate <- as.numeric(paste0(substr(dt$w4_EndDate , 1, 4), substr(dt$w4_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w4_EndDate , 1, 4), substr(dt$w4_EndDate , 6, 7),
                                                 substr(dt$w4_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w4", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w4_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w4_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 5
-            dt$w5_mergDate <- as.numeric(paste0(substr(dt$w5_EndDate , 1, 4), substr(dt$w5_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w5_EndDate , 1, 4), substr(dt$w5_EndDate , 6, 7),
                                                 substr(dt$w5_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w5", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w5_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w5_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 6
-            dt$w6_mergDate <- as.numeric(paste0(substr(dt$w6_EndDate , 1, 4), substr(dt$w6_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w6_EndDate , 1, 4), substr(dt$w6_EndDate , 6, 7),
                                                 substr(dt$w6_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w6", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w6_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w6_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 7
-            dt$w7_mergDate <- as.numeric(paste0(substr(dt$w7_EndDate , 1, 4), substr(dt$w7_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w7_EndDate , 1, 4), substr(dt$w7_EndDate , 6, 7),
                                                 substr(dt$w7_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w7", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w7_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w7_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 8
-            dt$w8_mergDate <- as.numeric(paste0(substr(dt$w8_EndDate , 1, 4), substr(dt$w8_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w8_EndDate , 1, 4), substr(dt$w8_EndDate , 6, 7),
                                                 substr(dt$w8_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w8", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w8_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w8_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 9
-            dt$w9_mergDate <- as.numeric(paste0(substr(dt$w9_EndDate , 1, 4), substr(dt$w9_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w9_EndDate , 1, 4), substr(dt$w9_EndDate , 6, 7),
                                                 substr(dt$w9_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w9", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w9_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w9_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 10
-            dt$w10_mergDate <- as.numeric(paste0(substr(dt$w10_EndDate , 1, 4), substr(dt$w10_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w10_EndDate , 1, 4), substr(dt$w10_EndDate , 6, 7),
                                                  substr(dt$w10_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w10", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w10_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w10_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 11
-            dt$w11_mergDate <- as.numeric(paste0(substr(dt$w11_EndDate , 1, 4), substr(dt$w11_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w11_EndDate , 1, 4), substr(dt$w11_EndDate , 6, 7),
                                                  substr(dt$w11_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w11", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w11_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w11_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # Wave 12
-            dt$w12_mergDate <- as.numeric(paste0(substr(dt$w12_EndDate , 1, 4), substr(dt$w12_EndDate , 6, 7),
+            dt$mergDate <- as.numeric(paste0(substr(dt$w12_EndDate , 1, 4), substr(dt$w12_EndDate , 6, 7),
                                                  substr(dt$w12_EndDate , 9, 10)))
             # merge
-              dt <- merge(dt, dtMeta, by=c("mergCtry","mergDate"))
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w12", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w12_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w12_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
           # merge data
             
             
@@ -317,11 +375,11 @@ name <- RMD
           }
   
         } 
-      # remove irrelevant columns 
-        dt <- dt %>%
-         dplyr::select(-matches('^country..$'),
-                       -matches('^region..$'),
-                       -countryiso3)  
+      # # remove irrelevant columns 
+      #   dt <- dt %>%
+      #    dplyr::select(-matches('^country..$'),
+      #                  -matches('^region..$'),
+      #                  -countryiso3)  
     }
  
  
