@@ -6,9 +6,10 @@
 *.html
 *.sav
 *.Rdata
-data/metadata
+data/cleaned data
+data/raw data
+data/collab data
 .DS_Store
-*.csv
 *.xlsx
 *.zip
 *.png
