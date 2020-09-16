@@ -234,9 +234,10 @@ name <- RMD
             print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
             dt <- merge_files(dt, tmp$name[i], metadata_location)
           }
-        # Oxford data
-          else if(tmp$mergTech[i] == "long_DateNum") {
+        # longitudinal data
+          else if(tmp$mergTech[i] == "long_DateNum_iso3") {
             print(paste("Merging ", tmp$name[i], ". Please wait...", sep = ""))
+            print("Always check whether these datasets are up to date!")
           # load data
             dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
           # do we have regional data?
