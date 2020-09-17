@@ -2381,7 +2381,9 @@ library(RColorBrewer)
 
 # Load in shapefile of provinces of the whole world
 # map <- st_read(file.choose())
-map <- st_read("C:/Users/user/Downloads/ne_10m_admin_1_states_provinces.shp")
+# map <- st_read("C:/Users/user/Downloads/ne_10m_admin_1_states_provinces.shp")
+
+map <- sf::st_read(dsn="data/raw data/ZIP", layer = "ne_10m_admin_1_states_provinces")
 
 # Filter can be added here
 Provinces <- map 
@@ -2396,8 +2398,8 @@ Provinces <- map
   data <- st_as_sf(data, coords=c("LocationLongitude", "LocationLatitude"), crs=4326, remove=FALSE)  
 
 # plot if needed
-  # plot(Provinces$geometry)
-  # plot(data$geometry, col='red', pch=16, cex=0.4,add = T)
+  plot(Provinces$geometry)
+  plot(data$geometry, col='red', pch=16, cex=0.4,add = T)
   
 # Select the provinces with points in them
   provincesWithPoints <- Provinces[data, ]
@@ -2414,7 +2416,7 @@ Provinces <- map
 # and merge
     dt5newVars <- dplyr::left_join(dt5newVars, tmp, by = "ResponseId")
     
-rm(tmp, dataPerProvince, data, Provinces, provincesWithPoints)
+  rm(tmp, dataPerProvince, data, Provinces, provincesWithPoints)
 ```
 
 
