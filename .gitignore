@@ -16,6 +16,8 @@ data/collab data
 *.md
 *.ini
 *.db
+*.shp
+*.shx
 *.db-shm
 *.db-wal
 #data/
