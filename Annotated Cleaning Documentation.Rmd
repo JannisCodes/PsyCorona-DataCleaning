@@ -2498,14 +2498,16 @@ Provinces <- map
   provincesWithPoints <- Provinces[data, ]
   
 # Add the Province name to each of the data points
-  dataPerProvince <- st_join(data, Provinces['name'])
+  dataPerProvince <- st_join(data, Provinces[c('name', 'latitude', 'longitude')])
 
 # some people were not identified as their dots did not correspond to the map we uploaded
   dataPerProvince$name[is.na(dataPerProvince$name)] <- 'no province'
 
 # merge province by Id
   tmp <- data.frame(ResponseId = dataPerProvince$ResponseId,
-                    region = dataPerProvince$name)
+                    region = dataPerProvince$name,
+                    regionLat = dataPerProvince$latitude,
+                    regionLong = dataPerProvince$longitude)
 # and merge
     dt5newVars <- dplyr::left_join(dt5newVars, tmp, by = "ResponseId")
     
@@ -2551,22 +2553,6 @@ Provinces <- map
 # # Check which locations are mismatched
 # head(dt5newVars[which(dt5newVars$countryiso3 != dt5newVars$gps_countryiso3), ])
 # rm(tmp, dt5newVars, only_missing_gps, number_of_gps, gps)
-```
-
-### Merge with Metadata
-```{r geoloc, echo=F, warning=F, message=F}
-# llibrary(gert)
-library(countrycode)
-source(file.path("scripts", "functions", "merge_metadata.R"))
-
-metadata_location <- file.path("data", "metadata")
-get_metadata(metadata_location, overwrite = FALSE)
-# See which metadata files are available
-# which_files(metadata_location)
-
-# dt5newVars$countryiso3 <- countrycode::countrycode(dt5newVars$coded_country, origin = "country.name", destination = "iso3c")
-# 
-# newVars <- merge_files(dt5newVars, "CSSE", metadata_location)
 ```
 
 ## **Reduce to Relevant Variales**   
