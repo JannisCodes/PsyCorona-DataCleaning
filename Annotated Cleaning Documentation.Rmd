@@ -1010,7 +1010,7 @@ cat("How many people do we loose in wave 14 due to missing merge ID:")
 
 # merge (can also be dt0Raw but for now seperate)
   dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8, dt0w9, dt0w10, dt0w11, dt0w12, dt0w13, dt0w14) %>% #merge multiple dfs at once
-    Reduce(function(dtf1,dtf2) dplyr::full_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
+    Reduce(function(dtf1,dtf2) dplyr::left_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
   tmp <- dplyr::anti_join(dt0w1, dt5newVars,by="mergeID"); rm(tmp)
@@ -1076,12 +1076,12 @@ cat("How many people do not have fitting emails or response IDs in wave 12:")
   nrow(dt0w12) - sum(dt0All$ResponseId == dt0All$w12_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
-cat("How many people do not have fitting emails or response IDs in wave 12:")
+cat("How many people do not have fitting emails or response IDs in wave 13:")
   nrow(dt0w13) - sum(dt0All$ICRec_1_TEXT == dt0All$w13_RecipientEmail, na.rm = T)
   nrow(dt0w13) - sum(dt0All$ResponseId == dt0All$w13_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
-cat("How many people do not have fitting emails or response IDs in wave 12:")
+cat("How many people do not have fitting emails or response IDs in wave 14:")
   nrow(dt0w14) - sum(dt0All$ICRec_1_TEXT == dt0All$w14_RecipientEmail, na.rm = T)
   nrow(dt0w14) - sum(dt0All$ResponseId == dt0All$w14_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
@@ -2249,7 +2249,6 @@ stringOut <- NA #make var for fill out in function
 
 # prepare dataframe
 name <- 'RMD50' #RMD50 is the column that has all the continous vars requested
-# from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
     dplyr::select(one_of(paste0(name, '_vars'))) %>% # select the column in which the name and vars are
     as.character() # make it a character
