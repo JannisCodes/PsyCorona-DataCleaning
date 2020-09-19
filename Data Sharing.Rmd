@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-RMD <- "RMD00"
-seedNum <- 0
+# RMD <- "RMD00"
+# seedNum <- 0
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -411,7 +411,7 @@ name <- RMD
 rm(dt, namSPSS, namCSV)
 }
 
-dataCreate("RMD00", 00)
+# dataCreate("RMD00", 00)
 ```
 
 ### Data Stuff
@@ -1165,4 +1165,9 @@ dataCreate("RMD54", 54)
 ### RMD55 (Alexandra Gheorghiu)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD55", 55)
+```
+
+### RMD57 (Nadta Tenva)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD57", 57)
 ```
