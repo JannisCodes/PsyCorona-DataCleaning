@@ -630,6 +630,7 @@ dataCreate("RMD19", 19)
 ### RMD20 (Agostini)
 ```{r RMD20, echo=T, warning=F, message=T}
 # prepare dataframe
+# dataCreate("RMD20", 20)
 name <- 'RMD20'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
@@ -1170,4 +1171,9 @@ dataCreate("RMD55", 55)
 ### RMD57 (Nadta Tenva)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD57", 57)
+```
+
+### RMD58 (Michele Gelfand)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD58", 58)
 ```
