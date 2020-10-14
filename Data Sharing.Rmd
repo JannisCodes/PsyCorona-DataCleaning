@@ -170,7 +170,7 @@ name <- RMD
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
-                 # -contains("region"),
+                 -contains("region"),
                  -whatRel)
   
 # add harmonized data if grandMean and Sd are requested
