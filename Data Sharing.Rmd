@@ -385,6 +385,15 @@ name <- RMD
               data.table::setnames(tmp, "w14_mergCtry", "mergCtry") # we change them back to the merge names
               data.table::setnames(tmp, "w14_mergDate", "mergDate") # we change them back to the merge names
               dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 15
+            dt$mergDate <- as.numeric(paste0(substr(dt$w15_EndDate , 1, 4), substr(dt$w15_EndDate , 6, 7),
+                                                 substr(dt$w15_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w15", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w15_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w15_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
 
           }
           else {
