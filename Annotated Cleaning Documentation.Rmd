@@ -2546,8 +2546,8 @@ Provinces <- map
   provincesWithPoints <- Provinces[data, ]
   
 # Add the Province name to each of the data points
-  dataPerProvince <- st_join(data, Provinces[c('name', 'latitude', 'longitude')]), 'adm1_code', 'iso_3166_2',
-                                               'fips', 'woe_label', 'gn_a1_code'
+  dataPerProvince <- st_join(data, Provinces[c('name', 'latitude', 'longitude', 'adm1_code', 'iso_3166_2',
+                                               'fips', 'woe_label', 'gn_a1_code')])
 
 # some people were not identified as their dots did not correspond to the map we uploaded
   dataPerProvince$name[is.na(dataPerProvince$name)] <- 'no province'
@@ -2557,7 +2557,8 @@ Provinces <- map
                     region = dataPerProvince$name,
                     regionLat = dataPerProvince$latitude,
                     regionLong = dataPerProvince$longitude,
-                    region_adm1_code = dataPerProvince$admadm1_code                   region_iso_3166_2 = dataPerProvince$iso_3166_2,
+                    region_adm1_code = dataPerProvince$adm1_code,
+                    region_iso_3166_2 = dataPerProvince$iso_3166_2,
                     region_fips = dataPerProvince$fips,
                     region_woe_label = dataPerProvince$woe_label,
                     region_gn_a1_code = dataPerProvince$gn_a1_code)
