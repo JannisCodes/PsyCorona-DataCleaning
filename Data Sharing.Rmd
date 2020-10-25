@@ -94,14 +94,14 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-07-27 13-42 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-14 16-48 CEST.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-07-27 13-42 CEST.sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-14 16-48 CEST.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -111,9 +111,9 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- dtReq[-c(1:3),]
   
   # Meta request sheet (rows 300 until end)
-  dtReqMeta <- dtReq[c(300:nrow(dtReq)),]
+  dtReqMeta <- dtReq[c(307:nrow(dtReq)),]
   # normal request sheet the first rows
-  dtReq <- dtReq[c(1:296),]
+  dtReq <- dtReq[c(1:303),]
 ```
 
 Prepare Caspar van Lissa's library and functions
@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-RMD <- "RMD00"
-seedNum <- 0
+# RMD <- "RMD55"
+# seedNum <- 55
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -149,15 +149,15 @@ name <- RMD
   author <- strsplit(author, "\n")[[1]][3] # get the author which is the third occurence after \n
 
 # make df  
-  tmp <- dtReq %>% 
+  varReq <- dtReq %>% 
     dplyr::select(name = var, # get variable names
                   request = one_of(paste0(name, '_vars'))) # and the requested columns
  
-  tmp <- tmp %>% #remove empty rows
+  varReq <- varReq %>% #remove empty rows
     dplyr::filter(request != "") 
   
 # run function to get requested variable names 
-  varNames <- apply(tmp, 1, nameOut); rm(tmp)
+  varNames <- apply(varReq, 1, nameOut); rm(varReq)
 
 # make dataframe
   dt <- dtAll %>%
@@ -170,6 +170,7 @@ name <- RMD
                  -contains("ZIP", ignore.case = T),
                  -ends_with("_TEXT", ignore.case = T),
                  -countryCitizenIfNo,
+                 -contains("region"),
                  -whatRel)
   
 # add harmonized data if grandMean and Sd are requested
@@ -185,10 +186,10 @@ name <- RMD
   }
 
 # needs response ID (make through digest)
-  # dt$ResponseId <- c(1:nrow(dt))
-  # for (i in 1:nrow(dt)) {
-  # dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = seedNum)
-  #   }
+  dt$ResponseId <- c(1:nrow(dt))
+  for (i in 1:nrow(dt)) {
+  dt$ResponseId[i] <- digest::digest(dtAll$ResponseId[i], algo = "xxhash32", seed = seedNum)
+    }
   
 # add representative info if needed
   if(sum(grepl("representative", names(dt))) == 1 ){ # if the sum of columns that have the string representative == 2
@@ -203,42 +204,43 @@ name <- RMD
   
 # Merge Requested Meta-Data to requested variables
   # make df  
-  tmp <- dtReqMeta %>% 
-    dplyr::select(origin = Origin,
-                  path = var, # get variable names
-                  mergTech = min,
-                  request = one_of(paste0(name, '_vars'))) # and the requested columns
+    metaReq <- dtReqMeta %>% 
+      dplyr::select(origin = Origin,
+                    path = var, # get variable names
+                    mergTech = min,
+                    request = one_of(paste0(name, '_vars'))) # and the requested columns
   
-   tmp <- tmp %>% #remove empty rows
+   metaReq <- metaReq %>% #remove empty rows
     dplyr::filter(request != "")
-  # split the string at "/" and get the fifth; also remove everything after the dot; for loop needed so it does it for each row
+  # split the string at "/" and get the fifth; also remove everything after the dot; for loop needed so it does for each row
   # seperately
-   if(nrow(tmp) > 0 ){
-     tmp$name <- NA
-     for(i in 1:nrow(tmp)) {
-       tmp$name[i] <- gsub(".csv", "", strsplit(tmp$path[i], "[/]")[[1]][5])  
+   if(nrow(metaReq) > 0 ){
+     metaReq$name <- NA
+     for(i in 1:nrow(metaReq)) {
+       metaReq$name[i] <- gsub(".csv", "", strsplit(metaReq$path[i], "[/]")[[1]][5])  
      }
      rm(i)
    }
      
   # print the requested datasets and run for loop for the merge
-    if(nrow(tmp) == 0 ){ # if row length is 0
+    if(nrow(metaReq) == 0){ # if row length is 0
       print("No Meta-Data requested")
     } else { # if not
       # make the country merg (important for longitudinal data)
       dt$mergCtry <- countrycode::countrycode(dt$coded_country, origin = "country.name", destination = "iso3c")
       
       # for loop to merge each dataset according to its merging mechanism (iso or more complicated)
-        for (i in 1:nrow(tmp)) {
-          if(tmp$mergTech[i] == "countryiso3") {
-            print(paste("Merging ", tmp$name[i], ". Please Wait...", sep = "")) #which variable is merging
-            dt <- merge_files(dt, tmp$name[i], metadata_location)
+        for (i in 1:nrow(metaReq)) {
+          if(metaReq$mergTech[i] == "countryiso3") {
+            print(paste("Merging ", metaReq$name[i], ". Please Wait...", sep = "")) #which variable is merging
+            dt <- merge_files(dt, metaReq$name[i], metadata_location)
           }
-        # Oxford data
-          else if(tmp$mergTech[i] == "long_DateNum") {
-            print(paste("Merging ", tmp$name[i], ". Please wait...", sep = ""))
+        # longitudinal data
+          else if(metaReq$mergTech[i] == "long_DateNum_iso3") {
+            print(paste("Merging ", metaReq$name[i], ". Please wait...", sep = ""))
+            print("Always check whether these datasets are up to date!")
           # load data
-            dtMeta <- read.csv(tmp$path[i], stringsAsFactors = FALSE)
+            dtMeta <- read.csv(metaReq$path[i], stringsAsFactors = FALSE)
           # do we have regional data?
             if("RegionName" %in% colnames(dtMeta)) {
                 tmp <- dtMeta %>% filter(RegionName != "")
@@ -365,13 +367,37 @@ name <- RMD
               data.table::setnames(tmp, "w12_mergCtry", "mergCtry") # we change them back to the merge names
               data.table::setnames(tmp, "w12_mergDate", "mergDate") # we change them back to the merge names
               dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
-          # merge data
-            
-            
+          # Wave 13
+            dt$mergDate <- as.numeric(paste0(substr(dt$w13_EndDate , 1, 4), substr(dt$w13_EndDate , 6, 7),
+                                                 substr(dt$w13_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w13", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w13_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w13_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 14
+            dt$mergDate <- as.numeric(paste0(substr(dt$w14_EndDate , 1, 4), substr(dt$w14_EndDate , 6, 7),
+                                                 substr(dt$w14_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w14", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w14_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w14_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 15
+            dt$mergDate <- as.numeric(paste0(substr(dt$w15_EndDate , 1, 4), substr(dt$w15_EndDate , 6, 7),
+                                                 substr(dt$w15_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w15", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w15_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w15_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
 
           }
           else {
-            print(paste("Merging complicated stuff: ", tmp$name[i], ". Computer says no...", sep = ""))
+            print(paste("Merging complicated stuff: ", metaReq$name[i], ". Computer says no...", sep = ""))
           }
   
         } 
@@ -393,6 +419,8 @@ name <- RMD
   write.csv(dt, file = namCSV)
 rm(dt, namSPSS, namCSV)
 }
+
+# dataCreate("RMD00", 00)
 ```
 
 ### Data Stuff
@@ -427,7 +455,7 @@ write_sav(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format 
 write.csv(tmp, paste0("data/collab data/BertusDemo ", format(Sys.time(), format = "%F %H-%M %Z"),".csv"))
 rm(tmp)
 
-dataCreate("RMD00", 00)
+
 ```
 
 ## Create Datasets
@@ -611,6 +639,7 @@ dataCreate("RMD19", 19)
 ### RMD20 (Agostini)
 ```{r RMD20, echo=T, warning=F, message=T}
 # prepare dataframe
+# dataCreate("RMD20", 20)
 name <- 'RMD20'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
@@ -1146,4 +1175,19 @@ dataCreate("RMD54", 54)
 ### RMD55 (Alexandra Gheorghiu)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD55", 55)
+```
+
+### RMD56 (Alexandra Gheorghiu)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD56", 56)
+```
+
+### RMD57 (Nadta Tenva)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD57", 57)
+```
+
+### RMD58 (Michele Gelfand)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD58", 58)
 ```
