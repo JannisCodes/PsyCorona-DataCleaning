@@ -855,7 +855,7 @@ name <- 'RMD34'
 rm(dt, namSPSS, namCSV)
 ```
 
-### RMD35
+### RMD35 (Maja Kutlaca)
 ```{r RMD35, echo=T, warning=F, message=F}
 dataCreate("RMD35", 35)
 ```
