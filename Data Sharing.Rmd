@@ -113,7 +113,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   # Meta request sheet (rows 300 until end)
   dtReqMeta <- dtReq[c(307:nrow(dtReq)),]
   # normal request sheet the first rows
-  dtReq <- dtReq[c(1:303),]
+  dtReq <- dtReq[c(1:304),]
 ```
 
 Prepare Caspar van Lissa's library and functions
@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-# RMD <- "RMD55"
-# seedNum <- 55
+# RMD <- "RMD40"
+# seedNum <- 40
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
