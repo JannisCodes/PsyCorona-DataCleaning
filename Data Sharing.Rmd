@@ -94,14 +94,14 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 
 # Import Qualtrics Survey Data
   #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-14 16-48 CEST.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-28 20-17 CET.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-14 16-48 CEST.sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-28 20-17 CET.sav")
   
 # Import Request sheet
   #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
@@ -113,7 +113,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   # Meta request sheet (rows 300 until end)
   dtReqMeta <- dtReq[c(307:nrow(dtReq)),]
   # normal request sheet the first rows
-  dtReq <- dtReq[c(1:303),]
+  dtReq <- dtReq[c(1:304),]
 ```
 
 Prepare Caspar van Lissa's library and functions
@@ -136,8 +136,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-# RMD <- "RMD55"
-# seedNum <- 55
+# RMD <- "RMD40"
+# seedNum <- 40
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -855,7 +855,7 @@ name <- 'RMD34'
 rm(dt, namSPSS, namCSV)
 ```
 
-### RMD35
+### RMD35 (Maja Kutlaca)
 ```{r RMD35, echo=T, warning=F, message=F}
 dataCreate("RMD35", 35)
 ```
