@@ -2509,7 +2509,7 @@ dt5newVarsRec <- dt5newVarsRec %>%
 ```
 
 
-### Localization Script from Floris Uithof
+### Localization Script by Floris Uithof (Geodienst Groningen University)
 ```{r localize}
 # Load packages
 library(GADMTools)
