@@ -93,18 +93,18 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  # dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-11-12 11-03 CET_noLocalization.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-12-08 14-15 CET_noLocalization.sav")
 # Import Qualtrics Survey Data
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET.sav")
+  # dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  # dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-11-12 11-03 CET_noLocalization.sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-12-08 14-15 CET_noLocalization.sav")
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
+  # dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
 # Import Request sheet
   url <- gsheet::construct_download_url('https://docs.google.com/spreadsheets/d/13PFXsmgjrZBNddHodR2Z_80cjicN4s7yd8BbazKffx8/edit?usp=sharing', format = "csv", sheetid = NULL)
@@ -1192,4 +1192,9 @@ dataCreate("RMD57", 57)
 ### RMD58 (Michele Gelfand)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD58", 58)
+```
+
+### RMD60 (Milly Belm)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD60", 60)
 ```
