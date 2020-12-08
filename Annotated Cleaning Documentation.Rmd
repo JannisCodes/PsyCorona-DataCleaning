@@ -2560,7 +2560,7 @@ dt5newVarsRec <- dt5newVarsRec %>%
 ### Localization Script by Floris Uithof (Geodienst Groningen University)
 ```{r localize}
 # if necessary because of memory
-# gdata::keep(dt5newVars,sure = TRUE)
+  rm(list= ls()[!(ls() %in% c('dt5newVars','dt5newVarsHarmo'))])
 
 # Load packages
 library(GADMTools)
@@ -2703,8 +2703,8 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact14_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact14_2.csv", header = T)
+  CL1 <- read.csv("data/raw data/contact list/c19Recontact_15_1.csv", header = T)
+  CL2 <- read.csv("data/raw data/contact list/c19Recontact_15_2.csv", header = T)
   # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
