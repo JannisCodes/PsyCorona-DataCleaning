@@ -1224,3 +1224,8 @@ dataCreate("RMD60", 60)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD61", 61)
 ```
+
+### RMD62 (Fischer)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD62", 62)
+```
