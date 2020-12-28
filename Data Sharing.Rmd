@@ -92,19 +92,24 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 # Reset working directory to folder current file is saved in
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
+# Import Qualtrics Survey Data (new but no localization)
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-12-20 18-01 CET_noLocalization.sav")
+  # dtAllLocal <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
+  # dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
+  rm(dtAllLocal) 
 # Import Qualtrics Survey Data
-  #dtClean <- read_spss("data/cleaned data/Psycorona Baseline cleaned 2020-04-24 11-22 CEST.sav")
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-28 20-17 CET.sav")
+  # dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
+# Import Harmonized Data (new but no localization)
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-12-20 18-01 CET_noLocalization.sav")
 # Import Harmonized Data
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-28 20-17 CET.sav")
+  # dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
 # Import Request sheet
-  #dtReq <- read.csv("data/cleaned data/request/Variable Justification - Sheet1.csv", header = T)
   url <- gsheet::construct_download_url('https://docs.google.com/spreadsheets/d/13PFXsmgjrZBNddHodR2Z_80cjicN4s7yd8BbazKffx8/edit?usp=sharing', format = "csv", sheetid = NULL)
   dtReq <- gsheet::gsheet2tbl(url, sheetid = NULL); rm(url)
   namedtReq <- dtReq[1,]
@@ -393,6 +398,24 @@ name <- RMD
               colnames(tmp) <- paste("w15", colnames(tmp), sep = "_") # add string before column name
               data.table::setnames(tmp, "w15_mergCtry", "mergCtry") # we change them back to the merge names
               data.table::setnames(tmp, "w15_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 16
+            dt$mergDate <- as.numeric(paste0(substr(dt$w16_EndDate , 1, 4), substr(dt$w16_EndDate , 6, 7),
+                                                 substr(dt$w16_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w16", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w16_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w16_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 17
+            dt$mergDate <- as.numeric(paste0(substr(dt$w17_EndDate , 1, 4), substr(dt$w17_EndDate , 6, 7),
+                                                 substr(dt$w17_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w17", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w17_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w17_mergDate", "mergDate") # we change them back to the merge names
               dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
 
           }
@@ -1190,4 +1213,19 @@ dataCreate("RMD57", 57)
 ### RMD58 (Michele Gelfand)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD58", 58)
+```
+
+### RMD60 (Milly Belm)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD60", 60)
+```
+
+### RMD61 (Thesis 2020)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD61", 61)
+```
+
+### RMD62 (Fischer)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD62", 62)
 ```
