@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-12-20 18-01 CET_noLocalization.sav")
+  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-12-28 17-30 CET_noLocalization.sav")
   # dtAllLocal <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
   # dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
   rm(dtAllLocal) 
@@ -105,7 +105,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-12-20 18-01 CET_noLocalization.sav")
+  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-12-28 17-30 CET_noLocalization.sav")
 # Import Harmonized Data
   # dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
@@ -116,9 +116,9 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- dtReq[-c(1:3),]
   
   # Meta request sheet (rows 300 until end)
-  dtReqMeta <- dtReq[c(307:nrow(dtReq)),]
+  dtReqMeta <- dtReq[c(350:nrow(dtReq)),]
   # normal request sheet the first rows
-  dtReq <- dtReq[c(1:304),]
+  dtReq <- dtReq[c(1:347),]
 ```
 
 Prepare Caspar van Lissa's library and functions
