@@ -95,36 +95,36 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import RuG Snowball
-dt0RawRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.General", full.names = TRUE, ignore.case = TRUE))
+dt0RawRUG <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Baseline.\\-.RUG.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawRUG$source <- "RUG"
 
 # RUG Representative sample
-dt0RawRepRUG <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.RUG.Representative", full.names = TRUE, ignore.case = TRUE))
+dt0RawRepRUG <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Baseline.\\-.RUG.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepRUG$source <- "Rep RUG"
 dt0RawRepRUG$country <- dt0RawRepRUG$country_new #fixed here but later in MTurk
 
 # NYU Snowball
-dt0RawNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.General", full.names = TRUE, ignore.case = TRUE))
+dt0RawNYUAD <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Baseline.\\-.NYUAD.General", full.names = TRUE, ignore.case = TRUE))
 dt0RawNYUAD$source <- "NYU-AD"
 
 # NYU representative
-dt0RawRepNYUAD <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.NYUAD.Representative", full.names = TRUE, ignore.case = TRUE))
+dt0RawRepNYUAD <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Baseline.\\-.NYUAD.Representative", full.names = TRUE, ignore.case = TRUE))
 dt0RawRepNYUAD$source <- "Rep NYU-AD"
 
 # Iranian data
-dt0RawIran <- read_spss(dir("data/raw data", pattern = "Baseline.\\-.Iran", full.names = TRUE, ignore.case = TRUE))
+dt0RawIran <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Baseline.\\-.Iran", full.names = TRUE, ignore.case = TRUE))
 dt0RawIran$source <- "Iran"
 
 # How Nuts are the Dutch data
-dt0RawHNATD <- read_spss(dir("data/raw data", pattern = "HNDPsyC19", full.names = TRUE, ignore.case = TRUE))
+dt0RawHNATD <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "HNDPsyC19", full.names = TRUE, ignore.case = TRUE))
 dt0RawHNATD$source <- "HNATD"
 
 # Flycatcher data
-dt0RawFly <- read_spss(dir("data/raw data", pattern = "Flycatcher", full.names = TRUE, ignore.case = TRUE))
+dt0RawFly <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Flycatcher", full.names = TRUE, ignore.case = TRUE))
    dt0RawFly$source <- "Fly"
 
 # Chinese data
-dt0RawChina <- read_spss(dir("data/raw data", pattern = "China", full.names = TRUE, ignore.case = TRUE))
+dt0RawChina <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "China", full.names = TRUE, ignore.case = TRUE))
    dt0RawChina$source <- "Rep China"
 
 # prepare dfs before merge (basically naming variables correct)
@@ -178,23 +178,23 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
 ### Recontacts
 ```{r LoadRawRec, echo=T, warning=F, message=F}
 # Import Wave 1
-  dt0w1 <- read_spss(dir("data/raw data", pattern = "Wave.1...M", full.names = TRUE, ignore.case = TRUE))
-  dt0w2 <- read_spss(dir("data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
-  dt0w3 <- read_spss(dir("data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w4 <- read_spss(dir("data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w5 <- read_spss(dir("data/raw data", pattern = "Wave.5", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w6 <- read_spss(dir("data/raw data", pattern = "Wave.6", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w7 <- read_spss(dir("data/raw data", pattern = "Wave.7", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w8 <- read_spss(dir("data/raw data", pattern = "Wave.8", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w9 <- read_spss(dir("data/raw data", pattern = "Wave.9", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w10 <- read_spss(dir("data/raw data", pattern = "Wave.10", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w11 <- read_spss(dir("data/raw data", pattern = "Wave.11", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w12 <- read_spss(dir("data/raw data", pattern = "Wave.12", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w13 <- read_spss(dir("data/raw data", pattern = "Wave.13", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w14 <- read_spss(dir("data/raw data", pattern = "Wave.14", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w15 <- read_spss(dir("data/raw data", pattern = "Wave.15", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w16 <- read_spss(dir("data/raw data", pattern = "Wave.16", full.names = TRUE, ignore.case = TRUE)) 
-  dt0w17 <- read_spss(dir("data/raw data", pattern = "Wave.17", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w1 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.1...M", full.names = TRUE, ignore.case = TRUE))
+  dt0w2 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.2", full.names = TRUE, ignore.case = TRUE))
+  dt0w3 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.3", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w4 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.4", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w5 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.5", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w6 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.6", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w7 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.7", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w8 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.8", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w9 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.9", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w10 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.10", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w11 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.11", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w12 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.12", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w13 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.13", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w14 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.14", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w15 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.15", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w16 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.16", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w17 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.17", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -886,7 +886,7 @@ dt5newVars <- dt4Straightliner %>%
                             labels = NULL, label="Boredom 03 (re-coded)"))
 # Language
 # Import Qualtrics Language Codes
-qualtricsLanguage <- read_excel("data/raw data/qualtricsLanguageCodes.xlsx")
+qualtricsLanguage <- read_excel("data/collab data/Shared/Data/raw data/qualtricsLanguageCodes.xlsx")
 dt5newVars <- merge(x=dt5newVars, y=qualtricsLanguage, by="Q_Language", all.x=TRUE)
 rm(qualtricsLanguage, dt4Straightliner)
 ```
@@ -2349,7 +2349,7 @@ The happiness scale was reverse coded in French. Gets fixed here.
 ## Cross-Cultural Adjustement
 ### Merge Weights from Bertus
 ```{r mergWeight,echo=F, warning=F, message=F}
-wgtCtry <- read_spss(dir("data/raw data/weights", pattern = "Weights", full.names = TRUE, ignore.case = TRUE))
+wgtCtry <- haven::read_spss(dir("data/collab data/Shared/Data/raw data/weights", pattern = "Weights", full.names = TRUE, ignore.case = TRUE))
 
 dt5newVars <- dplyr::left_join(dt5newVars, wgtCtry, by = c("coded_country" = "coded_country",
                                                     "age" = "age", 
@@ -2629,7 +2629,7 @@ library(RColorBrewer)
 # map <- st_read(file.choose())
 # map <- st_read("C:/Users/user/Downloads/ne_10m_admin_1_states_provinces.shp")
 
-map <- sf::st_read(dsn="data/raw data/ZIP", layer = "ne_10m_admin_1_states_provinces")
+map <- sf::st_read(dsn="data/collab data/Shared/Data/raw data/ZIP", layer = "ne_10m_admin_1_states_provinces")
 
 # Filter can be added here
 Provinces <- map 
@@ -2755,9 +2755,9 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/raw data/contact list/c19Recontact_16_1.csv", header = T)
-  CL2 <- read.csv("data/raw data/contact list/c19Recontact_16_2.csv", header = T)
-  # CL3 <- read.csv("data/raw data/contact list/c19Recontact4_4.csv", header = T)
+  CL1 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_16_1.csv", header = T)
+  CL2 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_16_2.csv", header = T)
+  # CL3 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
   CL <- CL %>%
