@@ -1062,6 +1062,12 @@ dt5newVars <- dt5newVars %>%
     gsub(" ", "", ., fixed = TRUE) %>% # remove white space
     as.character() #make sure everything is characters
 
+# prepare country before checking for test
+  dt5newVars$relAdj <- dt5newVars$whatRel %>%
+    tolower() %>% #make them lower case
+    gsub(" ", "", ., fixed = TRUE) %>% # remove white space
+    as.character() #make sure everything is characters
+
 # remove test sessions
   strings <- c("^test", "test$", "^yasin", '^check') # add strings that need removing
   tmp <- dt5newVars %>%
@@ -1466,6 +1472,49 @@ rm(country_dict, country_matches, country_names, country_entry)
 <strong><i class="fa fa-exclamation-triangle"></i> Action needed:</strong> <br> 
 We currently have `r length(unique(dt5newVars$country))` different free text country responses. The most recent codes leaves `r sum(country_counts$n[country_counts$country != ""])` responses are still not consolidated.
 </div>
+
+### Religion
+We currently have `r length(table(dt5newVars$whatRel))` different free text country responses. Here we aim to consolidate them into one variable.
+```{r Country, echo=T, warning=F, message=F}
+#saveRDS(dt5newVars$country, file = "country.RDS")
+
+# sourcing seems to destroy everything
+rel_dict <- list('Hindiusm' = c('^.indu'),
+                 'Buddhism' = c('.uddh', '.udh', '불교', '仏教', '佛教', 'ph.tgi.o'),
+                 'Islam' = c('musul', 'musl', 'ISLAM', 'ислам', '..sl.m', '^.slam', 'الاسلام', 'مسلم', 'الإسلام', 'اسلام'),
+                 'Confucianism' = c('^.onfucia'),
+                 'Christianity' = c( '.hristian', 'CATOLICA', '^.attolic', '천주교', '.athol', '^.hristi', '^.hrist', '^.risti', '.lic.$', 'olic$', '^.rtodo', '^.rthodo', '.rtodo', '^.rotest', '^.ravoslav', '.ристианство', 'Ορθόδοξος', '기독교', '.uther', '.atoli', '.равославие', '.aptist', '^.evangel', 'Ορθόδοξος', 'χ............', 'χ.........', 'християнство', '.ervormd', '^.orm.n', '^.uter', 'jesus', 'evangel', 'kristen', 'crist.', '
+правосла', 'methodist', 'anglican', 'христианин', '^rk$', 'chrze.cija.stwo', 'правос', 'orthodox', '^χ.', '개신교', 'presbyterian', '基督教'),
+                 'Taoism' = c('^.aois'),
+                 'Judaism' = c('^.udais', '^.ew', '.ew$'),
+                 'Not clear' = c('-3'),
+                 'Other' = c('.agan$', 'spirit')
+
+                 )
+
+
+rel_matches <- cat_words(dt5newVars$relAdj, rel_dict)
+#rel_matches$words[rel_matches$words %in% names(rel_matches$unmatched)] <- NA
+# Check unmatched strings, fix common ones
+  View(rel_matches$unmatched)
+    View(rel_matches$dup)
+
+  sum(rel_matches$unmatched)-rel_matches$unmatched[[1]]
+# Check duplicates, and which regular expressions triggered them
+dt5newVars$coded_rel <- rel_matches$words
+dt5newVars$coded_rel[dt5newVars$coded_rel %in% names(rel_matches$unmatched)] <- NA
+# save for Solomiia
+  nam# namCtrySol <- paste0("data/cleaned data/Solomiia rel List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  #ite.csv(namCtrySol, file = rel_matches$unmatched)
+
+# CODE FOR EXPORT:
+rel_entry <- dt5newVars$rel
+rel_names <- rnaturalearth::ne_countries(scale = "medium")$admin
+namTR <- paste0("data/cleaned data/countries ", format(Sys.time(), format = "%F %H-%M %Z"),".Rdata")
+save(rel_entry, rel_names, file = namTR)
+
+rm(rel_dict, rel_matches, rel_names, rel_entry)
+```
 
 ### Filter Continued
 #### Chinese trust responses made NA
