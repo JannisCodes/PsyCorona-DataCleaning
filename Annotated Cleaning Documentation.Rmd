@@ -1450,9 +1450,9 @@ country_dict <- list('Afghanistan' = c('Afghanistan'),
 country_matches <- cat_words(dt5newVars$countryAdj, country_dict)
 #country_matches$words[country_matches$words %in% names(country_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-  View(country_matches$unmatched)
+  # View(country_matches$unmatched)
 # Check duplicates, and which regular expressions triggered them
-  View(country_matches$dup)
+  # View(country_matches$dup)
 dt5newVars$coded_country <- country_matches$words
 dt5newVars$coded_country[dt5newVars$coded_country %in% names(country_matches$unmatched)] <- NA
 # save for Solomiia
@@ -1479,16 +1479,15 @@ We currently have `r length(table(dt5newVars$whatRel))` different free text coun
 #saveRDS(dt5newVars$country, file = "country.RDS")
 
 # sourcing seems to destroy everything
-rel_dict <- list('Hindiusm' = c('^.indu'),
-                 'Buddhism' = c('.uddh', '.udh', '불교', '仏教', '佛教', 'ph.tgi.o'),
-                 'Islam' = c('musul', 'musl', 'ISLAM', 'ислам', '..sl.m', '^.slam', 'الاسلام', 'مسلم', 'الإسلام', 'اسلام'),
+rel_dict <- list('Hinduism' = c('^.indu'),
+                 'Buddhism' = c('佛', 'budi', 'buddism','.uddh', '.udh', '불교', '仏教', '佛教', 'буддизм', 'ph.tgi.o', 'พุทธ'),
+                 'Islam' = c('^isla', '.sl.m', 'ইসলাম', 'musul', 'musl', 'ISLAM', 'ислам', '..sl.m', '^.slam', 'الاسلام', 'مسلم', 'الإسلام', 'اسلام'),
                  'Confucianism' = c('^.onfucia'),
-                 'Christianity' = c( '.hristian', 'CATOLICA', '^.attolic', '천주교', '.athol', '^.hristi', '^.hrist', '^.risti', '.lic.$', 'olic$', '^.rtodo', '^.rthodo', '.rtodo', '^.rotest', '^.ravoslav', '.ристианство', 'Ορθόδοξος', '기독교', '.uther', '.atoli', '.равославие', '.aptist', '^.evangel', 'Ορθόδοξος', 'χ............', 'χ.........', 'християнство', '.ervormd', '^.orm.n', '^.uter', 'jesus', 'evangel', 'kristen', 'crist.', '
-правосла', 'methodist', 'anglican', 'христианин', '^rk$', 'chrze.cija.stwo', 'правос', 'orthodox', '^χ.', '개신교', 'presbyterian', '基督教'),
-                 'Taoism' = c('^.aois'),
-                 'Judaism' = c('^.udais', '^.ew', '.ew$'),
+                 'Christianity' = c('hri..anin','c.nggi.o', '.hristian', 'CATOLICA', '^.attolic', '천주교', '.athol', '^.hristi', '^.hrist', '^.risti', '.lic.$', 'olic$', '^.rtodo', '^.rthodo', '.rtodo', '^.rotest', '^.ravoslav', '.ристианство', 'Ορθόδοξος', '기독교', '.uther', '.atoli', '.равославие', '.aptist', '^.evangel', 'Ορθόδοξος', 'χ............', 'χ.........', 'християнство', '.ervormd', '^.orm.n', '^.uter', 'jesus', 'evangel', 'kristen', 'crist.', 'правосла', 'methodist', 'anglican', 'христианин', '^rk$', 'chrze.cija.stwo', 'правос', 'orthodox', '^χ.', '개신교', 'presbyterian', '基督教', 'crestin', 'hriscanin', 'churchofengland', 'pentecostal', 'cofe', 'ο....ο..', 'reform', 'episcopalian', 'христианско.', 'lds', 'bornagain', 'chr.tie', '^kr.', 'kereszt', '^rc', 'nondenominational', 'cat.lic', 'християнин', 'христианка', '가톨릭', 'adventist', 'unitarian', 'христи', 'キリスト教', '^ev$', 'christ', 'penticostal', '^cre.ti', '^ch', '^hri', '天主教'),
+                 'Taoism' = c('^.aois', '道教'),
+                 'Judaism' = c('^.udais', '^.ew', '.ew$', '^jud'),
                  'Not clear' = c('-3'),
-                 'Other' = c('.agan$', 'spirit')
+                 'Other' = c('^.agan', 'sp.rit', 'jehova', 'agnostic', 'hriscanske', 'sikh', '^xo$', 'none', 'white', 'keiner', 'universal', '35', 'никакой', '神道', '^wic')
 
                  )
 
@@ -1496,16 +1495,16 @@ rel_dict <- list('Hindiusm' = c('^.indu'),
 rel_matches <- cat_words(dt5newVars$relAdj, rel_dict)
 #rel_matches$words[rel_matches$words %in% names(rel_matches$unmatched)] <- NA
 # Check unmatched strings, fix common ones
-  View(rel_matches$unmatched)
-    View(rel_matches$dup)
+  # View(rel_matches$unmatched)
+    # View(rel_matches$dup)
 
   sum(rel_matches$unmatched)-rel_matches$unmatched[[1]]
 # Check duplicates, and which regular expressions triggered them
 dt5newVars$coded_rel <- rel_matches$words
 dt5newVars$coded_rel[dt5newVars$coded_rel %in% names(rel_matches$unmatched)] <- NA
 # save for Solomiia
-  nam# namCtrySol <- paste0("data/cleaned data/Solomiia rel List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
-  #ite.csv(namCtrySol, file = rel_matches$unmatched)
+  # namCtrySol <- paste0("data/cleaned data/Solomiia rel List ", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  #ite.csv(namCtrySol, file = r el_matches$unmatched)
 
 # CODE FOR EXPORT:
 rel_entry <- dt5newVars$rel
