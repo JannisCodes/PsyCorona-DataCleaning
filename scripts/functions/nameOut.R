@@ -102,5 +102,10 @@ nameOut <- function(df){
   } else {
     stringOut[20] = NA
   }
+  if (grepl("W20|Wave20|Wave 20|All",df[2], ignore.case = T)) {
+    stringOut[21] = paste("w20_", df[1], sep = "")
+  } else {
+    stringOut[21] = NA
+  }
 return(stringOut)
 }
