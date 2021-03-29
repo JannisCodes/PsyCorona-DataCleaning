@@ -93,21 +93,21 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-12-20 18-01 CET_noLocalization.sav")
-  # dtAllLocal <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
+  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-03-15 10-44 CET_noLocalization.sav")
+  # dtAllLocal <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
   # dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
   rm(dtAllLocal) 
 # Import Qualtrics Survey Data
-  # dtAll <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET.sav")
+  # dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET.sav")
   dtAll$representative <- dtAll$source
   # recode source so not identifiable
     dtAll$source <- dplyr::recode(dtAll$source, "Fly" = 1, "HNATD" = 2, "Iran" = 3, "NYU-AD" = 4, "RUG" = 5, "Rep NYU-AD" = 6, "Rep RUG" = 7, "Rep China" = 8)
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-12-20 18-01 CET_noLocalization.sav")
+  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-03-15 10-44 CET_noLocalization.sav")
 # Import Harmonized Data
-  # dtAllHarmo <- read_spss("data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
+  # dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
 # Import Request sheet
   url <- gsheet::construct_download_url('https://docs.google.com/spreadsheets/d/13PFXsmgjrZBNddHodR2Z_80cjicN4s7yd8BbazKffx8/edit?usp=sharing', format = "csv", sheetid = NULL)
@@ -116,9 +116,9 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
   dtReq <- dtReq[-c(1:3),]
   
   # Meta request sheet (rows 300 until end)
-  dtReqMeta <- dtReq[c(307:nrow(dtReq)),]
+  dtReqMeta <- dtReq[c(384:nrow(dtReq)),]
   # normal request sheet the first rows
-  dtReq <- dtReq[c(1:304),]
+  dtReq <- dtReq[c(1:379),]
 ```
 
 Prepare Caspar van Lissa's library and functions
@@ -141,8 +141,8 @@ stringOut <- NA #make var for fill out in function
 
 ### Function for Data Creation
 ```{r}
-# RMD <- "RMD40"
-# seedNum <- 40
+# RMD <- "RMD32"
+# seedNum <- 32
 
 dataCreate <- function(RMD, seedNum){
 # prepare dataframe
@@ -417,6 +417,33 @@ name <- RMD
               data.table::setnames(tmp, "w17_mergCtry", "mergCtry") # we change them back to the merge names
               data.table::setnames(tmp, "w17_mergDate", "mergDate") # we change them back to the merge names
               dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 18
+            dt$mergDate <- as.numeric(paste0(substr(dt$w18_EndDate , 1, 4), substr(dt$w18_EndDate , 6, 7),
+                                                 substr(dt$w18_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w18", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w18_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w18_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 19
+            dt$mergDate <- as.numeric(paste0(substr(dt$w19_EndDate , 1, 4), substr(dt$w19_EndDate , 6, 7),
+                                                 substr(dt$w19_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w19", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w19_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w19_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 20
+            dt$mergDate <- as.numeric(paste0(substr(dt$w20_EndDate , 1, 4), substr(dt$w20_EndDate , 6, 7),
+                                                 substr(dt$w20_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w20", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w20_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w20_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
 
           }
           else {
@@ -435,8 +462,8 @@ name <- RMD
 
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
-   namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
+  namSPSS <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".sav")
+   namCSV <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),".csv")
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
@@ -450,21 +477,28 @@ rm(dt, namSPSS, namCSV)
 ```{r bertDemo}
 # how much responses per country
   tmp <- dtAll %>% 
-  group_by(language) %>% # group by country
-  filter(n() > 50) 
+  group_by(coded_country)  # group by country
+  # filter(n() > 50) 
 
 # how much responses per wave
   tmp <- tmp %>%
-    dplyr::select(contains("JWB"))%>%
+    dplyr::select(contains("affAnx"), -contains("DO"))%>%
      dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
   tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
-  table(tmp$nBoth)
-  tmpOut <- table(tmp$language, tmp$nBoth)
+  tmp$representative <- factor(dtAll$source, 
+                                levels = c(1,2,3,4,5,6,7,8), 
+                                labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))
+  table(tmp$representative, tmp$nBoth)
+  tmpOut2 <- table(tmp$representative, tmp$nBoth, tmp$coded_country)
+  tmpOut <- table(tmp$coded_country, tmp$nBoth)
 
 # how much responses  
 # colSums(!is.na(tmp))
   
 # export if needed
+write.csv(tmp,'data/cleaned data/respRatePerCtry+source.csv')
+write.csv(tmpOut2,'data/cleaned data/respRatePerCtry+source+representative.csv')
+
 write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
 write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
 ```
@@ -832,7 +866,7 @@ name <- 'RMD34'
   filter(coded_country == "United States of America") #this proposal only wants the US
   
 # prepare dataframe for merge
-  mergedt <- read_spss("data/raw data/ZIP/mergedforjannis.sav")
+  mergedt <- haven::read_spss("data/raw data/ZIP/mergedforjannis.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
@@ -870,8 +904,8 @@ name <- 'RMD34'
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
-  namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
+  namSPSS <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
+  namCSV <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
@@ -930,7 +964,7 @@ name <- 'RMD36'
   filter(coded_country == "United States of America") #this proposal only wants the US
   
 # prepare dataframe for merge
-  mergedt <- read_spss("data/raw data/ZIP/mergedforjannis.sav")
+  mergedt <- haven::read_spss("data/raw data/ZIP/mergedforjannis.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
@@ -1019,8 +1053,8 @@ name <- 'RMD36'
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
-  namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
+  namSPSS <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
+  namCSV <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
@@ -1123,7 +1157,7 @@ name <- 'RMD47'
   filter(coded_country == "United States of America") #this proposal only wants the US
   
 # prepare dataframe for merge
-  mergedt <- read_spss("data/raw data/ZIP/mergedforjannis.sav")
+  mergedt <- haven::read_spss("data/raw data/ZIP/mergedforjannis.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
@@ -1161,8 +1195,8 @@ name <- 'RMD47'
     
 # Export Dataframe
 # Naming
-  namSPSS <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
-  namCSV <- paste0("data/collab data/unishare/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
+  namSPSS <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.sav")
+  namCSV <- paste0("data/collab data/c19 collab Data/", name, "_", author, "_", format(Sys.time(), format = "%F %H-%M %Z"),"_USdata.csv")
 # Export
   write_sav(dt, namSPSS)
   write.csv(dt, file = namCSV)
@@ -1228,4 +1262,19 @@ dataCreate("RMD61", 61)
 ### RMD62 (Fischer)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD62", 62)
+```
+
+### RMD63 (Counted)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD63", 63)
+```
+
+### RMD64 (Cowden)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD64", 64)
+```
+
+### RMD65 (Lucas)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD65", 65)
 ```

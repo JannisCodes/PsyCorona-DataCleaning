@@ -12,7 +12,7 @@ nameOut <- function(df){
   } else {
     stringOut[2] = NA
   }
-  if (grepl("W2|Wave2|Wave 2|All",df[2], ignore.case = T)) {
+  if (grepl("W2$|W2,|W2;|Wave2,|Wave2;|Wave 2,|Wave 2;|All",df[2], ignore.case = T)) {
     stringOut[3] = paste("w2_", df[1], sep = "")
   } else {
     stringOut[3] = NA
@@ -91,6 +91,21 @@ nameOut <- function(df){
     stringOut[18] = paste("w17_", df[1], sep = "")
   } else {
     stringOut[18] = NA
+  }
+  if (grepl("W18|Wave18|Wave 18|All",df[2], ignore.case = T)) {
+    stringOut[19] = paste("w18_", df[1], sep = "")
+  } else {
+    stringOut[19] = NA
+  }
+  if (grepl("W19|Wave19|Wave 19|All",df[2], ignore.case = T)) {
+    stringOut[20] = paste("w19_", df[1], sep = "")
+  } else {
+    stringOut[20] = NA
+  }
+  if (grepl("W20|Wave20|Wave 20|All",df[2], ignore.case = T)) {
+    stringOut[21] = paste("w20_", df[1], sep = "")
+  } else {
+    stringOut[21] = NA
   }
 return(stringOut)
 }
