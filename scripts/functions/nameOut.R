@@ -12,7 +12,7 @@ nameOut <- function(df){
   } else {
     stringOut[2] = NA
   }
-  if (grepl("W2|Wave2|Wave 2|All",df[2], ignore.case = T)) {
+  if (grepl("W2$|W2,|W2;|Wave2,|Wave2;|Wave 2,|Wave 2;|All",df[2], ignore.case = T)) {
     stringOut[3] = paste("w2_", df[1], sep = "")
   } else {
     stringOut[3] = NA

@@ -482,10 +482,14 @@ rm(dt, namSPSS, namCSV)
 
 # how much responses per wave
   tmp <- tmp %>%
-    dplyr::select(contains("affAnx"))%>%
+    dplyr::select(contains("affAnx"), -contains("DO"))%>%
      dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
   tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
-  table(tmp$nBoth)
+  tmp$representative <- factor(dtAll$source, 
+                                levels = c(1,2,3,4,5,6,7,8), 
+                                labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))
+  table(tmp$representative, tmp$nBoth)
+  tmpOut2 <- table(tmp$representative, tmp$nBoth, tmp$coded_country)
   tmpOut <- table(tmp$coded_country, tmp$nBoth)
 
 # how much responses  
@@ -493,6 +497,8 @@ rm(dt, namSPSS, namCSV)
   
 # export if needed
 write.csv(tmp,'data/cleaned data/respRatePerCtry+source.csv')
+write.csv(tmpOut2,'data/cleaned data/respRatePerCtry+source+representative.csv')
+
 write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
 write.csv(tmpOut,'data/cleaned data/outputPerLng.csv')
 ```
@@ -1266,4 +1272,9 @@ dataCreate("RMD63", 63)
 ### RMD64 (Cowden)
 ```{r RMD55, echo=T, warning=F, message=F}
 dataCreate("RMD64", 64)
+```
+
+### RMD65 (Lucas)
+```{r RMD55, echo=T, warning=F, message=F}
+dataCreate("RMD65", 65)
 ```
