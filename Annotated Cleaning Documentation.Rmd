@@ -2951,8 +2951,8 @@ library("lubridate")
                 StartDateBaseline = StartDate,
                 EndDateBaseline = EndDate)
 # download contact lists from qualtrics
-  CL1 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_18_1.csv", header = T)
-  CL2 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_18_2.csv", header = T)
+  CL1 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_19_1.csv", header = T)
+  CL2 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact_19_2.csv", header = T)
   # CL3 <- read.csv("data/collab data/Shared/Data/raw data/contact list/c19Recontact4_4.csv", header = T)
   CL <- plyr::rbind.fill(CL1, CL2)
 # get Unsubscribed column (keep up to date), dataref (for merge), and Email (for comparison with df)
@@ -2967,7 +2967,7 @@ library("lubridate")
 
 # check merge  
   table(CLmerge$EmailDown == CLmerge$Email) # not a big issue
-  CLmerge$Email <- CLmerge$EmailDown #overwrite the original Email with the downloaded one as some change
+  CLmerge$Email <- ifelse(is.na(CLmerge$EmailDown), CLmerge$Email, CLmerge$EmailDown) #overwrite the original Email with the downloaded one as some change BUT ONLY IF not NA (first contact)
   # remove all irrelevant columns
     CLUp <- CLmerge %>%
       dplyr::select(-EmailDown)

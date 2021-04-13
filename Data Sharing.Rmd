@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-03-15 10-44 CET_noLocalization.sav")
+  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-04-13 12-25 CET_noLocalization.sav")
   # dtAllLocal <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
   # dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
   rm(dtAllLocal) 
@@ -105,7 +105,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-03-15 10-44 CET_noLocalization.sav")
+  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-04-13 12-25 CET_noLocalization.sav")
 # Import Harmonized Data
   # dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
@@ -483,20 +483,23 @@ rm(dt, namSPSS, namCSV)
 # how much responses per wave
   tmp <- tmp %>%
     dplyr::select(contains("affAnx"), -contains("DO"))%>%
-     dplyr::mutate_all(~ifelse(is.na(.), 0, 1)) 
+     dplyr::mutate_all(~ifelse(is.na(.), 0, 1))
   tmp$nBoth <- rowSums(tmp[,2:ncol(tmp)])
   tmp$representative <- factor(dtAll$source, 
                                 levels = c(1,2,3,4,5,6,7,8), 
                                 labels = c("No", "No", "No", "No", "No", "Yes", "Yes", "Yes"))
+# seperate date df
+  tmpDate <- dtAll %>%
+    dplyr::select(contains("RecordedDate"))
+  # combine date df and response df
+    tmp <- cbind(tmp, tmpDate)
+
   table(tmp$representative, tmp$nBoth)
   tmpOut2 <- table(tmp$representative, tmp$nBoth, tmp$coded_country)
   tmpOut <- table(tmp$coded_country, tmp$nBoth)
-
-# how much responses  
-# colSums(!is.na(tmp))
   
 # export if needed
-write.csv(tmp,'data/cleaned data/respRatePerCtry+source.csv')
+write.csv(tmp,'data/cleaned data/respRatePerCtry+source+date.csv')
 write.csv(tmpOut2,'data/cleaned data/respRatePerCtry+source+representative.csv')
 
 write.csv(tmpOut,'data/cleaned data/outputPerCtry.csv')
@@ -696,7 +699,8 @@ dataCreate("RMD19", 19)
 ### RMD20 (Agostini)
 ```{r RMD20, echo=T, warning=F, message=T}
 # prepare dataframe
-# dataCreate("RMD20", 20)
+dataCreate("RMD20", 20)
+
 name <- 'RMD20'
 # from here everything is automatic (just need to change the name above)
   author <- namedtReq %>%
