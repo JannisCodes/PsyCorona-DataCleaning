@@ -198,6 +198,8 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w18 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.18", full.names = TRUE, ignore.case = TRUE)) 
   dt0w19 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.19", full.names = TRUE, ignore.case = TRUE)) 
   dt0w20 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.20", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w21 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.21", full.names = TRUE, ignore.case = TRUE)) 
+  dt0w22 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.22", full.names = TRUE, ignore.case = TRUE)) 
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
@@ -240,6 +242,10 @@ notBasew19 <- dt0w19 %>%
   dplyr::select_if(!(names(dt0w19) %in% names(dt0Raw)))
 notBasew20 <- dt0w20 %>%
   dplyr::select_if(!(names(dt0w20) %in% names(dt0Raw)))
+notBasew21 <- dt0w21 %>%
+  dplyr::select_if(!(names(dt0w21) %in% names(dt0Raw)))
+notBasew22 <- dt0w22 %>%
+  dplyr::select_if(!(names(dt0w22) %in% names(dt0Raw)))
 
 cat("Missmatch between wave 1 and baseline:")
 names(notBasew1) %>% # get missmatch names
@@ -420,6 +426,24 @@ names(notBasew20) %>% # get missmatch names
          !grepl("_Count",.), #filter Click Counts
          !grepl("_Submit",.)) #filter Submit
 cat("Looks good"); rm(notBasew20)
+
+cat("Missmatch between wave 21 and baseline:")
+names(notBasew21) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Looks good"); rm(notBasew21)
+
+cat("Missmatch between wave 22 and baseline:")
+names(notBasew22) %>% # get missmatch names
+  data.frame()%>%
+  filter(!grepl("t_",.), #filter timer
+         !grepl("_DO_",.), #filter display order
+         !grepl("_Count",.), #filter Click Counts
+         !grepl("_Submit",.)) #filter Submit
+cat("Looks good"); rm(notBasew22)
 ```
 
 ## **Data Quality**   
@@ -960,6 +984,40 @@ table(progressFilter$out)
 rm(progressFilter, progressCutOff, progressCutOffPerc)
 ```
 
+#### Filter w21: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt0w21 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w21 <- dt0w21 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
+#### Filter w22: Survey Progress
+```{r recSurvProg, echo=T, warning=F, message=F}
+# set time cut-off criterion:
+progressCutOff <- 97 #cut-off criterion in percent
+progressFilter <- dt0w22 %>%
+  dplyr::select(Progress) %>%
+  mutate(out = Progress < progressCutOff)
+table(progressFilter$out)
+(progressCutOffPerc <- round(sum(progressFilter$out)/nrow(progressFilter)*100,2)) # percent of missing data with current cut-off criterion
+
+# throw them out before the merge
+  dt0w22 <- dt0w22 %>%
+  filter(progressFilter$out == F)
+
+rm(progressFilter, progressCutOff, progressCutOffPerc)
+```
+
 ### Recoded Items   
 Re-coding reverse coded items and the Qualtrics language codes.
 ```{r recode, echo=T, warning=F, message=F}
@@ -1128,6 +1186,8 @@ dt5newVars <- dt5newVars %>%
   colnames(dt0w18) <- paste("w18", colnames(dt0w18), sep = "_")
   colnames(dt0w19) <- paste("w19", colnames(dt0w19), sep = "_")
   colnames(dt0w20) <- paste("w20", colnames(dt0w20), sep = "_")
+  colnames(dt0w21) <- paste("w21", colnames(dt0w21), sep = "_")
+  colnames(dt0w22) <- paste("w22", colnames(dt0w22), sep = "_")
 
 # create correct ID for merge across waves from the cleaned datasets
   dt5newVars$mergeID <- as.character(dt5newVars$ResponseId)
@@ -1151,6 +1211,8 @@ dt5newVars <- dt5newVars %>%
   dt0w18$mergeID <- as.character(dt0w18$w18_ExternalReference)
   dt0w19$mergeID <- as.character(dt0w19$w19_ExternalReference)
   dt0w20$mergeID <- as.character(dt0w20$w20_ExternalReference)
+  dt0w21$mergeID <- as.character(dt0w21$w21_ExternalReference)
+  dt0w22$mergeID <- as.character(dt0w22$w22_ExternalReference)
   
 # How many people do not have a merge ID?
   # baseline
@@ -1221,9 +1283,15 @@ cat("How many people do we loose in wave 19 due to missing merge ID:")
 cat("How many people do we loose in wave 20 due to missing merge ID:")
   sum(dt0w20$mergeID == "")
   dt0w20 <- dt0w20[dt0w20$mergeID != "",]
+cat("How many people do we loose in wave 21 due to missing merge ID:")
+  sum(dt0w21$mergeID == "")
+  dt0w21 <- dt0w21[dt0w21$mergeID != "",]
+cat("How many people do we loose in wave 22 due to missing merge ID:")
+  sum(dt0w22$mergeID == "")
+  dt0w22 <- dt0w22[dt0w22$mergeID != "",]
 
 # merge (can also be dt0Raw but for now seperate)
-  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8, dt0w9, dt0w10, dt0w11, dt0w12, dt0w13, dt0w14, dt0w15, dt0w16, dt0w17, dt0w18, dt0w19, dt0w20) %>% #merge multiple dfs at once
+  dt0All <- list(dt5newVars, dt0w1, dt0w2, dt0w3, dt0w4, dt0w5, dt0w6, dt0w7, dt0w8, dt0w9, dt0w10, dt0w11, dt0w12, dt0w13, dt0w14, dt0w15, dt0w16, dt0w17, dt0w18, dt0w19, dt0w20, dt0w21, dt0w22) %>% #merge multiple dfs at once
     Reduce(function(dtf1,dtf2) dplyr::left_join(dtf1,dtf2,by="mergeID"), .) #duplicates if full_join
   
 # problems (weirdly there are some people in wave 1 without a matching response ID (no idea why...))
@@ -1328,6 +1396,16 @@ cat("How many people do not have fitting emails or response IDs in wave 19:")
 cat("How many people do not have fitting emails or response IDs in wave 20:")
   nrow(dt0w20) - sum(dt0All$ICRec_1_TEXT == dt0All$w20_RecipientEmail, na.rm = T)
   nrow(dt0w20) - sum(dt0All$ResponseId == dt0All$w20_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 21:")
+  nrow(dt0w21) - sum(dt0All$ICRec_1_TEXT == dt0All$w21_RecipientEmail, na.rm = T)
+  nrow(dt0w21) - sum(dt0All$ResponseId == dt0All$w21_ExternalReference, na.rm = T)
+  cat("Nobody lost; emails are probably string problems")
+
+cat("How many people do not have fitting emails or response IDs in wave 22:")
+  nrow(dt0w22) - sum(dt0All$ICRec_1_TEXT == dt0All$w22_RecipientEmail, na.rm = T)
+  nrow(dt0w22) - sum(dt0All$ResponseId == dt0All$w22_ExternalReference, na.rm = T)
   cat("Nobody lost; emails are probably string problems")
 
 rm(list=ls(pattern="dt0w"))
@@ -2785,6 +2863,24 @@ dt5newVarsRec <- dt5newVarsRec %>%
   # calc grand mean and sd
     dt5newVars$w20_respSetMean <- rowMeans(tmpdt, na.rm = T)
     dt5newVars$w20_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+    
+# make dataframe for wave 21
+  tmpdt <- dt5newVarsRec %>%
+    dplyr::select(one_of(as.character(varNames[22,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w21_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w21_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
+    
+# make dataframe for wave 22
+  tmpdt <- dt5newVarsRec %>%
+    dplyr::select(one_of(as.character(varNames[23,]))) # get row of var names
+  tmpdt <- apply(tmpdt, 2, scales::rescale, to = c(1,7)) # rescale all of them (apply over columns)
+  
+  # calc grand mean and sd
+    dt5newVars$w22_respSetMean <- rowMeans(tmpdt, na.rm = T)
+    dt5newVars$w22_respSetSd <- rowSds(tmpdt, na.rm = T); rm(tmpdt)
   
   # clean dt (still NaNs?)
   # tmp <- dt5newVars %>%

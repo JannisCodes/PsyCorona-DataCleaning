@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-04-13 12-25 CEST_noLocalization.sav")
+  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-08-03 16-34 CEST_noLocalization.sav")
 # map localization data to responses (only possible until December)
   dtAllLocal <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
   dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
@@ -106,7 +106,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-04-13 12-25 CEST_noLocalization.sav")
+  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-08-03 16-34 CEST_noLocalization.sav")
 # Import Harmonized Data
   # dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
@@ -444,6 +444,24 @@ name <- RMD
               colnames(tmp) <- paste("w20", colnames(tmp), sep = "_") # add string before column name
               data.table::setnames(tmp, "w20_mergCtry", "mergCtry") # we change them back to the merge names
               data.table::setnames(tmp, "w20_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 21
+            dt$mergDate <- as.numeric(paste0(substr(dt$w21_EndDate , 1, 4), substr(dt$w21_EndDate , 6, 7),
+                                                 substr(dt$w21_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w21", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w21_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w21_mergDate", "mergDate") # we change them back to the merge names
+              dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
+          # Wave 22
+            dt$mergDate <- as.numeric(paste0(substr(dt$w22_EndDate , 1, 4), substr(dt$w22_EndDate , 6, 7),
+                                                 substr(dt$w22_EndDate , 9, 10)))
+            # merge
+              tmp <- dtMeta # make temporary df where I can change names without affecting later functions
+              colnames(tmp) <- paste("w22", colnames(tmp), sep = "_") # add string before column name
+              data.table::setnames(tmp, "w22_mergCtry", "mergCtry") # we change them back to the merge names
+              data.table::setnames(tmp, "w22_mergDate", "mergDate") # we change them back to the merge names
               dt <- dplyr::left_join(dt, tmp, by=c("mergCtry","mergDate")); rm(tmp) # and we merge by new date but old ctry
 
           }
@@ -1162,7 +1180,7 @@ name <- 'RMD47'
   filter(coded_country == "United States of America") #this proposal only wants the US
   
 # prepare dataframe for merge
-  mergedt <- haven::read_spss("data/raw data/ZIP/mergedforjannis.sav")
+  mergedt <- haven::read_spss("data/collab data/Shared/Data/raw data/ZIP/mergedforjannis.sav")
   mergedt <- mergedt %>%
     mutate(mergeID = as.character(ZIP))
 # remove duplicate postal codes (requested by Michelle)
