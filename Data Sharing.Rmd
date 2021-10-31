@@ -93,7 +93,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
 #setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Import Qualtrics Survey Data (new but no localization)
-  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-08-03 16-34 CEST_noLocalization.sav")
+  dtAll <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2021-10-28 15-32 UTC_noLocalization.sav")
 # map localization data to responses (only possible until December)
   dtAllLocal <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All 2020-10-25 12-22 CET Region Only.sav") #load old region
   dtAll <- dplyr::left_join(dtAll, dtAllLocal, by = "ResponseId") # merge
@@ -106,7 +106,7 @@ In a first step we import the raw Qualtrics data, which was downloaded as an SPS
     table(dtAll$representative, dtAll$source) # for checking
     
 # Import Harmonized Data (new but no localization)
-  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-08-03 16-34 CEST_noLocalization.sav")
+  dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2021-10-28 15-32 UTC_noLocalization.sav")
 # Import Harmonized Data
   # dtAllHarmo <- haven::read_spss("data/collab data/Shared/Data/cleaned data/Psycorona Baseline cleaned - All Harmonized 2020-10-25 12-22 CET.sav")
   
@@ -1351,4 +1351,9 @@ dataCreate("RMD91", 70)
 ### RMD92 (Bang)
 ```{r RMD66, echo=T, warning=F, message=F}
 dataCreate("RMD92", 92)
+```
+
+### RMD93 (Stroebe)
+```{r RMD66, echo=T, warning=F, message=F}
+dataCreate("RMD93", 93)
 ```

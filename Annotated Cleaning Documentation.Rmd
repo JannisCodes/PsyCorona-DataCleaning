@@ -200,6 +200,7 @@ The raw data set includes `r length(dt0Raw)` variables for `r nrow(dt0Raw)` case
   dt0w20 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.20", full.names = TRUE, ignore.case = TRUE)) 
   dt0w21 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.21", full.names = TRUE, ignore.case = TRUE)) 
   dt0w22 <- haven::read_spss(dir("data/collab data/Shared/Data/raw data", pattern = "Wave.22", full.names = TRUE, ignore.case = TRUE)) 
+  # all studies were redownloaded on 28/10/2021
   
 # prepare dfs before merge (basically naming variables correct)
 notBasew1 <- dt0w1 %>%
