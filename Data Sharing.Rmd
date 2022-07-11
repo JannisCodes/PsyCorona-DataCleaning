@@ -1357,3 +1357,13 @@ dataCreate("RMD92", 92)
 ```{r RMD66, echo=T, warning=F, message=F}
 dataCreate("RMD93", 93)
 ```
+
+### RMD94 (Evi muscus)
+```{r RMD66, echo=T, warning=F, message=F}
+dataCreate("RMD94", 94)
+```
+
+### RMD95 (Joce)
+```{r RMD66, echo=T, warning=F, message=F}
+dataCreate("RMD95", 95)
+```
